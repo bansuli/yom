@@ -65,6 +65,13 @@ a {
   will-change: transform;
 }
 
+.sticker {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+}
+
 .sticker-eye {
   top: 12%;
   left: 6%;
