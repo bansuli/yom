@@ -1,28 +1,64 @@
-import { Link } from 'react-router-dom'
-import {
-  TeePink,
-  TeeYellow,
-  PlaidShirt,
-  TrackJacket,
-  Trousers,
-  MiniSkirt,
-  Sneaker,
-  PinkBag,
-} from '../Stickers'
+import { useNavigate } from 'react-router-dom'
 import { BrowserChrome, PageHeader, TiltedNav } from '../components/Layout'
+import { usePersona } from '../persona'
 
-const PRODUCTS = [
-  { name: 'star tee', price: '48', Icon: TeeYellow, rotate: -8 },
-  { name: 'graphic tee', price: '48', Icon: TeePink, rotate: 6 },
-  { name: 'plaid shirt', price: '78', Icon: PlaidShirt, rotate: -4 },
-  { name: 'track jacket', price: '120', Icon: TrackJacket, rotate: 10 },
-  { name: 'wide trousers', price: '98', Icon: Trousers, rotate: -6 },
-  { name: 'mini skirt', price: '62', Icon: MiniSkirt, rotate: 8 },
-  { name: 'court sneaker', price: '110', Icon: Sneaker, rotate: -12 },
-  { name: 'shoulder bag', price: '85', Icon: PinkBag, rotate: 5 },
+const CLOSETS = [
+  {
+    id: 'polish',
+    label: 'the polish',
+    note: 'coats, bags, nowhere to be late',
+    src: '/closets/minimal.jpg',
+    rotate: -3,
+  },
+  {
+    id: 'loud',
+    label: 'the loud one',
+    note: 'graphic tees & bad decisions',
+    src: '/closets/street.jpg',
+    rotate: 4,
+  },
+  {
+    id: 'boardroom',
+    label: 'the boardroom',
+    note: 'blazers that mean business',
+    src: '/closets/tailored.jpg',
+    rotate: -2,
+  },
+  {
+    id: 'soft-launch',
+    label: 'the soft launch',
+    note: 'florals, slits, sea air',
+    src: '/closets/romantic.jpg',
+    rotate: 3,
+  },
+  {
+    id: 'track-star',
+    label: 'the track star',
+    note: 'athleisure that still turns up',
+    src: '/closets/utility.jpg',
+    rotate: -4,
+  },
+  {
+    id: 'festival',
+    label: 'the festival',
+    note: 'lace, chains, yellow walls',
+    src: '/closets/vintage.jpg',
+    rotate: 5,
+  },
 ]
 
 export default function Shop() {
+  const navigate = useNavigate()
+  const { updatePersona } = usePersona()
+
+  function pick(closet) {
+    updatePersona({
+      closet: closet.id,
+      closetLabel: `${closet.label} — ${closet.note}`,
+    })
+    navigate('/trait')
+  }
+
   return (
     <section className="shop page-screen">
       <BrowserChrome path="yom.studio/shop" />
@@ -30,26 +66,26 @@ export default function Shop() {
       <PageHeader />
 
       <div className="shop-intro">
-        <h1 className="page-title">
-          <span className="tilt-down">the</span>
-          <span className="tilt-up">drop</span>
+        <h1 className="page-title closet-title">
+          pick the closet you’d steal
         </h1>
-        <p className="page-sub">SS26 · short runs · leftover mill stock</p>
       </div>
 
-      <ul className="product-grid">
-        {PRODUCTS.map(({ name, price, Icon, rotate }) => (
-          <li key={name} className="product">
-            <Link to="/cart" className="product-link">
-              <span
-                className="product-icon-wrap"
-                style={{ transform: `rotate(${rotate}deg)` }}
-              >
-                <Icon className="product-icon" />
-              </span>
-              <span className="product-name">{name}</span>
-              <span className="product-price">${price}</span>
-            </Link>
+      <ul className="closet-grid">
+        {CLOSETS.map((closet) => (
+          <li key={closet.id} className="closet">
+            <button
+              type="button"
+              className="closet-link"
+              style={{ '--tilt': `${closet.rotate}deg` }}
+              onClick={() => pick(closet)}
+            >
+              <figure className="closet-frame">
+                <img src={closet.src} alt="" className="closet-img" />
+              </figure>
+              <span className="closet-label">{closet.label}</span>
+              <span className="closet-note">{closet.note}</span>
+            </button>
           </li>
         ))}
       </ul>

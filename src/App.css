@@ -21,7 +21,7 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 body {
@@ -743,7 +743,7 @@ a {
   color: var(--muted);
 }
 
-/* ── Shop ── */
+/* ── Shop / closets ── */
 .shop,
 .lookbook,
 .archive,
@@ -752,6 +752,207 @@ a {
   position: relative;
   background: var(--cream);
   padding: 0 clamp(1.25rem, 4vw, 3.5rem) 4rem;
+}
+
+.closet-title {
+  max-width: 18rem;
+  margin: 0 auto;
+  font-size: clamp(1.5rem, 4vw, 2.4rem);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.closet-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 2.5vw, 2rem);
+  max-width: 980px;
+  margin: 0 auto;
+  padding-bottom: 2rem;
+}
+
+.closet-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.25s ease;
+}
+
+.closet-link:hover {
+  transform: rotate(var(--tilt, 0deg)) scale(1.04);
+}
+
+.closet-frame {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1.5px solid var(--ink);
+  background: #fff;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.closet-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.closet-link:hover .closet-img {
+  transform: scale(1.05);
+}
+
+.closet-label {
+  font-family: var(--font-hand);
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.closet-note {
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  max-width: 12rem;
+  line-height: 1.35;
+}
+
+/* ── Toxic trait ── */
+.trait {
+  position: relative;
+  background: var(--cream);
+  padding: 0 clamp(1.25rem, 4vw, 3.5rem) 4rem;
+}
+
+.trait-list {
+  list-style: none;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-bottom: 3rem;
+}
+
+.trait-link {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.2s ease, background 0.2s ease;
+  animation: trait-in 0.45s ease both;
+  animation-delay: var(--delay, 0s);
+}
+
+.trait-link:hover {
+  background: var(--lime);
+  transform: rotate(var(--tilt, 0deg)) scale(1.03);
+}
+
+.trait-icon-wrap {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  mix-blend-mode: multiply;
+}
+
+.trait-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.trait-label {
+  font-family: var(--font-hand);
+  font-size: clamp(1.15rem, 2.8vw, 1.45rem);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: left;
+}
+
+@keyframes trait-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.weakness-grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}
+
+.weakness-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1.25rem 0.75rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.2s ease, background 0.2s ease;
+  animation: trait-in 0.45s ease both;
+  animation-delay: var(--delay, 0s);
+}
+
+.weakness-card:hover {
+  background: var(--lime);
+  transform: rotate(var(--tilt, 0deg)) scale(1.04);
+}
+
+.weakness-icon-wrap {
+  width: 72px;
+  height: 72px;
+  mix-blend-mode: multiply;
+}
+
+.weakness-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.weakness-label {
+  font-family: var(--font-hand);
+  font-size: clamp(1.1rem, 2.4vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
 }
 
 .product-grid {
@@ -1005,6 +1206,14 @@ a {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .closet-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .weakness-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .fit-tee-yel,
   .fit-necklace,
   .fit-sock,
@@ -1040,6 +1249,11 @@ a {
   .steps {
     grid-template-columns: 1fr;
     gap: 2.5rem;
+  }
+
+  .closet-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 0.85rem;
   }
 
   .index-row {
