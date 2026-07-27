@@ -17,11 +17,11 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
+        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (

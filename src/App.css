@@ -87,17 +87,6 @@ a {
 }
 
 /* ── Product image stickers ── */
-.prod-sneaker,
-.prod-shirt,
-.prod-cardigan,
-.prod-tabi,
-.prod-tank,
-.idx-sneaker,
-.idx-cardigan,
-.idx-tank,
-.idx-tabi {
-  mix-blend-mode: multiply;
-}
 
 .prod-sneaker {
   left: 1031px;
