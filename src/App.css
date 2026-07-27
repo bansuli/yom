@@ -1,3 +1,10 @@
+@font-face {
+  font-family: '080203';
+  src: url('/080203Fenotype.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
   --paper: #ffffff;
   --paper-deep: #ffffff;
@@ -7,7 +14,7 @@
   --muted: #5a5a5a;
 
   --font-display: 'Archivo Black', 'Arial Black', sans-serif;
-  --font-brand: 'Instrument Serif', Georgia, serif;
+  --font-brand: '080203', sans-serif;
   --font-hand: 'Caveat', cursive;
   --font-body: 'Schibsted Grotesk', 'Helvetica Neue', sans-serif;
 }
@@ -58,139 +65,70 @@ a {
   will-change: transform;
 }
 
-.fit-tee-pink {
+.sticker-eye {
   top: 12%;
   left: 6%;
   width: 110px;
   transform: rotate(-18deg);
 }
 
-.fit-trousers {
-  top: 28%;
-  left: 14%;
-  width: 88px;
-  transform: rotate(8deg);
-}
-
-.fit-plaid {
-  top: 8%;
-  right: 10%;
-  width: 120px;
-  transform: rotate(12deg);
-}
-
-.fit-sneaker {
-  bottom: 14%;
-  left: 8%;
-  width: 130px;
-  transform: rotate(-22deg);
-}
-
-.fit-bag {
-  top: 42%;
-  right: 8%;
-  width: 78px;
-  transform: rotate(15deg);
-}
-
-.fit-jacket {
-  bottom: 18%;
-  right: 16%;
-  width: 115px;
-  transform: rotate(-8deg);
-}
-
-.fit-skirt {
-  top: 55%;
-  left: 28%;
-  width: 85px;
-  transform: rotate(-12deg);
-}
-
-.fit-tee-yel {
-  top: 18%;
-  left: 38%;
-  width: 70px;
-  transform: rotate(20deg);
-  opacity: 0.75;
-}
-
-.fit-watch {
-  top: 48%;
-  left: 5%;
-  width: 42px;
-  transform: rotate(-25deg);
-}
-
-.fit-sock {
+.sticker-scissors {
   bottom: 28%;
-  right: 36%;
+  right: 42%;
   width: 48px;
-  transform: rotate(30deg);
+  transform: rotate(20deg);
 }
 
-.fit-glasses {
-  top: 14%;
-  right: 32%;
-  width: 90px;
-  transform: rotate(-8deg);
+/* ── Product image stickers ── */
+.prod-sneaker,
+.prod-shirt,
+.prod-cardigan,
+.prod-tabi,
+.prod-tank,
+.idx-sneaker,
+.idx-cardigan,
+.idx-tank,
+.idx-tabi {
+  mix-blend-mode: multiply;
 }
 
-.fit-necklace {
-  bottom: 12%;
-  left: 40%;
-  width: 70px;
-  transform: rotate(5deg);
+.prod-sneaker {
+  left: 1031px;
+  top: -63px;
+  right: auto;
+  bottom: auto;
+  width: 400px;
+  transform: rotate(9deg);
 }
 
-/* Index section placements */
-.idx-tee {
-  top: 8%;
-  right: 6%;
-  width: 95px;
-  transform: rotate(14deg);
-}
-
-.idx-pants {
-  bottom: 10%;
-  left: 4%;
-  width: 70px;
-  transform: rotate(-10deg);
-}
-
-.idx-shoe {
-  top: 40%;
-  right: 4%;
-  width: 110px;
-  transform: rotate(18deg);
-}
-
-.idx-bag {
-  top: 12%;
-  left: 5%;
-  width: 70px;
+.prod-shirt {
+  bottom: 4%;
+  left: -3%;
+  width: 360px;
   transform: rotate(-16deg);
 }
 
-.idx-glasses {
-  bottom: 22%;
-  right: 28%;
-  width: 80px;
-  transform: rotate(6deg);
+.prod-cardigan {
+  top: 10%;
+  left: -3%;
+  width: 360px;
+  transform: rotate(-7deg);
 }
 
-.idx-sock {
-  top: 55%;
-  left: 38%;
-  width: 40px;
-  transform: rotate(-28deg);
+.prod-tabi {
+  bottom: 3%;
+  right: -3%;
+  width: 330px;
+  transform: rotate(13deg);
 }
 
-.idx-skirt {
-  bottom: 8%;
-  right: 8%;
-  width: 75px;
-  transform: rotate(10deg);
+.prod-tank {
+  left: 966px;
+  top: 437px;
+  right: auto;
+  bottom: auto;
+  width: 240px;
+  transform: rotate(-11deg);
 }
 
 /* ── Motion ── */
@@ -233,6 +171,25 @@ a {
   min-height: 100dvh;
   overflow: hidden;
   isolation: isolate;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
+  background-size: 13px 13px;
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+  opacity: 0.5;
 }
 
 .browser-chrome {
@@ -405,13 +362,14 @@ a {
 .brand {
   font-family: var(--font-brand);
   font-size: clamp(4.5rem, 14vw, 9rem);
-  font-weight: 400;
+  font-weight: 900;
   line-height: 0.9;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   display: flex;
   align-items: baseline;
   gap: 0.02em;
 }
+
 
 .brand-o {
   font-style: italic;
@@ -419,18 +377,6 @@ a {
   display: inline-block;
 }
 
-/* nucleus-style O like Jiggling Atoms */
-.brand-o::after {
-  content: '';
-  position: absolute;
-  width: 0.18em;
-  height: 0.18em;
-  border-radius: 50%;
-  background: var(--ink);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
 
 .wavy-line {
   width: min(280px, 55vw);
@@ -444,6 +390,7 @@ a {
   font-size: clamp(1.1rem, 2.8vw, 1.65rem);
   max-width: 22rem;
   line-height: 1.35;
+  margin-top: 1.8rem;
   margin-bottom: 1.5rem;
 }
 
@@ -697,6 +644,34 @@ a {
   text-transform: uppercase;
   justify-self: start;
   align-self: center;
+}
+
+.idx-sneaker {
+  top: 4%;
+  right: 3%;
+  width: 200px;
+  transform: rotate(11deg);
+}
+
+.idx-cardigan {
+  bottom: 8%;
+  left: -2%;
+  width: 185px;
+  transform: rotate(-10deg);
+}
+
+.idx-tank {
+  top: 50%;
+  left: 38%;
+  width: 130px;
+  transform: rotate(6deg);
+}
+
+.idx-tabi {
+  bottom: 6%;
+  right: -2%;
+  width: 165px;
+  transform: rotate(-13deg);
 }
 
 .index-foot {
@@ -1214,12 +1189,11 @@ a {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .fit-tee-yel,
-  .fit-necklace,
-  .fit-sock,
-  .fit-watch,
-  .idx-sock,
-  .idx-glasses {
+  .prod-shirt,
+  .prod-tabi,
+  .sticker-scissors,
+  .idx-tabi,
+  .idx-tank {
     display: none;
   }
 
@@ -1263,25 +1237,16 @@ a {
     padding: 0.85rem 0;
   }
 
-  .fit-plaid,
-  .fit-skirt,
-  .fit-jacket,
-  .fit-glasses,
-  .idx-skirt,
-  .idx-shoe {
+  .sticker-eye,
+  .sticker-spiral,
+  .idx-sneaker,
+  .idx-cardigan {
     display: none;
   }
 
-  .fit-tee-pink,
-  .fit-trousers,
-  .fit-sneaker,
-  .fit-bag {
-    width: 72px;
-  }
-
-  .fit-sneaker {
-    width: 90px;
-  }
+  .prod-sneaker { width: 120px; }
+  .prod-tank { width: 75px; }
+  .prod-cardigan { width: 110px; }
 
   .url-bar {
     max-width: 160px;
