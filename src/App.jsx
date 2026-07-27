@@ -1,4 +1,3 @@
-import { EditProvider, DraggableImg, EditButton } from './DragEditor'
 import sneakerImg from './assets/product-sneaker.webp'
 import shirtImg from './assets/product-shirt.webp'
 import cardiganImg from './assets/product-cardigan.webp'
@@ -18,11 +17,11 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <DraggableImg src={sneakerImg} prodClass="prod-sneaker" />
-        <DraggableImg src={shirtImg} prodClass="prod-shirt" />
-        <DraggableImg src={cardiganImg} prodClass="prod-cardigan" />
-        <DraggableImg src={tabiImg} prodClass="prod-tabi" />
-        <DraggableImg src={tankImg} prodClass="prod-tank" />
+        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
+        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
+        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
+        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
+        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (
@@ -57,13 +56,4 @@ function App() {
   )
 }
 
-function AppWithEditor() {
-  return (
-    <EditProvider>
-      <App />
-      <EditButton />
-    </EditProvider>
-  )
-}
-
-export default AppWithEditor
+export default App
