@@ -3,6 +3,7 @@ import shirtImg from './assets/product-shirt.webp'
 import cardiganImg from './assets/product-cardigan.webp'
 import tabiImg from './assets/product-tabi.jpg'
 import tankImg from './assets/product-tank.jpg'
+import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE.webp'
 import './App.css'
 
 const NAV = [
@@ -22,6 +23,7 @@ function App() {
         <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
         <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
         <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
+        <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.6)' }} /></div>
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (

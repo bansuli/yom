@@ -110,14 +110,14 @@ a {
 
 .prod-shirt {
   bottom: 4%;
-  left: -3%;
+  left: -1.5%;
   width: 360px;
   transform: rotate(-16deg);
 }
 
 .prod-cardigan {
   top: 10%;
-  left: -3%;
+  left: -1.5%;
   width: 360px;
   transform: rotate(-7deg);
 }
@@ -136,6 +136,14 @@ a {
   bottom: auto;
   width: 240px;
   transform: rotate(-11deg);
+}
+
+.prod-pants {
+  left: 10%;
+  bottom: -5%;
+  width: 320px;
+  transform: rotate(8deg);
+  mix-blend-mode: multiply;
 }
 
 /* ── Motion ── */
