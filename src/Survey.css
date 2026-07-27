@@ -1,0 +1,93 @@
+.survey-hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  padding: 4rem 2rem;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.survey-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
+  background-size: 13px 13px;
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+  opacity: 0.5;
+}
+
+.survey-q {
+  position: relative;
+  z-index: 1;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 4vw, 2.8rem);
+  text-align: center;
+  line-height: 1.2;
+  max-width: 600px;
+}
+
+.swipe-card {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.swipe-card:active {
+  cursor: grabbing;
+}
+
+.swipe-card.swipe-left {
+  transform: translateX(-120%) rotate(-12deg);
+  opacity: 0;
+}
+
+.swipe-card.swipe-right {
+  transform: translateX(120%) rotate(12deg);
+  opacity: 0;
+}
+
+.swipe-card img {
+  width: 280px;
+  height: 360px;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+.swipe-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.side-hint {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ccc;
+  width: 2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
