@@ -1,0 +1,158 @@
+.hiw-page {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+}
+
+.hiw-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
+  background-size: 13px 13px;
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+  opacity: 0.45;
+}
+
+.hiw-wrap {
+  position: relative;
+  z-index: 1;
+  padding: 4rem 8vw 6rem;
+}
+
+.hiw-back {
+  position: fixed;
+  top: 1.5rem;
+  left: 2rem;
+  z-index: 9999;
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #111;
+  text-decoration: none;
+}
+
+.hiw-back:hover {
+  opacity: 0.5;
+}
+
+.hiw-title {
+  font-family: var(--font-brand);
+  font-size: clamp(2.4rem, 6vw, 4.5rem);
+  font-weight: 400;
+  color: #111;
+  line-height: 1;
+  text-align: center;
+  margin: 0 0 1.25rem;
+}
+
+.hiw-intro {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: #111;
+  line-height: 1.6;
+  margin: 0 0 4rem;
+}
+
+.hiw-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3rem 4rem;
+}
+
+.hiw-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.hiw-step-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 0.5rem;
+}
+
+.hiw-step-num {
+  font-family: var(--font-brand);
+  font-size: clamp(4rem, 7vw, 7rem);
+  font-weight: 400;
+  color: #111;
+  line-height: 1;
+  -webkit-text-stroke: 4px #111;
+  paint-order: stroke fill;
+}
+
+.hiw-step-title {
+  font-family: var(--font-display);
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  font-weight: 900;
+  color: #111;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.hiw-step-lead {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #111;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.hiw-step-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hiw-step-list li {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #111;
+  line-height: 1.5;
+  padding-left: 1.1rem;
+  position: relative;
+}
+
+.hiw-step-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: #111;
+  font-size: 0.8rem;
+  top: 0.15em;
+}
+
+.hiw-step-body {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #111;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.hiw-step-footer {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+  line-height: 1.55;
+  margin: 0.25rem 0 0;
+}

@@ -130,8 +130,8 @@ a {
 }
 
 .prod-tank {
-  left: 966px;
-  top: 437px;
+  left: 1026px;
+  top: 397px;
   right: auto;
   bottom: auto;
   width: 240px;
@@ -371,6 +371,25 @@ a {
 
 .nav-pill:hover {
   transform: rotate(var(--angle, -4deg)) scale(1.04);
+}
+
+.nav-pill-waitlist {
+  animation: jiggle 2.4s ease-in-out infinite;
+}
+
+.nav-pill-waitlist:hover {
+  animation-play-state: paused;
+}
+
+@keyframes jiggle {
+  0%, 60%, 100% { transform: rotate(var(--angle, -1deg)) translate(0, 0); }
+  63%  { transform: rotate(calc(var(--angle, -1deg) + 6deg)) translate(2px, -2px); }
+  66%  { transform: rotate(calc(var(--angle, -1deg) - 5deg)) translate(-2px, 2px); }
+  69%  { transform: rotate(calc(var(--angle, -1deg) + 4deg)) translate(2px, -1px); }
+  72%  { transform: rotate(calc(var(--angle, -1deg) - 3deg)) translate(-2px, 1px); }
+  75%  { transform: rotate(calc(var(--angle, -1deg) + 2deg)) translate(1px, -1px); }
+  78%  { transform: rotate(calc(var(--angle, -1deg) - 1deg)) translate(-1px, 0); }
+  81%  { transform: rotate(var(--angle, -1deg)) translate(0, 0); }
 }
 
 /* Center brand cluster */
@@ -1280,9 +1299,43 @@ a {
     display: none;
   }
 
-  .prod-sneaker { width: 120px; }
-  .prod-tank { width: 75px; }
-  .prod-cardigan { width: 110px; }
+  /* Hide items that crowd the center on mobile */
+  .prod-extra,
+  .prod-tank,
+  .prod-bag {
+    display: none;
+  }
+
+  /* Reposition items to peek from sides like on desktop */
+  .prod-cardigan {
+    left: -8%;
+    top: 8%;
+    width: 140px;
+    transform: rotate(-7deg);
+  }
+
+  .prod-sneaker {
+    left: auto;
+    right: -8%;
+    top: 10%;
+    width: 140px;
+    transform: rotate(9deg);
+  }
+
+  .prod-pants {
+    left: -5%;
+    bottom: -2%;
+    width: 160px;
+    transform: rotate(8deg);
+  }
+
+  .prod-tabi {
+    display: block;
+    bottom: 3%;
+    right: -5%;
+    width: 130px;
+    transform: rotate(13deg);
+  }
 
   .url-bar {
     max-width: 160px;
@@ -1296,4 +1349,146 @@ a {
   .bob {
     animation: none;
   }
+}
+
+/* ── Waitlist modal ── */
+
+.waitlist-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.waitlist-modal {
+  position: relative;
+  background: #fff;
+  border: 2px solid #111;
+  box-shadow: 5px 6px 0 #111;
+  padding: 2.5rem 2.75rem 2.25rem;
+  max-width: 440px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.waitlist-eyebrow {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #111;
+  margin: 0;
+}
+
+.waitlist-headline {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: #111;
+  margin: 0;
+}
+
+.waitlist-body {
+  font-family: 'Archivo', var(--font-body);
+  font-size: 1rem;
+  font-weight: 400;
+  color: #111;
+  line-height: 1.6;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.waitlist-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.waitlist-input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid #111;
+  background: #fff;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: #111;
+  outline: none;
+  border-radius: 0;
+}
+
+.waitlist-input:focus {
+  box-shadow: 2px 2px 0 #111;
+}
+
+.waitlist-input::placeholder {
+  color: #aaa;
+}
+
+.waitlist-cta {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 0.8rem 1.75rem;
+  background: #111;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.waitlist-cta:hover {
+  background: #333;
+}
+
+.waitlist-nudge {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.waitlist-nudge p {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.waitlist-trip-link {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.waitlist-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #111;
+  padding: 0.25rem;
+  line-height: 1;
+  opacity: 0.5;
 }

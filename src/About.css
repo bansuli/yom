@@ -1,0 +1,137 @@
+.about-page {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.about-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
+  background-size: 13px 13px;
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  mask-image:
+    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
+    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
+  opacity: 0.45;
+}
+
+.about-back {
+  position: fixed;
+  top: 1.5rem;
+  left: 2rem;
+  z-index: 9999;
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #111;
+  text-decoration: none;
+}
+
+.about-back:hover {
+  opacity: 0.5;
+}
+
+.about-title {
+  position: absolute;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  font-family: var(--font-brand);
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  font-weight: 400;
+  color: #111;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Draggable windows ── */
+
+.about-window {
+  position: absolute;
+  width: 280px;
+  background: #fff;
+  border: 1.5px solid #111;
+  box-shadow: 3px 4px 0 #111;
+  cursor: default;
+  will-change: transform;
+}
+
+.about-window-bar {
+  padding: 0.6rem 0.85rem;
+  background: #111;
+  border-bottom: 1.5px solid #111;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.about-window-bar:active {
+  cursor: grabbing;
+}
+
+.about-window-title {
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  display: block;
+}
+
+.about-window-body {
+  padding: 1rem 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  text-align: center;
+  align-items: center;
+}
+
+.about-names {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
+
+.about-body {
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #111;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.about-closer {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.about-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.about-list li {
+  font-family: 'Archivo', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: #111;
+  line-height: 1.45;
+}

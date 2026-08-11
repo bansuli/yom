@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState } from 'react'
 import sneakerImg from './assets/product-sneaker.webp'
 import shirtImg from './assets/product-shirt.webp'
 import cardiganImg from './assets/product-cardigan.webp'
@@ -12,10 +13,25 @@ import './App.css'
 const NAV = [
   { label: 'about', angle: -3 },
   { label: 'how it works', angle: 2 },
-  { label: 'sign up', angle: -1 },
+  { label: 'join waitlist', angle: -1 },
 ]
 
 function App() {
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+
+  const closeModal = () => {
+    setWaitlistOpen(false)
+    setEmail('')
+    setSubmitted(false)
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (email) setSubmitted(true)
+  }
+
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
@@ -30,14 +46,44 @@ function App() {
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (
-            <a
-              key={item.label}
-              href={`#${item.label.toLowerCase()}`}
-              className="nav-pill"
-              style={{ '--angle': `${item.angle}deg` }}
-            >
-              {item.label}
-            </a>
+            item.label === 'about' ? (
+              <Link
+                key={item.label}
+                to="/about"
+                className="nav-pill"
+                style={{ '--angle': `${item.angle}deg` }}
+              >
+                {item.label}
+              </Link>
+            ) : item.label === 'how it works' ? (
+              <Link
+                key={item.label}
+                to="/how-it-works"
+                className="nav-pill"
+                style={{ '--angle': `${item.angle}deg` }}
+              >
+                {item.label}
+              </Link>
+            ) : item.label === 'join waitlist' ? (
+              <a
+                key={item.label}
+                href="#waitlist"
+                className="nav-pill nav-pill-waitlist"
+                style={{ '--angle': `${item.angle}deg` }}
+                onClick={e => { e.preventDefault(); setWaitlistOpen(true) }}
+              >
+                {item.label}
+              </a>
+            ) : (
+              <a
+                key={item.label}
+                href={`#${item.label.toLowerCase().replace(/ /g, '-')}`}
+                className="nav-pill"
+                style={{ '--angle': `${item.angle}deg` }}
+              >
+                {item.label}
+              </a>
+            )
           ))}
         </nav>
 
@@ -48,7 +94,7 @@ function App() {
             <span className="brand-m">m</span>
           </p>
           <h1 className="hero-line">
-            let's see if we'd survive a shopping trip together
+            let's go on a shopping trip together
           </h1>
           <div className="cta-row">
             <Link className="cta cta-primary" to="/survey">
@@ -57,6 +103,45 @@ function App() {
           </div>
         </div>
       </section>
+
+      {waitlistOpen && (
+        <div className="waitlist-overlay" onClick={closeModal}>
+          <div className="waitlist-modal" onClick={e => e.stopPropagation()}>
+            <button className="waitlist-close" onClick={closeModal}>✕</button>
+
+            {!submitted ? (
+              <>
+                <h2 className="waitlist-headline">join the waitlist.</h2>
+                <p className="waitlist-body">be first to know when yom is ready for you.</p>
+                <form className="waitlist-form" onSubmit={handleSubmit}>
+                  <input
+                    type="email"
+                    className="waitlist-input"
+                    placeholder="your email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                  <button type="submit" className="waitlist-cta">join →</button>
+                </form>
+                <div className="waitlist-nudge">
+                  <p>don&rsquo;t forget — take yom on a shopping trip too. that&rsquo;s how yom actually learns about you.</p>
+                  <Link to="/survey" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="waitlist-headline">you&rsquo;re on the list.</h2>
+                <p className="waitlist-body">we&rsquo;ll be in touch when yom is ready for you.</p>
+                <div className="waitlist-nudge">
+                  <p>now — take yom on a shopping trip. that&rsquo;s how yom gets to know you before we launch.</p>
+                  <Link to="/survey" className="waitlist-cta" onClick={closeModal}>take yom shopping →</Link>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
