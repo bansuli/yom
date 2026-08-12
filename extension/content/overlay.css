@@ -1,0 +1,547 @@
+/* yom companion on live Reformation — brand from youryom.com */
+
+:root,
+#yom-root {
+  --yom-paper: #ffffff;
+  --yom-ink: #111111;
+  --yom-lime: #c8f060;
+  --yom-muted: #5a5a5a;
+  --yom-warn: #f3d27a;
+  --yom-font-display: "Archivo Black", "Arial Black", sans-serif;
+  --yom-font-hand: "Caveat", cursive;
+  --yom-font-body: "Schibsted Grotesk", "Helvetica Neue", system-ui, sans-serif;
+}
+
+#yom-root {
+  all: initial;
+  font-family: var(--yom-font-body);
+  color: var(--yom-ink);
+  position: relative;
+  z-index: 2147483000;
+  /* re-declare after `all: initial` resets custom props on this node */
+  --yom-paper: #ffffff;
+  --yom-ink: #111111;
+  --yom-lime: #c8f060;
+  --yom-muted: #5a5a5a;
+  --yom-warn: #f3d27a;
+  --yom-font-display: "Archivo Black", "Arial Black", sans-serif;
+  --yom-font-hand: "Caveat", cursive;
+  --yom-font-body: "Schibsted Grotesk", "Helvetica Neue", system-ui, sans-serif;
+}
+
+#yom-root *,
+#yom-root *::before,
+#yom-root *::after {
+  box-sizing: border-box;
+}
+
+/* ── floating character ── */
+.yom-buddy {
+  position: fixed;
+  z-index: 2147483646;
+  width: 64px;
+  height: 64px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    left 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
+    top 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
+    transform 0.35s cubic-bezier(0.22, 1.4, 0.36, 1);
+  filter: drop-shadow(3px 4px 0 color-mix(in srgb, var(--yom-ink) 14%, transparent));
+}
+
+.yom-buddy img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.yom-buddy.docked {
+  animation: yom-idle 2.8s ease-in-out infinite;
+}
+
+.yom-buddy.pop {
+  animation: yom-pop-in 0.45s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+.yom-buddy.notice {
+  animation: yom-notice 0.7s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+
+.yom-buddy.listening .yom-buddy-ring {
+  opacity: 1;
+}
+
+.yom-buddy-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--yom-lime);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+@keyframes yom-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-7px) rotate(2deg);
+  }
+}
+
+@keyframes yom-pop-in {
+  0% {
+    transform: scale(0.4) rotate(-12deg);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.12) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes yom-notice {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  30% {
+    transform: scale(1.18) rotate(-8deg);
+  }
+  60% {
+    transform: scale(0.96) rotate(6deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* speech bubble attached near buddy via fixed coords */
+.yom-speech {
+  position: fixed;
+  z-index: 2147483645;
+  width: min(280px, calc(100vw - 1.5rem));
+  background: var(--yom-paper);
+  border: 1.5px solid var(--yom-ink);
+  border-radius: 16px;
+  padding: 0.75rem 0.85rem 0.8rem;
+  font-family: var(--yom-font-body);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--yom-ink) 12%, transparent);
+  animation: yom-speech-in 0.28s ease-out;
+}
+
+.yom-speech::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--yom-paper);
+  border-right: 1.5px solid var(--yom-ink);
+  border-bottom: 1.5px solid var(--yom-ink);
+  transform: rotate(45deg);
+}
+
+.yom-speech.tail-left::after {
+  left: -7px;
+  top: 22px;
+}
+
+.yom-speech.tail-right::after {
+  right: -7px;
+  top: 22px;
+}
+
+.yom-speech.tail-bottom::after {
+  left: 28px;
+  bottom: -7px;
+}
+
+@keyframes yom-speech-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.yom-speech-kicker {
+  font-family: var(--yom-font-hand);
+  font-size: 1.05rem;
+  color: var(--yom-muted);
+  margin-bottom: 0.1rem;
+}
+
+.yom-speech h3 {
+  margin: 0 0 0.28rem;
+  font-size: 0.98rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.yom-speech p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--yom-muted);
+  line-height: 1.35;
+}
+
+.yom-speech-closet {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, var(--yom-ink) 12%, transparent);
+}
+
+.yom-speech-closet img {
+  width: 52px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--yom-ink) 20%, transparent);
+}
+
+.yom-speech-closet strong {
+  display: block;
+  font-size: 0.8rem;
+}
+
+.yom-speech-closet span {
+  font-size: 0.72rem;
+  color: var(--yom-muted);
+}
+
+.yom-speech-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.yom-resolve {
+  background: color-mix(in srgb, var(--yom-lime) 35%, #fff);
+  border-radius: 10px;
+  padding: 0.55rem 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  margin-top: 0.55rem;
+}
+
+.yom-alts {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.55rem 0 0.2rem;
+}
+
+.yom-alt {
+  border: 1px solid color-mix(in srgb, var(--yom-ink) 18%, transparent);
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.yom-alt strong {
+  display: block;
+}
+
+.yom-alt span {
+  color: var(--yom-muted);
+}
+
+/* mode pill under docked buddy */
+.yom-mode-pill {
+  position: fixed;
+  z-index: 2147483644;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1.5px solid var(--yom-ink);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem 0.28rem 0.35rem;
+  font-family: var(--yom-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--yom-ink) 10%, transparent);
+  transition: left 0.55s cubic-bezier(0.22, 1.2, 0.36, 1), top 0.55s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.yom-mode-pill .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yom-lime);
+}
+
+.yom-mode-pill.purpose .dot {
+  background: var(--yom-ink);
+}
+
+.yom-mode-pill.hidden {
+  display: none;
+}
+
+/* onboarding / context */
+.yom-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: color-mix(in srgb, var(--yom-ink) 32%, transparent);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@media (min-width: 720px) {
+  .yom-modal-backdrop {
+    align-items: center;
+  }
+}
+
+.yom-modal {
+  width: min(380px, 100%);
+  background: var(--yom-paper);
+  border: 1.5px solid var(--yom-ink);
+  border-radius: 20px;
+  padding: 1.2rem 1.15rem 1.1rem;
+  box-shadow: 8px 8px 0 color-mix(in srgb, var(--yom-ink) 12%, transparent);
+  font-family: var(--yom-font-body);
+  animation: yom-speech-in 0.25s ease-out;
+}
+
+.yom-modal-char {
+  width: 56px;
+  height: 56px;
+  margin: -0.2rem 0 0.55rem;
+}
+
+.yom-modal h2 {
+  font-family: var(--yom-font-display);
+  font-size: 1.55rem;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.3rem;
+}
+
+.yom-modal > p {
+  margin: 0 0 0.95rem;
+  color: var(--yom-muted);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.yom-choice {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.yom-choice button,
+.yom-event {
+  border: 1.5px solid var(--yom-ink);
+  background: #fff;
+  color: var(--yom-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  border-radius: 14px;
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+}
+
+.yom-choice button:hover,
+.yom-choice button.selected,
+.yom-event:hover,
+.yom-event.selected {
+  background: var(--yom-lime);
+}
+
+.yom-event small {
+  display: block;
+  margin-top: 0.2rem;
+  font-weight: 500;
+  color: var(--yom-muted);
+  font-size: 0.78rem;
+}
+
+.yom-field {
+  margin-top: 0.85rem;
+}
+
+.yom-field label {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--yom-muted);
+  margin-bottom: 0.35rem;
+}
+
+.yom-field select,
+.yom-field input {
+  width: 100%;
+  border: 1.5px solid var(--yom-ink);
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+  background: #fff;
+}
+
+.yom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.95rem;
+}
+
+.yom-btn {
+  border: 1.5px solid var(--yom-ink);
+  background: var(--yom-lime);
+  color: var(--yom-ink);
+  font: inherit;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.yom-btn.ghost {
+  background: #fff;
+  font-weight: 600;
+}
+
+.yom-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.yom-panel {
+  position: fixed;
+  right: 1rem;
+  bottom: 5.5rem;
+  z-index: 2147483645;
+  width: min(300px, calc(100vw - 2rem));
+  background: var(--yom-paper);
+  border: 1.5px solid var(--yom-ink);
+  border-radius: 16px;
+  padding: 0.9rem 0.95rem;
+  font-family: var(--yom-font-body);
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--yom-ink) 14%, transparent);
+}
+
+.yom-panel.hidden {
+  display: none;
+}
+
+.yom-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.yom-panel-head strong {
+  font-family: var(--yom-font-display);
+  font-size: 1.1rem;
+}
+
+.yom-panel-head button {
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  color: var(--yom-muted);
+}
+
+.yom-meta {
+  font-size: 0.78rem;
+  color: var(--yom-muted);
+  margin: 0.35rem 0 0.55rem;
+}
+
+.yom-budget-flag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  background: color-mix(in srgb, var(--yom-warn) 92%, #fff);
+  border: 1px solid var(--yom-ink);
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-family: var(--yom-font-body);
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--yom-ink) 10%, transparent);
+}
+
+.yom-cart-panel {
+  margin: 1rem 0;
+  border: 1.5px solid var(--yom-ink);
+  border-radius: 14px;
+  padding: 0.9rem;
+  background:
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--yom-lime) 45%, transparent), transparent 45%),
+    #fff;
+  font-family: var(--yom-font-body);
+}
+
+.yom-cart-panel h3 {
+  font-family: var(--yom-font-display);
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+}
+
+.yom-cart-panel > p {
+  margin: 0 0 0.75rem;
+  color: var(--yom-muted);
+  font-size: 0.88rem;
+}
+
+.yom-keep-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--yom-ink) 10%, transparent);
+}
+
+.yom-keep-row:first-of-type {
+  border-top: none;
+}
+
+.yom-keep-score {
+  font-family: var(--yom-font-display);
+  font-size: 1.35rem;
+}
+
+.yom-keep-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--yom-ink) 10%, transparent);
+  overflow: hidden;
+  margin-top: 0.25rem;
+  width: 120px;
+}
+
+.yom-keep-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--yom-lime);
+}
