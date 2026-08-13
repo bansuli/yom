@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "yom — Reformation demo",
   "version": "1.0.0",
-  "description": "yom shopping companion on Reformation — browsing or purpose-driven, character pops in when useful.",
+  "description": "yom shopping companion — follows what you told it, marks the page, stays out of the way.",
   "action": {
     "default_title": "yom demo",
     "default_popup": "popup.html",

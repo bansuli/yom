@@ -1,25 +1,47 @@
-# yom × Reformation demo
+# yom × Reformation
 
-Hardcoded companion flow on the live Reformation site. Feels natural; scripted underneath.
+Companion on the live Reformation site. yom marks the catalog from what you actually told it.
 
 ## Load
 
 1. `chrome://extensions` → Load unpacked → `~/Desktop/yom/extension`
-2. Reload after pulls
-3. Popup → **open Reformation** (use **open green dresses** when you need the green beat)
-4. Click the yom character
+2. Reload the extension after pulls
+3. Popup → **open Reformation**
+4. Click yom and answer the chips (always includes **other**)
 
 Triple-click yom to reset.
 
-## Exact flow
+## What drives the product
 
-1. Activate yom → **just browsing** → **no budget**
-2. Pause on a piece → “you have something really similar” + closet
-3. Pause on another → “people aren’t loving the material”
-4. Pause on a green dress → “green is your color”
-5. Open the dress → open context → switch **just browsing** → **Sofia's wedding**
-6. Delivery tip → **check it** → reviews / length / alterations still work → add to bag
-7. Back to browsing → context → add a **budget** → over-budget flags appear
-8. Pause on in-budget piece → Jaded London shorts pairing → open it → auto check → add
-9. Open suggested shoes → shape pushback + rounder-toe alts → decline
-10. Cart → keep confidence → checkout
+Onboarding is the product. yom keeps using those answers on every page:
+
+| You pick | What changes on the site |
+|---|---|
+| **just browsing** | closet / reviews / “your color” on greens. no occasion pressure |
+| **Sofia's wedding** | authored story: delivery before Mar 16, length + alterations |
+| **NYC weekend** | timing before Apr 4, travel-friendly notes |
+| **a work thing / a date** | occasion stamps and check copy follow that |
+| **a gift** | reviews and budget only — not *your* closet |
+| **a budget** | over-budget pieces dim immediately, remaining updates when you add |
+
+Closet memory (Maya Set, kept greens, Jaded shorts, rounder-toe shoes) is always on unless you’re shopping for a gift.
+
+Questions are chips + **other**. Reformation’s own **Add to Bag** is the confirm.
+
+## Interview example (hardcoded story)
+
+This is one authored path — not the only path.
+
+1. **just browsing** → **no budget**
+2. Pause a piece → closet silhouette on the card
+3. Pause another → review stamp
+4. Pause a green dress → lime outline + “your color”
+5. Open it → **Sofia's wedding** (or pick the wedding during onboarding and skip this)
+6. Delivery note in the buy column → **look into this** → length / alterations
+7. Reformation **Add to Bag**
+8. Budget chips if you never set one → grid dims
+9. Pause an in-budget top → shorts pairing → open → check → add
+10. Open shoes → shape note + rounder-toe alts in the page
+11. Cart keep-confidence reflects the wedding + budget
+
+To show the live product instead: pick **NYC weekend** and **$200** at the start and shop anything. The page should follow that, not the wedding script.

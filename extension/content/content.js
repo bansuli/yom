@@ -3,35 +3,39 @@
   window.__YOM_LOADED__ = true;
 
   const DATA = window.YOM_DEMO;
-  const STORAGE_KEY = "yom-companion-v2";
+  const STORAGE_KEY = "yom-companion-v4";
   const PAUSE_MS = 1000;
+  const NOTE_HOLD_MS = 3800;
   const GREEN_WORDS =
     /\b(green|emerald|forest|jade|moss|olive|sage|evergreen|tarragon|fern|kelly|pistachio)\b/i;
   const SHOE_WORDS = /\b(shoe|heel|sandal|boot|mule|pump|loafer|sneaker|slingback)\b/i;
 
   const defaultState = () => ({
-    // modes: null | browse | purpose
-    mode: null,
-    purpose: null, // e.g. Sofia's wedding
+    mode: null, // browse | purpose | gift
+    purpose: null,
     budget: null,
-    // hardcoded beats (invisible to user)
-    beat: "off", // off|onboarding|browse|similar|material|green|pdp|purposeOn|checking|checked|postDress|budgeted|pairing|pairingPdp|shoes|cart|done
     spent: 0,
     cartNames: [],
-    tipHistory: [],
-    dressChecked: false,
-    pairingChecked: false,
+    insightN: 0,
+    checked: {},
+    checking: false,
     panelOpen: false,
+    budgetAsked: false,
+    stamps: {},
+    checkedOut: false,
   });
 
   let state = loadState();
   let hoverTimer = null;
   let hoverTile = null;
-  let speechEl = null;
-  let buddyDocked = true;
+  let whisperEl = null;
+  let whisperTimer = null;
+  let askEl = null;
   let clickCount = 0;
   let clickTimer = null;
   let spokenKey = null;
+  let lastAddAt = 0;
+  let noteTimers = new Map();
 
   function loadState() {
     try {
@@ -51,8 +55,11 @@
     state = defaultState();
     saveState();
     spokenKey = null;
-    clearSpeech();
-    clearBudgetFlags();
+    closeAsk();
+    clearWhisper();
+    clearAllMarks();
+    clearPdp();
+    document.querySelector("#yom-cart-panel")?.remove();
     dockBuddy(true);
     render();
   }
@@ -169,6 +176,74 @@
     return Math.max(0, state.budget - state.spent);
   }
 
+  function hashStr(s) {
+    let h = 0;
+    const str = String(s || "");
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+    return Math.abs(h);
+  }
+
+  function isGift() {
+    return state.mode === "gift";
+  }
+
+  function purposeMeta() {
+    if (state.mode !== "purpose" || !state.purpose) return null;
+    const ev = DATA.events.find((e) => e.label === state.purpose);
+    if (ev) return ev;
+    if (/work/i.test(state.purpose)) return { label: state.purpose, ...DATA.purposeFallback.work };
+    if (/date/i.test(state.purpose)) return { label: state.purpose, ...DATA.purposeFallback.date };
+    return { label: state.purpose, ...DATA.purposeFallback.generic };
+  }
+
+  function occasionMatch(info) {
+    const ev = purposeMeta();
+    if (!ev) return false;
+    if (ev.kind === "wedding") return isDress(info) || isGreenProduct(info);
+    if (ev.kind === "trip") return !isShoeProduct(info);
+    if (ev.kind === "work") return /blazer|trouser|pant|dress|shirt|knit|jacket|skirt/i.test(info.text || info.name || "");
+    if (ev.kind === "date") return isDress(info) || /top|skirt|heel|dress/i.test(info.text || info.name || "");
+    return isDress(info);
+  }
+
+  function pairingMatch(info) {
+    if (isGift() || isDress(info) || isShoeProduct(info) || isGreenProduct(info)) return false;
+    return /top|knit|sweater|shirt|blouse|tee|cardigan|jacket/i.test(`${info.name} ${info.category}`);
+  }
+
+  function welcomeTip() {
+    const ev = purposeMeta();
+    if (ev) {
+      return {
+        title: `shopping for ${ev.label}`,
+        body:
+          state.budget == null
+            ? "no budget for now — I’ll mark what matters for this."
+            : `keeping an eye on $${state.budget}.`,
+      };
+    }
+    if (isGift()) {
+      return {
+        title: "shopping for someone else",
+        body: state.budget == null ? "i’ll stick to reviews and timing." : `watching $${state.budget}.`,
+      };
+    }
+    if (state.budget != null) {
+      return {
+        title: "i’ll stay out of the way",
+        body: `watching $${state.budget} — I’ll only mark what would go over.`,
+      };
+    }
+    return DATA.tips.welcome;
+  }
+
+  function mediaHost(tile) {
+    return (
+      tile.querySelector(".product-tile__media, .product-tile__media-container, .tile-image, picture") ||
+      tile
+    );
+  }
+
   // ── shell ────────────────────────────────────────────────────
   const root = document.createElement("div");
   root.id = "yom-root";
@@ -188,7 +263,7 @@
     type: "button",
     "aria-label": "yom",
   });
-  buddy.innerHTML = `<span class="yom-buddy-ring"></span><img src="${asset("yom-mark.png")}" alt="" />`;
+  buddy.innerHTML = `<img src="${asset("yom-mark.png")}" alt="" />`;
   root.appendChild(buddy);
 
   const modePill = el("button", { class: "yom-mode-pill hidden", type: "button" });
@@ -199,147 +274,368 @@
 
   function dockPoint() {
     return {
-      left: window.innerWidth - 84,
-      top: window.innerHeight - 96,
+      left: window.innerWidth - 72,
+      top: window.innerHeight - 80,
     };
-  }
-
-  function setBuddyPos(left, top, { pop = false, notice = false, docked = false } = {}) {
-    buddy.style.left = `${Math.max(8, left)}px`;
-    buddy.style.top = `${Math.max(8, top)}px`;
-    buddy.classList.toggle("docked", docked);
-    buddyDocked = docked;
-    if (pop) {
-      buddy.classList.remove("pop");
-      void buddy.offsetWidth;
-      buddy.classList.add("pop");
-    }
-    if (notice) {
-      buddy.classList.remove("notice");
-      void buddy.offsetWidth;
-      buddy.classList.add("notice");
-    }
-    positionModePill();
   }
 
   function dockBuddy(animatePop = false) {
     const p = dockPoint();
-    setBuddyPos(p.left, p.top, { docked: true, pop: animatePop });
-    positionModePill();
+    buddy.style.left = `${p.left}px`;
+    buddy.style.top = `${p.top}px`;
+    buddy.classList.add("docked");
+    if (animatePop) {
+      buddy.classList.remove("pop");
+      void buddy.offsetWidth;
+      buddy.classList.add("pop");
+    }
+    positionCluster();
   }
 
-  function hopToElement(target, side = "right") {
-    if (!target) {
-      dockBuddy(true);
-      return { left: 0, top: 0, side };
-    }
-    const rect = target.getBoundingClientRect();
-    let left = side === "left" ? rect.left - 72 : rect.right + 8;
-    let top = rect.top + Math.min(40, rect.height * 0.15);
-    if (left + 70 > window.innerWidth) {
-      left = rect.left - 72;
-      side = "left";
-    }
-    if (left < 8) {
-      left = Math.min(rect.right + 8, window.innerWidth - 72);
-      side = "right";
-    }
-    if (top + 70 > window.innerHeight) top = window.innerHeight - 80;
-    if (top < 8) top = 8;
-    setBuddyPos(left, top, { pop: true, docked: false });
-    return { left, top, side };
+  function pulseBuddy() {
+    buddy.classList.remove("notice");
+    void buddy.offsetWidth;
+    buddy.classList.add("notice");
   }
 
-  function positionModePill() {
+  function positionCluster() {
+    const p = dockPoint();
+    const bLeft = parseFloat(buddy.style.left) || p.left;
+    const bTop = parseFloat(buddy.style.top) || p.top;
+
     if (!state.mode) {
       modePill.classList.add("hidden");
+    } else {
+      modePill.classList.remove("hidden");
+      modePill.classList.toggle("purpose", state.mode === "purpose");
+      const label =
+        state.mode === "gift"
+          ? "a gift"
+          : state.mode === "browse"
+            ? "browsing"
+            : state.purpose || "something coming up";
+      modePill.innerHTML = `<span class="dot"></span><span>${label}</span>`;
+      requestAnimationFrame(() => {
+        const pw = modePill.offsetWidth || 88;
+        modePill.style.left = `${Math.max(8, bLeft - pw - 10)}px`;
+        modePill.style.top = `${bTop + 12}px`;
+      });
+    }
+
+    if (whisperEl) {
+      requestAnimationFrame(() => {
+        const w = whisperEl.offsetWidth;
+        const h = whisperEl.offsetHeight;
+        whisperEl.style.left = `${Math.max(8, bLeft + 52 - w)}px`;
+        whisperEl.style.top = `${Math.max(8, bTop - h - 8)}px`;
+      });
+    }
+
+    if (askEl) {
+      requestAnimationFrame(() => {
+        const w = askEl.offsetWidth;
+        const h = askEl.offsetHeight;
+        askEl.style.left = `${Math.max(8, window.innerWidth - w - 16)}px`;
+        askEl.style.top = `${Math.max(8, bTop - h - 14)}px`;
+      });
+    }
+  }
+
+  function clearWhisper() {
+    clearTimeout(whisperTimer);
+    whisperEl?.remove();
+    whisperEl = null;
+  }
+
+  function whisper(tip, ms = 2600) {
+    clearWhisper();
+    const node = el("div", { class: "yom-whisper" }, tip.title);
+    root.appendChild(node);
+    whisperEl = node;
+    positionCluster();
+    if (ms) {
+      whisperTimer = setTimeout(() => {
+        node.classList.add("out");
+        setTimeout(() => {
+          if (whisperEl === node) clearWhisper();
+        }, 360);
+      }, ms);
+    }
+  }
+
+  function closeAsk() {
+    askEl?.remove();
+    askEl = null;
+  }
+
+  function attachChips(host, chips, otherChoices) {
+    const paint = (list, extras) => {
+      host.innerHTML = "";
+      list.forEach((c) => {
+        const btn = el(
+          "button",
+          {
+            class: `yom-chip${c.block ? " block" : ""}${c.ghost ? " yom-chip-other" : ""}${c.on ? " on" : ""}`,
+            type: "button",
+          },
+          c.label
+        );
+        if (c.sub) btn.appendChild(el("small", {}, c.sub));
+        btn.addEventListener("click", () => c.onPick());
+        host.appendChild(btn);
+      });
+      if (extras && extras.length) {
+        const other = el("button", { class: "yom-chip yom-chip-other", type: "button" }, "other");
+        other.addEventListener("click", () => paint(extras, null));
+        host.appendChild(other);
+      }
+    };
+    paint(chips, otherChoices && otherChoices.length ? otherChoices : null);
+  }
+
+  function ask({ title, body = "", options, otherChoices, kicker = "yom" }) {
+    closeAsk();
+    clearWhisper();
+    const card = el("div", { class: "yom-ask" });
+    card.innerHTML = `
+      <div class="yom-ask-kicker">${kicker}</div>
+      <h3>${title}</h3>
+      ${body ? `<p>${body}</p>` : ""}
+      <div class="yom-chips" data-chips></div>
+    `;
+    root.appendChild(card);
+    askEl = card;
+    attachChips(card.querySelector("[data-chips]"), options, otherChoices);
+    positionCluster();
+    pulseBuddy();
+  }
+
+  // ── in-page tile marks ───────────────────────────────────────
+  function clearExpandedNotes() {
+    document.querySelectorAll(".yom-tile-note").forEach((n) => n.remove());
+    noteTimers.forEach((t) => clearTimeout(t));
+    noteTimers.clear();
+  }
+
+  function clearAllMarks() {
+    clearExpandedNotes();
+    document.querySelectorAll(".yom-stamp, .yom-budget-flag").forEach((n) => n.remove());
+    document.querySelectorAll(".yom-tile-love, .yom-tile-dim").forEach((n) => {
+      n.classList.remove("yom-tile-love", "yom-tile-dim");
+    });
+  }
+
+  function applyStamp(tile, mark) {
+    const host = mediaHost(tile);
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const wrap = tile.closest(".product-tile-wrapper") || tile;
+    wrap.classList.toggle("yom-tile-love", !!mark.love);
+    tile.classList.toggle("yom-tile-love", !!mark.love);
+    const existing = host.querySelector(".yom-stamp");
+    const cls = `yom-stamp${mark.love ? " love" : ""}${mark.warn ? " warn" : ""}`;
+    if (existing && existing.textContent === mark.stamp && existing.className === cls) return;
+    existing?.remove();
+    host.appendChild(el("div", { class: cls }, mark.stamp));
+  }
+
+  function restampTiles() {
+    document.querySelectorAll(".product-tile-wrapper, .product-tile").forEach((tile) => {
+      const info = tileInfo(tile);
+      const mark = state.stamps[info.id];
+      if (mark) applyStamp(info.root, mark);
+    });
+  }
+
+  function noteTile(tile, tip, { love = false, warn = false } = {}) {
+    const info = tileInfo(tile);
+    if (!info.name) return;
+    clearExpandedNotes();
+
+    const mark = {
+      stamp: tip.stamp || "yom",
+      love,
+      warn,
+      closetKey: tip.closetKey || null,
+    };
+    state.stamps[info.id] = mark;
+    saveState();
+    applyStamp(info.root, mark);
+
+    const host = mediaHost(info.root);
+    if (getComputedStyle(host).position === "static") host.style.position = "relative";
+    const closet = tip.closetKey ? DATA.closet[tip.closetKey] : null;
+    const note = el("div", { class: "yom-tile-note yom-ui" });
+    note.innerHTML = `
+      ${closet ? `<img src="${asset(closet.file)}" alt="" />` : ""}
+      <div>
+        <strong>${tip.title}</strong>
+        <span>${closet ? closet.note : tip.body || ""}</span>
+      </div>
+    `;
+    host.appendChild(note);
+    pulseBuddy();
+
+    const timer = setTimeout(() => {
+      note.classList.add("out");
+      setTimeout(() => note.remove(), 360);
+      noteTimers.delete(info.id);
+    }, NOTE_HOLD_MS);
+    noteTimers.set(info.id, timer);
+  }
+
+  // ── PDP injection ────────────────────────────────────────────
+  function clearPdp() {
+    document.getElementById("yom-pdp-note")?.remove();
+  }
+
+  function sizable(node) {
+    let elNode = node;
+    let last = node;
+    while (elNode && elNode.parentElement && elNode.offsetWidth < 220) {
+      last = elNode;
+      elNode = elNode.parentElement;
+      if (elNode.offsetWidth > 640) return last;
+    }
+    return elNode;
+  }
+
+  function isAddToBagTarget(node) {
+    if (!node || node.closest?.("#yom-root, .yom-pdp-note, .yom-cart-panel, .yom-ask, .yom-panel")) {
+      return false;
+    }
+    const t = `${node.textContent || ""} ${node.value || ""} ${node.getAttribute?.("aria-label") || ""}`
+      .replace(/\s+/g, " ")
+      .trim();
+    if (/add to (bag|cart)/i.test(t) && t.length < 80) return true;
+    const cls = `${node.className || ""} ${node.id || ""}`;
+    return /add-to-cart|addToCart|add-to-bag|addtocart|addToBag/i.test(cls);
+  }
+
+  function findAddButton() {
+    return [...document.querySelectorAll("button, input[type=submit], a")].find(isAddToBagTarget);
+  }
+
+  function isSticky(node) {
+    if (!node) return false;
+    const pos = getComputedStyle(node).position;
+    return pos === "fixed" || pos === "sticky";
+  }
+
+  function pdpInsertPoint() {
+    const price =
+      document.querySelector("[itemprop='price']") ||
+      document.querySelector(".price--formated, .prices, .product-price");
+    if (price && !isSticky(price)) return { el: sizable(price), where: "after" };
+
+    const h1 = document.querySelector("h1");
+    if (h1 && !isSticky(h1)) return { el: sizable(h1), where: "after" };
+
+    const addBtn = findAddButton();
+    if (addBtn && !isSticky(addBtn) && !isSticky(addBtn.parentElement)) {
+      const block =
+        addBtn.closest("form, [class*='add-to'], [class*='addtocart'], [class*='AddTo']") ||
+        addBtn.parentElement;
+      return { el: sizable(block), where: "before" };
+    }
+    return { el: document.querySelector("main") || document.body, where: "prepend" };
+  }
+
+  function mountPdp(node) {
+    clearPdp();
+    node.id = "yom-pdp-note";
+    const { el: target, where } = pdpInsertPoint();
+    if (!target) {
+      document.body.prepend(node);
       return;
     }
-    modePill.classList.remove("hidden");
-    modePill.classList.toggle("purpose", state.mode === "purpose");
-    const label =
-      state.mode === "browse"
-        ? "browsing"
-        : state.purpose || "something coming up";
-    modePill.innerHTML = `<span class="dot"></span><span>${label}</span>`;
-    const bLeft = parseFloat(buddy.style.left) || dockPoint().left;
-    const bTop = parseFloat(buddy.style.top) || dockPoint().top;
-    if (buddyDocked) {
-      modePill.style.left = `${Math.max(8, bLeft - 40)}px`;
-      modePill.style.top = `${bTop + 66}px`;
-    } else {
-      modePill.style.left = `${Math.max(8, bLeft - 10)}px`;
-      modePill.style.top = `${bTop + 66}px`;
-    }
+    if (where === "before" && target.parentElement) target.parentElement.insertBefore(node, target);
+    else if (where === "after") target.insertAdjacentElement("afterend", node);
+    else target.prepend(node);
   }
 
-  function clearSpeech() {
-    speechEl?.remove();
-    speechEl = null;
-  }
-
-  function say(anchorOrNull, tip, { actions = [], closetKey = null, resolve = null, alts = null, onMount = null } = {}) {
-    clearSpeech();
-    const pos = hopToElement(anchorOrNull, "right");
-    const bubble = el("div", { class: `yom-speech tail-${pos.side === "left" ? "right" : "left"}` });
+  function pdpNote(tip, { closetKey, resolve, alts, chips, otherChoices, checking = false, kicker = "yom" } = {}) {
     const closet = closetKey ? DATA.closet[closetKey] : tip.closetKey ? DATA.closet[tip.closetKey] : null;
-    bubble.innerHTML = `
-      <div class="yom-speech-kicker">yom</div>
+    const node = el("div", { class: `yom-ui yom-pdp-note${checking ? " checking" : ""}` });
+    node.innerHTML = `
+      <div class="yom-pdp-kicker">${kicker}</div>
       <h3>${tip.title}</h3>
       ${tip.body ? `<p>${tip.body}</p>` : ""}
-      ${resolve ? `<div class="yom-resolve">${resolve}</div>` : ""}
-      ${
-        alts
-          ? `<div class="yom-alts">${alts
-              .map(
-                (a) =>
-                  `<div class="yom-alt"><strong>${a.brand} ${a.name}</strong><span>${a.why} · ${a.price}</span></div>`
-              )
-              .join("")}</div>`
-          : ""
-      }
+      ${resolve ? `<div class="yom-pdp-resolve">${resolve}</div>` : ""}
       ${
         closet
-          ? `<div class="yom-speech-closet">
+          ? `<div class="yom-pdp-closet">
               <img src="${asset(closet.file)}" alt="" />
               <div><strong>${closet.title}</strong><span>${closet.note}</span></div>
             </div>`
           : ""
       }
-      ${actions.length ? `<div class="yom-speech-actions" data-actions></div>` : ""}
+      ${
+        alts
+          ? `<div class="yom-pdp-alts">${alts
+              .map(
+                (a) =>
+                  `<div class="yom-pdp-alt"><div><strong>${a.brand} ${a.name}</strong><span>${a.why}</span></div><em>${a.price}</em></div>`
+              )
+              .join("")}</div>`
+          : ""
+      }
+      ${chips?.length ? `<div class="yom-chips" data-chips></div>` : ""}
     `;
-    root.appendChild(bubble);
-    speechEl = bubble;
-
-    const actionsHost = bubble.querySelector("[data-actions]");
-    actions.forEach((a) => {
-      const btn = el("button", { class: `yom-btn${a.ghost ? " ghost" : ""}`, type: "button" }, a.label);
-      btn.addEventListener("click", a.onClick);
-      actionsHost.appendChild(btn);
-    });
-
-    // place bubble beside buddy
-    requestAnimationFrame(() => {
-      const bLeft = parseFloat(buddy.style.left) || 0;
-      const bTop = parseFloat(buddy.style.top) || 0;
-      const w = bubble.offsetWidth;
-      const h = bubble.offsetHeight;
-      let left = pos.side === "left" ? bLeft - w - 10 : bLeft + 72;
-      let top = bTop - 4;
-      if (left + w > window.innerWidth - 8) left = bLeft - w - 10;
-      if (left < 8) left = 8;
-      if (top + h > window.innerHeight - 8) top = window.innerHeight - h - 8;
-      if (top < 8) top = 8;
-      bubble.style.left = `${left}px`;
-      bubble.style.top = `${top}px`;
-    });
-
-    onMount?.(bubble);
+    mountPdp(node);
+    if (chips?.length) attachChips(node.querySelector("[data-chips]"), chips, otherChoices);
+    pulseBuddy();
+    return node;
   }
 
-  // ── activation / modes ───────────────────────────────────────
+  // ── budget dimming on the grid ───────────────────────────────
+  function clearBudgetFlags() {
+    document.querySelectorAll(".yom-budget-flag").forEach((n) => n.remove());
+    document.querySelectorAll(".yom-tile-dim").forEach((n) => n.classList.remove("yom-tile-dim"));
+  }
+
+  function applyBudgetFlags() {
+    if (state.budget == null) {
+      if (document.querySelector(".yom-budget-flag, .yom-tile-dim")) clearBudgetFlags();
+      return;
+    }
+    const rem = remainingBudget();
+    document.querySelectorAll(".product-tile-wrapper, .product-tile").forEach((tile) => {
+      const info = tileInfo(tile);
+      const wrap = info.root.closest(".product-tile-wrapper") || info.root;
+      const host = mediaHost(info.root);
+      const over = info.price && info.price > rem;
+      wrap.classList.toggle("yom-tile-dim", over);
+      info.root.classList.toggle("yom-tile-dim", over);
+      if (!over) {
+        host.querySelector(".yom-budget-flag")?.remove();
+        return;
+      }
+      if (getComputedStyle(host).position === "static") host.style.position = "relative";
+      if (!host.querySelector(".yom-budget-flag")) {
+        host.appendChild(el("div", { class: "yom-budget-flag" }, "over budget"));
+      }
+    });
+  }
+
+  function setBudget(value) {
+    state.budget = value;
+    saveState();
+    closeAsk();
+    render();
+    if (value != null) whisper(DATA.tips.budgetOn);
+  }
+
+  function addToBag(name, price, fallbackName) {
+    const label = name || fallbackName;
+    if (!state.cartNames.includes(label)) {
+      state.spent += price;
+      state.cartNames.push(label);
+    }
+    saveState();
+  }
+
+  // ── activation / questions ───────────────────────────────────
   buddy.addEventListener("click", () => {
-    // triple-click resets quietly
     clickCount += 1;
     clearTimeout(clickTimer);
     clickTimer = setTimeout(() => {
@@ -367,178 +663,154 @@
   });
 
   function openModePicker() {
-    state.beat = "onboarding";
     saveState();
-    clearSpeech();
-
-    const backdrop = el("div", { class: "yom-modal-backdrop" });
-    const modal = el("div", { class: "yom-modal" });
-    modal.innerHTML = `
-      <img class="yom-modal-char" src="${asset("yom-mark.png")}" alt="" />
-      <h2>hey — what’s the vibe?</h2>
-      <p>yom can hang out while you browse, or help you shop for something real coming up.</p>
-      <div class="yom-choice">
-        <button type="button" data-mode="browse">just browsing</button>
-        <button type="button" data-mode="purpose">something coming up</button>
-      </div>
-    `;
-    backdrop.appendChild(modal);
-    root.appendChild(backdrop);
-
-    modal.querySelector('[data-mode="browse"]').addEventListener("click", () => {
-      backdrop.remove();
-      startBrowseMode();
-    });
-    modal.querySelector('[data-mode="purpose"]').addEventListener("click", () => {
-      backdrop.remove();
-      openPurposePicker();
+    ask({
+      title: "what’s the vibe?",
+      body: "I’ll hang on the page. no chat unless I need a tap.",
+      options: [
+        { label: "just browsing", onPick: () => startBrowseMode() },
+        { label: "something coming up", onPick: () => openPurposePicker() },
+      ],
+      otherChoices: [
+        { label: "just looking around", onPick: () => startBrowseMode() },
+        { label: "a gift", onPick: () => startGiftMode() },
+        { label: "not sure yet", onPick: () => startBrowseMode() },
+      ],
     });
   }
 
   function startBrowseMode() {
-    const backdrop = el("div", { class: "yom-modal-backdrop" });
-    const modal = el("div", { class: "yom-modal" });
-    modal.innerHTML = `
-      <img class="yom-modal-char" src="${asset("yom-mark.png")}" alt="" />
-      <h2>budget?</h2>
-      <p>you can skip this — add one later if shopping turns real.</p>
-      <div class="yom-choice">
-        <button type="button" data-budget="none">no budget</button>
-        <button type="button" data-budget="200">$200</button>
-        <button type="button" data-budget="400">$400</button>
-      </div>
-      <div class="yom-actions">
-        <button type="button" class="yom-btn ghost" data-back>back</button>
-      </div>
-    `;
-    backdrop.appendChild(modal);
-    root.appendChild(backdrop);
-
-    modal.querySelector("[data-back]").addEventListener("click", () => {
-      backdrop.remove();
-      openModePicker();
+    ask({
+      title: "budget?",
+      body: "skip it — add one later if shopping turns real.",
+      options: [
+        { label: "no budget", onPick: () => finishBrowseMode(null) },
+        { label: "$200", onPick: () => finishBrowseMode(200) },
+        { label: "$400", onPick: () => finishBrowseMode(400) },
+      ],
+      otherChoices: [
+        { label: "$150", onPick: () => finishBrowseMode(150) },
+        { label: "$300", onPick: () => finishBrowseMode(300) },
+        { label: "I’ll set it later", onPick: () => finishBrowseMode(null) },
+      ],
     });
+  }
 
-    modal.querySelectorAll("[data-budget]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const value = btn.dataset.budget === "none" ? null : Number(btn.dataset.budget);
-        backdrop.remove();
-        finishBrowseMode(value);
-      });
+  function startGiftMode() {
+    ask({
+      title: "budget?",
+      body: "for the gift — skip if you don’t have one.",
+      options: [
+        { label: "no budget", onPick: () => finishSession("gift", null, null) },
+        { label: "$200", onPick: () => finishSession("gift", null, 200) },
+        { label: "$400", onPick: () => finishSession("gift", null, 400) },
+      ],
+      otherChoices: [
+        { label: "$150", onPick: () => finishSession("gift", null, 150) },
+        { label: "$300", onPick: () => finishSession("gift", null, 300) },
+        { label: "I’ll set it later", onPick: () => finishSession("gift", null, null) },
+      ],
     });
   }
 
   function finishBrowseMode(budget) {
-    state.mode = "browse";
-    state.purpose = null;
+    finishSession("browse", null, budget);
+  }
+
+  function finishPurposeMode(purpose, budget) {
+    finishSession("purpose", purpose, budget);
+  }
+
+  function finishSession(mode, purpose, budget) {
+    closeAsk();
+    state.mode = mode;
+    state.purpose = purpose;
     state.budget = budget;
-    state.beat = "browse";
     state.panelOpen = false;
     saveState();
     dockBuddy(true);
     render();
-    say(null, DATA.tips.welcome);
-    setTimeout(() => {
-      if (state.beat === "browse") clearSpeech();
-      dockBuddy();
-    }, 2800);
+    whisper(welcomeTip());
   }
 
   function openPurposePicker() {
-    const backdrop = el("div", { class: "yom-modal-backdrop" });
-    const modal = el("div", { class: "yom-modal" });
-    modal.innerHTML = `
-      <img class="yom-modal-char" src="${asset("yom-mark.png")}" alt="" />
-      <h2>what’s coming up?</h2>
-      <p>pulled from your calendar — pick one, or keep it open-ended.</p>
-      <div class="yom-choice" data-events>
-        ${DATA.events
-          .map(
-            (e) =>
-              `<button type="button" class="yom-event" data-event="${e.id}">
-                ${e.label}
-                <small>${e.when} · ${e.source}</small>
-              </button>`
-          )
-          .join("")}
-        <button type="button" class="yom-event" data-event="other">something else</button>
-      </div>
-      <div class="yom-field">
-        <label>budget (optional)</label>
-        <div class="yom-choice" data-budgets style="grid-template-columns:1fr 1fr 1fr">
-          <button type="button" data-budget="none">none</button>
-          <button type="button" data-budget="200">$200</button>
-          <button type="button" data-budget="400">$400</button>
-        </div>
-      </div>
-      <div class="yom-actions">
-        <button type="button" class="yom-btn" data-go disabled>let’s go</button>
-        <button type="button" class="yom-btn ghost" data-back>back</button>
-      </div>
-    `;
-    backdrop.appendChild(modal);
-    root.appendChild(backdrop);
-
-    let eventId = null;
-    let budget = null;
-    let budgetChosen = false;
-    const go = modal.querySelector("[data-go]");
-
-    const sync = () => {
-      go.disabled = !eventId;
-    };
-
-    modal.querySelector("[data-events]").addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-event]");
-      if (!btn) return;
-      eventId = btn.dataset.event;
-      modal.querySelectorAll("[data-event]").forEach((b) => b.classList.toggle("selected", b === btn));
-      sync();
-    });
-
-    modal.querySelector("[data-budgets]").addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-budget]");
-      if (!btn) return;
-      budgetChosen = true;
-      budget = btn.dataset.budget === "none" ? null : Number(btn.dataset.budget);
-      modal.querySelectorAll("[data-budget]").forEach((b) => b.classList.toggle("selected", b === btn));
-    });
-
-    modal.querySelector("[data-back]").addEventListener("click", () => {
-      backdrop.remove();
-      openModePicker();
-    });
-
-    go.addEventListener("click", () => {
-      const ev = DATA.events.find((e) => e.id === eventId);
-      state.mode = "purpose";
-      state.purpose = ev ? ev.label : "something coming up";
-      state.budget = budgetChosen ? budget : null;
-      state.beat = state.purpose === "Sofia's wedding" ? "browse" : "browse";
-      // demo narrative still starts in browse-like discovery, then purpose deepens on the dress
-      state.panelOpen = false;
-      saveState();
-      backdrop.remove();
-      dockBuddy(true);
-      render();
-      say(null, {
-        title: `shopping for ${state.purpose}`,
-        body: state.budget == null ? "no budget for now — we can add one later." : `keeping an eye on $${state.budget}.`,
-      });
-      setTimeout(() => {
-        clearSpeech();
-        dockBuddy();
-      }, 2600);
+    ask({
+      title: "what’s coming up?",
+      body: "pulled from your calendar.",
+      options: DATA.events.map((e) => ({
+        label: e.label,
+        sub: `${e.when} · ${e.source}`,
+        block: true,
+        onPick: () => askPurposeBudget(e.label),
+      })),
+      otherChoices: [
+        { label: "a work thing", onPick: () => askPurposeBudget("a work thing") },
+        { label: "a date", onPick: () => askPurposeBudget("a date") },
+        { label: "nothing specific", onPick: () => startBrowseMode() },
+      ],
     });
   }
 
-  // ── context panel ────────────────────────────────────────────
+  function askPurposeBudget(purpose) {
+    ask({
+      title: "budget?",
+      body: "optional.",
+      options: [
+        { label: "no budget", onPick: () => finishPurposeMode(purpose, null) },
+        { label: "$200", onPick: () => finishPurposeMode(purpose, 200) },
+        { label: "$400", onPick: () => finishPurposeMode(purpose, 400) },
+      ],
+      otherChoices: [
+        { label: "$150", onPick: () => finishPurposeMode(purpose, 150) },
+        { label: "$300", onPick: () => finishPurposeMode(purpose, 300) },
+        { label: "I’ll set it later", onPick: () => finishPurposeMode(purpose, null) },
+      ],
+    });
+  }
+
+  function askBudgetChips() {
+    state.budgetAsked = true;
+    saveState();
+    ask({
+      title: DATA.tips.budgetAsk.title,
+      body: DATA.tips.budgetAsk.body,
+      options: [
+        { label: "$200", onPick: () => setBudget(200) },
+        { label: "$400", onPick: () => setBudget(400) },
+        { label: "no budget", onPick: () => { closeAsk(); whisper(DATA.tips.afterAdd); } },
+      ],
+      otherChoices: [
+        { label: "$150", onPick: () => setBudget(150) },
+        { label: "$300", onPick: () => setBudget(300) },
+        { label: "later", onPick: () => { closeAsk(); whisper(DATA.tips.afterAdd); } },
+      ],
+    });
+  }
+
+  // ── context panel (chips, not dropdowns) ─────────────────────
   function renderPanel() {
     if (!state.panelOpen || !state.mode) {
       panel.classList.add("hidden");
       return;
     }
     panel.classList.remove("hidden");
+    const contextChips = [
+      { label: "just browsing", value: "browse", on: state.mode === "browse" },
+      { label: "a gift", value: "gift", on: state.mode === "gift" },
+      ...DATA.events.map((e) => ({
+        label: e.label,
+        value: e.label,
+        on: state.mode === "purpose" && state.purpose === e.label,
+      })),
+    ];
+    const budgetChips = [
+      { label: "none", value: "none", on: state.budget == null },
+      { label: "$150", value: "150", on: state.budget === 150 },
+      { label: "$200", value: "200", on: state.budget === 200 },
+      { label: "$300", value: "300", on: state.budget === 300 },
+      { label: "$400", value: "400", on: state.budget === 400 },
+    ];
+
     panel.innerHTML = `
       <div class="yom-panel-head">
         <strong>context</strong>
@@ -546,34 +818,11 @@
       </div>
       <div class="yom-field">
         <label>shopping for</label>
-        <select data-context>
-          <option value="browse" ${state.mode === "browse" ? "selected" : ""}>just browsing</option>
-          ${DATA.events
-            .map(
-              (e) =>
-                `<option value="${e.label}" ${
-                  state.mode === "purpose" && state.purpose === e.label ? "selected" : ""
-                }>${e.label} · ${e.when}</option>`
-            )
-            .join("")}
-        </select>
-      </div>
-      <div class="yom-meta" style="margin-top:-0.15rem;margin-bottom:0.65rem">
-        ${
-          state.mode === "purpose"
-            ? "from your calendar"
-            : "no particular goal"
-        }
+        <div class="yom-chips" data-context></div>
       </div>
       <div class="yom-field">
         <label>budget</label>
-        <select data-budget>
-          <option value="none" ${state.budget == null ? "selected" : ""}>no budget</option>
-          <option value="150" ${state.budget === 150 ? "selected" : ""}>$150</option>
-          <option value="200" ${state.budget === 200 ? "selected" : ""}>$200</option>
-          <option value="300" ${state.budget === 300 ? "selected" : ""}>$300</option>
-          <option value="400" ${state.budget === 400 ? "selected" : ""}>$400</option>
-        </select>
+        <div class="yom-chips" data-budget></div>
       </div>
       <div class="yom-meta">${
         state.spent
@@ -588,161 +837,223 @@
       renderPanel();
     });
 
-    panel.querySelector("[data-context]").addEventListener("change", (e) => {
-      const next = e.target.value;
-      if (next === "browse") {
-        state.mode = "browse";
-        saveState();
-        render();
-        return;
-      }
-      // e.g. Sofia's wedding
-      state.mode = "purpose";
-      state.purpose = next;
-      saveState();
-      if (isPdp() && !state.dressChecked) {
-        enterPurposeOnDress();
-        return;
-      }
-      render();
-    });
+    attachChips(
+      panel.querySelector("[data-context]"),
+      contextChips.map((c) => ({
+        label: c.label,
+        on: c.on,
+        onPick: () => pickContext(c.value),
+      })),
+      [
+        { label: "a work thing", onPick: () => pickContext("a work thing") },
+        { label: "a date", onPick: () => pickContext("a date") },
+        { label: "nothing specific", onPick: () => pickContext("browse") },
+      ]
+    );
 
-    panel.querySelector("[data-budget]").addEventListener("change", (e) => {
-      const v = e.target.value;
-      state.budget = v === "none" ? null : Number(v);
-      if (state.budget != null && state.spent > 0 && state.dressChecked) {
-        state.beat = "budgeted";
-        saveState();
-        render();
-        say(null, DATA.tips.budgetOn);
-        setTimeout(() => {
-          clearSpeech();
-          dockBuddy();
-        }, 2400);
-        return;
-      }
-      saveState();
-      render();
-    });
+    attachChips(
+      panel.querySelector("[data-budget]"),
+      budgetChips.map((c) => ({
+        label: c.label,
+        on: c.on,
+        onPick: () => {
+          state.panelOpen = false;
+          setBudget(c.value === "none" ? null : Number(c.value));
+        },
+      })),
+      [
+        {
+          label: "$250",
+          onPick: () => {
+            state.panelOpen = false;
+            setBudget(250);
+          },
+        },
+        {
+          label: "I’ll set it later",
+          onPick: () => {
+            state.panelOpen = false;
+            setBudget(null);
+          },
+        },
+      ]
+    );
   }
 
-  function enterPurposeOnDress() {
+  function pickContext(next) {
+    if (next === "browse") {
+      state.mode = "browse";
+      state.purpose = null;
+      saveState();
+      state.panelOpen = false;
+      render();
+      whisper(welcomeTip());
+      return;
+    }
+    if (next === "gift") {
+      state.mode = "gift";
+      state.purpose = null;
+      saveState();
+      state.panelOpen = false;
+      render();
+      whisper(welcomeTip());
+      return;
+    }
+    state.mode = "purpose";
+    state.purpose = next;
+    saveState();
+    if (isPdp()) {
+      enterPurposeOnPdp();
+      return;
+    }
+    state.panelOpen = false;
+    render();
+    whisper(welcomeTip());
+  }
+
+  function deliveryTip() {
+    const ev = purposeMeta();
+    if (ev?.delivery) return ev.delivery;
+    return DATA.purposeFallback.generic.delivery;
+  }
+
+  function checkResult(info) {
+    const ev = purposeMeta();
+    if (ev?.story === "wedding" && (isDress(info) || isGreenProduct(info))) return ev.check;
+    if (ev?.check) return ev.check;
+    if (isDress(info) && hashStr(info.name) % 3 === 0) return DATA.reviews.long;
+    return hashStr(info.name || location.pathname) % 2 === 0 ? DATA.reviews.strong : DATA.reviews.mixed;
+  }
+
+  function lookIntoChips(tip, extras = {}) {
+    return {
+      ...extras,
+      chips: [
+        { label: "look into this", onPick: () => runCheck() },
+        { label: "not now", onPick: () => pdpNote(tip, extras) },
+      ],
+      otherChoices: [
+        { label: "remind me later", onPick: () => pdpNote(tip, extras) },
+        { label: "I’ll handle it", onPick: () => pdpNote(tip, extras) },
+      ],
+    };
+  }
+
+  function enterPurposeOnPdp() {
     state.mode = "purpose";
     if (!state.purpose) state.purpose = "Sofia's wedding";
-    state.beat = "purposeOn";
     state.panelOpen = false;
-    spokenKey = `purposeOn:${location.pathname}`;
+    spokenKey = `purpose:${location.pathname}`;
     saveState();
     renderPanel();
-    positionModePill();
-    const host = document.querySelector("h1") || document.body;
-    say(host, DATA.tips.delivery, {
-      actions: [
-        {
-          label: "check it",
-          onClick: () => runCheckDress(),
-        },
-      ],
-    });
+    positionCluster();
+    const tip = deliveryTip();
+    pdpNote(tip, lookIntoChips(tip));
   }
 
-  function runCheckDress() {
-    state.beat = "checking";
+  function runCheck() {
+    const info = pdpInfo();
+    const pageKey = location.pathname;
+    state.checking = true;
     saveState();
-    const host = document.querySelector("h1") || document.body;
-    say(host, DATA.tips.checking);
+    pdpNote(DATA.tips.checking, { checking: true, kicker: "yom · looking" });
     setTimeout(() => {
-      state.beat = "checked";
-      state.dressChecked = true;
+      state.checking = false;
+      const result = checkResult(info);
+      state.checked[pageKey] = result;
       saveState();
-      say(host, DATA.tips.check, {
-        resolve: DATA.tips.check.resolve,
-        actions: [
-          {
-            label: "I added it to bag",
-            onClick: () => {
-              const info = pdpInfo();
-              const price = info.price || 278;
-              if (!state.cartNames.includes(info.name)) {
-                state.spent += price;
-                state.cartNames.push(info.name || "green dress");
-              }
-              state.beat = "postDress";
-              state.panelOpen = false;
-              spokenKey = null;
-              saveState();
-              say(null, DATA.tips.afterDress);
-              render();
-              setTimeout(() => {
-                clearSpeech();
-                dockBuddy();
-              }, 2800);
-            },
-          },
-        ],
-      });
+      if (location.pathname !== pageKey) return;
+      pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
     }, 1400);
   }
 
-  // ── PLP pauses ───────────────────────────────────────────────
+  function afterAdded(info) {
+    spokenKey = null;
+    saveState();
+    clearPdp();
+    render();
+    if (state.budget == null && !state.budgetAsked) {
+      askBudgetChips();
+      return;
+    }
+    const ev = purposeMeta();
+    if (ev) whisper({ title: `in for ${ev.label}` });
+    else whisper(DATA.tips.afterAdd);
+  }
+
+  // ── native add-to-bag ────────────────────────────────────────
+  function onNativeAdd() {
+    if (!state.mode || !isPdp()) return;
+    if (Date.now() - lastAddAt < 900) return;
+    lastAddAt = Date.now();
+    const info = pdpInfo();
+    if (isShoeProduct(info)) return;
+    addToBag(info.name, info.price || 0, info.name || "piece");
+    afterAdded(info);
+  }
+
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (e.target.closest("#yom-root, .yom-pdp-note, .yom-cart-panel, .yom-ask, .yom-panel")) return;
+      const btn = e.target.closest("button, a, input");
+      if (isAddToBagTarget(btn)) onNativeAdd();
+    },
+    true
+  );
+
+  // ── PLP pauses — driven by profile, not a script ─────────────
   function onPause(tile) {
     if (!state.mode) return;
     const info = tileInfo(tile);
     if (!info.name) return;
+    if (state.stamps[info.id]) return;
 
-    // After the dress: wait for a budget before the next shopping beat
-    if (state.beat === "postDress" && state.budget == null) {
-      say(null, DATA.tips.afterDress);
+    if (state.budget != null && info.price > remainingBudget()) {
+      noteTile(info.root, DATA.tips.overBudget, { warn: true });
       return;
     }
 
-    // after dress + budget: pairing path
-    if (["budgeted", "postDress"].includes(state.beat) && state.budget != null && state.spent > 0) {
-      if (info.price > remainingBudget()) {
-        say(info.root, DATA.tips.overBudget);
-        return;
-      }
-      state.beat = "pairing";
+    if (!isGift() && isGreenProduct(info)) {
+      state.insightN += 1;
       saveState();
-      say(info.root, DATA.tips.pairing, { closetKey: "shorts" });
+      noteTile(info.root, DATA.tips.green, { love: true });
       return;
     }
 
-    if (state.beat === "pairing") {
-      say(info.root, DATA.tips.pairing, { closetKey: "shorts" });
-      return;
-    }
-
-    // don't restart discovery after the wedding arc begins
-    if (["purposeOn", "checking", "checked", "shoes", "cart", "done", "pairingPdp"].includes(state.beat)) {
-      return;
-    }
-
-    // discovery beats
-    if (state.beat === "browse") {
-      state.beat = "similar";
-      state.tipHistory.push(info.id);
+    const ev = purposeMeta();
+    if (ev?.plp && occasionMatch(info)) {
+      state.insightN += 1;
       saveState();
-      say(info.root, DATA.tips.similar, { closetKey: "similar" });
+      noteTile(info.root, ev.plp, { love: true });
       return;
     }
 
-    if (state.beat === "similar") {
-      if (state.tipHistory.includes(info.id)) return;
-      state.beat = "material";
-      state.tipHistory.push(info.id);
+    if (!isGift() && state.spent > 0 && pairingMatch(info)) {
+      noteTile(info.root, DATA.tips.pairing, { love: true });
+      return;
+    }
+
+    if (isGift()) {
+      noteTile(info.root, DATA.tips.material, { warn: true });
+      return;
+    }
+
+    if (state.insightN === 0) {
+      state.insightN = 1;
       saveState();
-      say(info.root, DATA.tips.material);
+      noteTile(info.root, DATA.tips.similar);
+      return;
+    }
+    if (state.insightN === 1) {
+      state.insightN = 2;
+      saveState();
+      noteTile(info.root, DATA.tips.material, { warn: true });
       return;
     }
 
-    if (state.beat === "material" || state.beat === "green") {
-      if (isGreenProduct(info) || isDress(info)) {
-        state.beat = "green";
-        saveState();
-        say(info.root, DATA.tips.green, { closetKey: "green" });
-      }
-    }
+    const lane = hashStr(info.id) % 2;
+    noteTile(info.root, lane === 0 ? DATA.tips.similar : DATA.tips.material, { warn: lane === 1 });
   }
 
   function bindTiles() {
@@ -768,165 +1079,133 @@
           hoverTile = null;
         }
       });
-
-      target.addEventListener("click", () => {
-        const info = tileInfo(target);
-        if (state.beat === "green" && (isGreenProduct(info) || isDress(info))) {
-          state.beat = "pdp";
-          saveState();
-        }
-        if (state.beat === "pairing") {
-          state.beat = "pairingPdp";
-          saveState();
-        }
-        if (isShoeProduct(info) && state.pairingChecked) {
-          state.beat = "shoes";
-          saveState();
-        }
-      });
     });
+    restampTiles();
     applyBudgetFlags();
   }
 
-  function clearBudgetFlags() {
-    document.querySelectorAll(".yom-budget-flag").forEach((n) => n.remove());
-  }
-
-  function applyBudgetFlags() {
-    clearBudgetFlags();
-    if (state.budget == null || state.spent <= 0) return;
-    if (!["budgeted", "pairing", "pairingPdp", "shoes", "postDress", "cart"].includes(state.beat)) return;
-    const rem = remainingBudget();
-    document.querySelectorAll(".product-tile-wrapper, .product-tile").forEach((tile) => {
-      const info = tileInfo(tile);
-      if (!info.price || info.price <= rem) return;
-      const host = tile.querySelector(".product-tile__media, .product-tile__media-container") || tile;
-      if (getComputedStyle(host).position === "static") host.style.position = "relative";
-      if (host.querySelector(".yom-budget-flag")) return;
-      host.appendChild(el("div", { class: "yom-budget-flag" }, "over budget"));
-    });
+  function yomNode(node) {
+    if (!node || node.nodeType !== 1) return false;
+    return !!(
+      node.id === "yom-root" ||
+      node.id === "yom-pdp-note" ||
+      node.id === "yom-cart-panel" ||
+      node.closest?.("#yom-root, .yom-pdp-note, .yom-cart-panel") ||
+      node.classList?.contains("yom-stamp") ||
+      node.classList?.contains("yom-tile-note") ||
+      node.classList?.contains("yom-budget-flag")
+    );
   }
 
   function speakOnce(key, fn) {
-    if (spokenKey === key) return;
+    const existing = document.getElementById("yom-pdp-note");
+    if (spokenKey === key && existing) return;
     spokenKey = key;
     fn();
   }
 
-  // ── PDP presence ─────────────────────────────────────────────
+  // ── PDP presence — follows session + memory ──────────────────
+  function purposeAskChips(keepNote) {
+    return {
+      chips: [
+        ...DATA.events.map((e) => ({
+          label: e.label,
+          onPick: () => {
+            state.mode = "purpose";
+            state.purpose = e.label;
+            saveState();
+            enterPurposeOnPdp();
+          },
+        })),
+        { label: "just browsing", onPick: () => pdpNote(keepNote, { closetKey: keepNote.closetKey }) },
+      ],
+      otherChoices: [
+        {
+          label: "a work thing",
+          onPick: () => {
+            state.mode = "purpose";
+            state.purpose = "a work thing";
+            saveState();
+            enterPurposeOnPdp();
+          },
+        },
+        {
+          label: "a date",
+          onPick: () => {
+            state.mode = "purpose";
+            state.purpose = "a date";
+            saveState();
+            enterPurposeOnPdp();
+          },
+        },
+        { label: "nothing specific", onPick: () => pdpNote(keepNote, { closetKey: keepNote.closetKey }) },
+      ],
+    };
+  }
+
   function renderPdpPresence() {
     if (!isPdp() || !state.mode) return;
     const info = pdpInfo();
-    const dressish = isDress(info) || isGreenProduct(info);
-    const shoeish = isShoeProduct(info);
-    const host = document.querySelector("h1") || document.body;
     const pageKey = location.pathname;
+    const ev = purposeMeta();
 
-    if (shoeish && (state.pairingChecked || state.beat === "shoes")) {
-      state.beat = "shoes";
-      saveState();
-      speakOnce(`shoes:${pageKey}`, () => {
-        say(host, DATA.tips.shoes, {
-          alts: DATA.shoeAlts,
-          actions: [
-            {
-              label: "I don’t need shoes",
-              onClick: () => {
-                state.beat = "cart";
-                spokenKey = null;
-                saveState();
-                say(null, DATA.tips.skipShoes);
-                setTimeout(() => {
-                  clearSpeech();
-                  dockBuddy();
-                }, 2800);
-              },
-            },
-          ],
-        });
-      });
-      return;
-    }
-
-    // Pairing PDP: click in → yom checks automatically
-    if (["pairing", "pairingPdp"].includes(state.beat) && state.spent > 0 && !dressish && !shoeish) {
-      state.beat = "pairingPdp";
-      saveState();
-      if (!state.pairingChecked) {
-        speakOnce(`pairing-check:${pageKey}`, () => {
-          say(host, DATA.tips.checking);
-          setTimeout(() => {
-            state.pairingChecked = true;
-            saveState();
-            say(host, DATA.tips.pairingCheck, {
-              actions: [
-                {
-                  label: "I added it to bag",
-                  onClick: () => {
-                    const price = info.price || 88;
-                    state.spent += price;
-                    state.cartNames.push(info.name || "pairing piece");
-                    state.beat = "shoes";
-                    spokenKey = null;
-                    saveState();
-                    clearSpeech();
-                    dockBuddy();
-                    render();
-                  },
-                },
-              ],
-            });
-          }, 1100);
-        });
-      }
-      return;
-    }
-
-    // Green dress PDP while still browsing — remind, then wait for context change
-    if (["green", "pdp"].includes(state.beat) && dressish) {
-      state.beat = "pdp";
-      saveState();
-      if (state.mode === "browse") {
-        speakOnce(`green-browse:${pageKey}`, () => {
-          say(host, DATA.tips.green, { closetKey: "green" });
-        });
-        return;
-      }
-      // already in purpose mode
-      speakOnce(`purpose-enter:${pageKey}`, () => enterPurposeOnDress());
-      return;
-    }
-
-    if (state.beat === "purposeOn" && !state.dressChecked) {
-      speakOnce(`purposeOn:${pageKey}`, () => enterPurposeOnDress());
-      return;
-    }
-
-    if ((state.beat === "checked" || state.beat === "purposeOn") && state.dressChecked && dressish) {
+    if (state.checked[pageKey]) {
       speakOnce(`checked:${pageKey}`, () => {
-        say(host, DATA.tips.check, {
-          resolve: DATA.tips.check.resolve,
-          actions: [
-            {
-              label: "I added it to bag",
-              onClick: () => {
-                const price = info.price || 278;
-                if (!state.cartNames.includes(info.name)) {
-                  state.spent += price;
-                  state.cartNames.push(info.name || "green dress");
-                }
-                state.beat = "postDress";
-                spokenKey = null;
-                saveState();
-                render();
-                clearSpeech();
-                dockBuddy();
-              },
-            },
+        const result = state.checked[pageKey];
+        pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
+      });
+      return;
+    }
+
+    if (state.checking) return;
+
+    if (isShoeProduct(info) && !isGift()) {
+      speakOnce(`shoes:${pageKey}`, () => {
+        pdpNote(DATA.tips.shoes, {
+          alts: DATA.shoeAlts,
+          chips: [
+            { label: "I don’t need shoes", onPick: () => skipShoes() },
+            { label: "I’ll look", onPick: () => pdpNote(DATA.tips.shoes, { alts: DATA.shoeAlts }) },
+          ],
+          otherChoices: [
+            { label: "maybe later", onPick: () => skipShoes() },
+            { label: "not this trip", onPick: () => skipShoes() },
           ],
         });
       });
+      return;
     }
+
+    if (ev) {
+      speakOnce(`purpose:${pageKey}`, () => enterPurposeOnPdp());
+      return;
+    }
+
+    if (!isGift() && isGreenProduct(info)) {
+      speakOnce(`green:${pageKey}`, () => {
+        pdpNote(DATA.tips.forWhat, { closetKey: "green", ...purposeAskChips(DATA.tips.green) });
+      });
+      return;
+    }
+
+    if (state.spent > 0 && pairingMatch(info) && !isGift()) {
+      speakOnce(`pair:${pageKey}`, () => {
+        pdpNote(DATA.tips.pairing, { closetKey: "shorts" });
+        setTimeout(() => {
+          if (location.pathname === pageKey) runCheck();
+        }, 900);
+      });
+      return;
+    }
+
+    speakOnce(`pdp:${pageKey}`, () => runCheck());
+  }
+
+  function skipShoes() {
+    spokenKey = null;
+    saveState();
+    clearPdp();
+    whisper(DATA.tips.skipShoes);
   }
 
   // ── cart ─────────────────────────────────────────────────────
@@ -934,13 +1213,10 @@
     document.querySelector("#yom-cart-panel")?.remove();
     if (!isCart() || !state.mode) return;
 
-    state.beat = state.beat === "done" ? "done" : "cart";
-    saveState();
-
     const host =
       document.querySelector(".cart-page, .cart, #cart-table, .cart__body, main, .container") ||
       document.body;
-    const panelEl = el("div", { class: "yom-cart-panel", id: "yom-cart-panel" });
+    const panelEl = el("div", { class: "yom-ui yom-cart-panel", id: "yom-cart-panel" });
     const names =
       state.cartNames.length > 0
         ? state.cartNames
@@ -949,14 +1225,24 @@
             .filter(Boolean)
             .slice(0, 3);
 
-    const rows = (names.length ? names : ["Your picks"]).map((name, i) => {
-      const kind = /dress/i.test(name) ? "dress" : i === 0 && state.dressChecked ? "dress" : "pairing";
+    const ev = purposeMeta();
+    const rows = (names.length ? names : ["Your picks"]).map((name) => {
+      const kind = /dress/i.test(name) ? "dress" : "pairing";
       return { name, keep: DATA.keep[kind] || DATA.keep.other };
     });
 
+    const contextLine = ev
+      ? `for ${ev.label}${ev.when ? ` · ${ev.when}` : ""}`
+      : isGift()
+        ? "picked as a gift"
+        : "from browsing";
+    const budgetLine =
+      state.budget != null ? ` · $${remainingBudget()} left of $${state.budget}` : "";
+
     panelEl.innerHTML = `
+      <div class="yom-pdp-kicker">yom</div>
       <h3>keep confidence</h3>
-      <p>a read on the purchase as a whole — sizing, preferences, returns, reviews, closet, and what yom has learned about you.</p>
+      <p>${contextLine}${budgetLine}. a read on sizing, reviews, closet, and what you told me.</p>
       ${rows
         .map(
           (r) => `
@@ -970,65 +1256,67 @@
         </div>`
         )
         .join("")}
-      <div class="yom-actions">
-        <button type="button" class="yom-btn" data-checkout>checkout</button>
-      </div>
+      <div class="yom-chips" data-chips></div>
     `;
     host.prepend(panelEl);
-
-    hopToElement(panelEl, "left");
-    panelEl.querySelector("[data-checkout]").addEventListener("click", () => {
-      state.beat = "done";
-      saveState();
-      say(panelEl, DATA.tips.done);
-    });
+    attachChips(
+      panelEl.querySelector("[data-chips]"),
+      [
+        {
+          label: "checkout",
+          onPick: () => {
+            state.checkedOut = true;
+            saveState();
+            whisper(
+              ev
+                ? { title: "go for it", body: `this holds up for ${ev.label}.` }
+                : DATA.tips.done,
+              4000
+            );
+          },
+        },
+        {
+          label: "keep looking",
+          onPick: () => whisper({ title: "i’ll stay on the bag" }),
+        },
+      ],
+      [{ label: "not yet", onPick: () => whisper({ title: "no rush" }) }]
+    );
   }
 
   function render() {
-    if (!state.mode) {
-      dockBuddy(state.beat === "off");
-      modePill.classList.add("hidden");
-    } else {
-      positionModePill();
-      if (buddyDocked) dockBuddy();
-    }
+    dockBuddy();
     renderPanel();
     bindTiles();
     applyBudgetFlags();
     if (isPdp()) renderPdpPresence();
+    else clearPdp();
     if (isCart()) renderCart();
   }
 
   window.addEventListener("resize", () => {
-    if (buddyDocked) dockBuddy();
-    else positionModePill();
+    dockBuddy();
   });
 
-  window.addEventListener(
-    "scroll",
-    () => {
-      // when scrolling the grid, let yom settle back so it doesn't feel sticky-noisy
-      if (!isPdp() && !isCart() && speechEl && buddyDocked === false) {
-        // keep speech until user moves on; soft dock after scroll burst
-      }
-    },
-    { passive: true }
-  );
-
   let lastHref = location.href;
-  const mo = new MutationObserver(() => {
-    bindTiles();
+  const mo = new MutationObserver((mutations) => {
     if (location.href !== lastHref) {
       lastHref = location.href;
       spokenKey = null;
-      clearSpeech();
+      closeAsk();
+      clearWhisper();
+      clearExpandedNotes();
       dockBuddy();
       render();
+      return;
     }
+    const foreign = mutations.some((m) =>
+      [...m.addedNodes, ...m.removedNodes].some((n) => n.nodeType === 1 && !yomNode(n))
+    );
+    if (foreign) bindTiles();
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
 
-  // boot
   dockBuddy(true);
   render();
 })();
