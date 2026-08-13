@@ -31,7 +31,7 @@ npx vercel --prod
 
 ## User login (Supabase)
 
-Profiles, saves, and beta allowlist live in Postgres. Same account on the site and in the popup.
+Profiles, closet, saves, takes, outcomes, and the beta allowlist live in Postgres. Same account on the site and in the popup.
 
 1. Follow [`../supabase/README.md`](../supabase/README.md)
 2. Vercel env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`

@@ -102,10 +102,6 @@ function App() {
             </Link>
           </div>
         </div>
-
-        <Link to="/beta" className="beta-corner">
-          beta login
-        </Link>
       </section>
 
       {waitlistOpen && (

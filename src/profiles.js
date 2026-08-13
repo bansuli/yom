@@ -42,9 +42,9 @@ export const PROFILES = {
       "returns pointed anything, keeps the clean line",
     ],
     purchases: [
-      { when: "apr 2026", item: "COS column pant in black", note: "kept · weekly rotation" },
-      { when: "may 2026", item: "Reformation Gavin blazer", note: "kept · the jacket that actually gets worn" },
-      { when: "jun 2026", item: "gift: Aeyde sandals for a friend", note: "not for her · she returned a pointed mule the same month" },
+      { when: "apr 2026", item: "COS column pant in black", note: "kept · weekly rotation", brand: "COS", kind: "pants", color: "black", kept: true },
+      { when: "may 2026", item: "Reformation Gavin blazer", note: "kept · the jacket that actually gets worn", brand: "Reformation", kind: "jacket", color: "black", kept: true },
+      { when: "jun 2026", item: "Aeyde pointed mule", note: "returned · not her toe", brand: "Aeyde", kind: "shoes", kept: false, return_reason: "fit was wrong" },
     ],
     saved: [
       { item: "The Row Park tote", note: "saved apr 19 · still thinking" },
@@ -74,9 +74,9 @@ export const PROFILES = {
       "pointed shoes never make it out of the box",
     ],
     purchases: [
-      { when: "apr 2026", item: "Reformation Maya Set", note: "kept · the silhouette she still shops" },
-      { when: "may 2026", item: "three green pieces (Reformation + other)", note: "0 returns · her color" },
-      { when: "jun 2026", item: "Jaded London shorts", note: "kept · still in rotation" },
+      { when: "apr 2026", item: "Reformation Maya Set", note: "kept · the silhouette she still shops", brand: "Reformation", kind: "set", kept: true },
+      { when: "may 2026", item: "three green pieces (Reformation + other)", note: "0 returns · her color", brand: "Reformation", kind: "dress", color: "green", kept: true },
+      { when: "jun 2026", item: "Jaded London shorts", note: "kept · still in rotation", brand: "Jaded London", kind: "shorts", kept: true },
     ],
     saved: [
       { item: "green midi for sofia's wedding", note: "saved jun 12 · not bought yet" },

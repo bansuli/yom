@@ -98,9 +98,10 @@ window.YOM_DEMO = {
   },
   reviews: {
     long: {
-      title: "reviews are really good",
-      body: "a lot of people say it’s hemmed weirdly. add it when you’re ready.",
-      resolve: "Reformation offers alterations — length comes up a lot, and it’s fixable.",
+      title: "reviews say it runs long",
+      body: "a lot of people say it’s really long.",
+      resolve:
+        "lucky for you, Reformation offers alterations. length comes up a lot, and it’s fixable.",
     },
     strong: {
       title: "reviews are strong",
@@ -163,8 +164,16 @@ window.YOM_DEMO = {
       stamp: "over budget",
     },
     sos: {
-      title: "i’ll look now",
-      body: "size, reviews, and whether you should buy it.",
+      title: "hover a piece",
+      body: "i’ll tell you size, reviews, buy or skip — right here next to me.",
+    },
+    stored: {
+      title: "stored",
+      body: "i’ll remember that.",
+    },
+    makesSense: {
+      title: "got it",
+      body: "i’ll keep reading you this way.",
     },
     saved: {
       title: "saved",

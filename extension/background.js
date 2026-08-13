@@ -63,8 +63,29 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === "YOM_TAKE") {
+    postTake(msg.take)
+      .then((data) => sendResponse(data))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg?.type === "YOM_OUTCOME") {
+    postOutcome(msg.outcome)
+      .then((data) => sendResponse(data))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
   if (msg?.type === "YOM_SESSION") {
     saveSessionRow(msg.session)
+      .then((data) => sendResponse(data))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg?.type === "YOM_LEARN") {
+    saveLearn(msg.learn)
       .then((data) => sendResponse(data))
       .catch(() => sendResponse({ ok: false }));
     return true;
@@ -87,6 +108,8 @@ function cacheKey(payload) {
     s.keepLean,
     s.trait,
     s.preBuy,
+    s.memory,
+    JSON.stringify(s.sizes || {}),
   ].join("|");
 }
 
@@ -145,10 +168,47 @@ async function saveRemote(item) {
   return data;
 }
 
-async function saveSessionRow(row) {
+const takeSeen = new Set();
+const outcomeSeen = new Set();
+
+async function postAuthed(path, body) {
   const session = await loadSession();
   if (!session?.access_token) return { ok: false, skipped: true };
-  return api("/api/session", { method: "POST", body: row || {}, token: session.access_token });
+  return api(path, { method: "POST", body: body || {}, token: session.access_token });
+}
+
+async function postTake(take) {
+  const key = [take?.product_key, take?.title, take?.surface, take?.mode].join("|");
+  if (!take?.product_key || takeSeen.has(key)) return { ok: true, duplicate: true };
+  takeSeen.add(key);
+  if (takeSeen.size > 400) takeSeen.clear();
+  return postAuthed("/api/takes", take);
+}
+
+async function postOutcome(outcome) {
+  const key = [outcome?.action, outcome?.product_key].join("|");
+  if (!outcome?.action || !outcome?.product_key || outcomeSeen.has(key)) {
+    if (!outcome?.action || !outcome?.product_key) return { ok: false, error: "need a product." };
+    return { ok: true, duplicate: true };
+  }
+  outcomeSeen.add(key);
+  if (outcomeSeen.size > 400) outcomeSeen.clear();
+  return postAuthed("/api/outcomes", outcome || {});
+}
+
+async function saveSessionRow(row) {
+  return postAuthed("/api/session", row || {});
+}
+
+async function saveLearn(learn) {
+  const session = await loadSession();
+  if (!session?.access_token) return { ok: false, skipped: true };
+  const data = await api("/api/memory", { method: "POST", body: learn || {}, token: session.access_token });
+  if (data.ok && data.profile) {
+    session.profile = data.profile;
+    await chrome.storage.local.set({ [SESSION_KEY]: session });
+  }
+  return data;
 }
 
 async function callSharedBrain(payload) {

@@ -5,10 +5,12 @@ import {
   clearBetaSession,
   loadBetaSession,
   saveBetaSession,
+  yomCloset,
   yomLogin,
   yomMe,
   yomSignup,
 } from "./lib/yom-api.js";
+import { clearSurvey, loadSurvey } from "./lib/survey-store.js";
 import "./Beta.css";
 
 function localAccount(email) {
@@ -76,8 +78,20 @@ export default function Beta() {
     e.preventDefault();
     setBusy(true);
     setErr("");
-    const call = signup ? yomSignup : yomLogin;
-    const res = await call(email, password, email.split("@")[0]);
+    const survey = loadSurvey();
+    const extra = survey
+      ? {
+          name: survey.name || email.split("@")[0],
+          trait: survey.trait,
+          preBuy: survey.preBuy,
+          read: survey.read,
+          headline: survey.headline,
+          closet: survey.closet || [],
+        }
+      : {};
+    const res = signup
+      ? await yomSignup(email, password, extra.name || email.split("@")[0], extra)
+      : await yomLogin(email, password);
     if (res.fallback) {
       if (signup) {
         setErr("live signup isn't on yet. use the demo login for now.");
@@ -107,14 +121,20 @@ export default function Beta() {
       setBusy(false);
       return;
     }
+    let profile = res.profile;
+    if (!signup && extra.closet?.length && !profile?.purchases?.length) {
+      const flushed = await yomCloset(res.access_token, extra);
+      if (flushed.ok && flushed.profile) profile = flushed.profile;
+    }
+    if (res.ok && extra.closet) clearSurvey();
     saveBetaSession({
       email: res.user?.email || email,
       access_token: res.access_token,
       refresh_token: res.refresh_token,
       user: res.user,
-      profile: res.profile,
+      profile,
     });
-    setAuthed({ user: res.user, profile: res.profile });
+    setAuthed({ user: res.user, profile });
     setPassword("");
     setBusy(false);
   };
@@ -182,7 +202,13 @@ export default function Beta() {
   }
 
   const profile = authed.profile;
-  const hasCloset = Boolean(profile?.purchases?.length || profile?.read || profile?.headline);
+  const hasCloset = Boolean(
+    profile?.purchases?.length ||
+      profile?.saved?.length ||
+      profile?.outcomes?.length ||
+      profile?.read ||
+      profile?.headline
+  );
 
   return (
     <div className="beta-page">
@@ -241,14 +267,19 @@ export default function Beta() {
 
             {profile.purchases?.length ? (
               <div className="beta-block">
-                <h2>past purchases</h2>
+                <h2>closet</h2>
                 <div className="beta-kept">
                   {profile.purchases.map((p) => (
-                    <div className="beta-kept-row" key={p.item}>
+                    <div className="beta-kept-row" key={`${p.item}-${p.when}`}>
                       <strong>
-                        {p.when} · {p.item}
+                        {p.when ? `${p.when} · ` : ""}
+                        {p.item}
                       </strong>
-                      <span>{p.note}</span>
+                      <span>
+                        {p.kept === false
+                          ? `returned${p.return_reason ? ` · ${p.return_reason}` : ""}`
+                          : [p.brand, p.kind, p.color, p.note].filter(Boolean).join(" · ") || "kept"}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -260,9 +291,37 @@ export default function Beta() {
                 <h2>saved for later</h2>
                 <div className="beta-kept">
                   {profile.saved.map((s) => (
-                    <div className="beta-kept-row" key={s.item || s.name}>
+                    <div className="beta-kept-row" key={s.href || s.item || s.name}>
                       <strong>{s.item || s.name}</strong>
-                      <span>{s.note}</span>
+                      <span>{s.note || s.site || "parked"}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {profile.events?.length ? (
+              <div className="beta-block">
+                <h2>coming up</h2>
+                <div className="beta-kept">
+                  {profile.events.map((ev) => (
+                    <div className="beta-kept-row" key={ev.id || ev.label}>
+                      <strong>{ev.label}</strong>
+                      <span>{[ev.when, ev.kind].filter(Boolean).join(" · ")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {profile.outcomes?.length ? (
+              <div className="beta-block">
+                <h2>recent decisions</h2>
+                <div className="beta-kept">
+                  {profile.outcomes.slice(0, 8).map((row) => (
+                    <div className="beta-kept-row" key={row.id || `${row.action}-${row.product_key}`}>
+                      <strong>{row.name || row.product_key}</strong>
+                      <span>{[row.action, row.reason, row.site].filter(Boolean).join(" · ")}</span>
                     </div>
                   ))}
                 </div>

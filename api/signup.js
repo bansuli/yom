@@ -1,5 +1,5 @@
 import { json, preflight, readJson } from "../lib/http.js";
-import { assembleAccount, seedFounderIfNeeded } from "../lib/profile.js";
+import { assembleAccount, ingestOnboarding, seedFounderIfNeeded } from "../lib/profile.js";
 import { createAuthUser, one, rest, sbAdmin, signIn, supabaseConfigured } from "../lib/supabase.js";
 
 export default async function handler(req, res) {
@@ -43,6 +43,7 @@ export default async function handler(req, res) {
   }
 
   await seedFounderIfNeeded(created.data);
+  await ingestOnboarding(created.data, body);
   const auth = await signIn(email, password);
   if (!auth.ok || !auth.data?.access_token) {
     json(res, 201, { ok: true, created: true });

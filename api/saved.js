@@ -1,5 +1,6 @@
 import { bearer, json, preflight, readJson } from "../lib/http.js";
 import { accountFromToken } from "../lib/profile.js";
+import { insertOutcome } from "../lib/store.js";
 import { rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
 
 export default async function handler(req, res) {
@@ -52,6 +53,18 @@ export default async function handler(req, res) {
     json(res, 500, { ok: false, error: "could not save." });
     return;
   }
+
+  await insertOutcome(userId, {
+    action: "save",
+    product_key: href || name,
+    name,
+    href,
+    site: body.site || "",
+    price: body.price,
+    kind: body.kind || "",
+    color: body.color || "",
+    brand: body.brand || "",
+  });
 
   const fresh = await accountFromToken(token);
   json(res, 200, { ok: true, saved: fresh?.profile?.saved || [] });

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import './Survey.css'
+import { saveSurvey, surveyPayload } from './lib/survey-store.js'
 const modules = import.meta.glob('./assets/outfit-*.{jpg,webp,png}', { eager: true })
 const OUTFITS = Object.values(modules).map(m => m.default).slice(0, 6)
 
@@ -420,6 +421,22 @@ export default function Survey() {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4) }
   }, [step])
 
+  useEffect(() => {
+    if (step !== 'teaser' && step !== 'analyzing' && step !== 'results' && step !== 'email') return
+    saveSurvey(surveyPayload({
+      userName,
+      email,
+      selectedTrait,
+      selectedPreBuy,
+      q4item,
+      q4whySelected,
+      q6item,
+      q6whySelected,
+      read: getPersonalRead(selectedTrait, selectedPreBuy),
+      headline: TRAIT_INSIGHTS[selectedTrait]?.badge || '',
+    }))
+  }, [step, userName, email, selectedTrait, selectedPreBuy, q4item, q4whySelected, q6item, q6whySelected])
+
   function vote(dir) {
     if (dir === 'up') setYesCount(c => c + 1)
     else setNoCount(c => c + 1)
@@ -796,8 +813,8 @@ export default function Survey() {
 
             <div className="results-signoff">
               <p className="results-signoff-main">see you when we launch.</p>
-              <p className="results-signoff-sub">we'll remember all of this.</p>
-              <a href="/" className="results-home-link">till we meet again →</a>
+              <p className="results-signoff-sub">we'll remember all of this — create your account so it lives on your yom.</p>
+              <a href="/beta" className="results-home-link">keep this on your yom →</a>
             </div>
 
           </div>

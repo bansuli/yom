@@ -13,7 +13,9 @@ The Anthropic key never goes in the extension. The service role key never goes i
 
 SQL editor → paste `schema.sql` → Run.
 
-That creates `allowlist`, `profiles`, `closet_items`, `saved_items`, `sessions`, `events`, and seeds mal + ban on the allowlist.
+That creates `allowlist`, `profiles`, `closet_items`, `saved_items`, `sessions`, `events`, `takes`, `outcomes`, and seeds mal + ban on the allowlist.
+
+Re-run the file after pulls — `alter table ... add column if not exists` is safe.
 
 ## 3. Auth settings
 

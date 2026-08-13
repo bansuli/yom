@@ -265,6 +265,26 @@
   line-height: 1.35;
 }
 
+.yom-ask.yom-sos-sheet {
+  width: min(320px, calc(100vw - 1.5rem));
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+}
+
+.yom-ask .yom-facts {
+  margin-top: 0.35rem;
+}
+
+.yom-ask .yom-regret {
+  margin-top: 0.55rem;
+}
+
+.yom-ask .yom-sos-resolve {
+  margin: 0.45rem 0 0.7rem;
+  font-size: 0.78rem;
+  color: var(--yom-ink);
+}
+
 .yom-chips {
   display: flex;
   flex-wrap: wrap;
@@ -320,6 +340,101 @@
 .yom-chip:disabled {
   opacity: 0.4;
   cursor: default !important;
+}
+
+.yom-fb {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  align-items: center;
+  margin-top: 0.65rem;
+}
+
+.yom-pdp-note .yom-fb,
+.yom-ask .yom-fb {
+  border-top: 1px solid color-mix(in srgb, var(--yom-ink) 10%, transparent);
+  padding-top: 0.55rem;
+}
+
+.yom-fb-btn {
+  appearance: none !important;
+  border: 0 !important;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  font-family: var(--yom-font-body) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  color: var(--yom-muted) !important;
+  cursor: pointer !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.yom-fb-btn:hover {
+  color: var(--yom-ink) !important;
+}
+
+.yom-fb-ok {
+  color: #3d5a00 !important;
+}
+
+.yom-fb-no {
+  color: #7a3a3a !important;
+}
+
+.yom-fb-dot {
+  color: #c8c8c8;
+  font-size: 0.72rem;
+}
+
+.yom-fb-ask {
+  flex: 1 0 100%;
+  margin: 0;
+  font-size: 0.78rem !important;
+  font-weight: 600;
+  color: var(--yom-ink) !important;
+}
+
+.yom-fb-input {
+  width: 4.6rem;
+  border: 1px solid var(--yom-ink);
+  border-radius: 8px;
+  padding: 0.28rem 0.4rem;
+  font-family: var(--yom-font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--yom-ink);
+  background: #fff;
+}
+
+.yom-fb-done {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--yom-muted);
+}
+
+.yom-fb-chip {
+  appearance: none !important;
+  border: 1px solid var(--yom-ink) !important;
+  background: #fff !important;
+  color: var(--yom-ink) !important;
+  font-family: var(--yom-font-body) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  border-radius: 999px !important;
+  padding: 0.28rem 0.55rem !important;
+  cursor: pointer !important;
+  width: auto !important;
+  height: auto !important;
+  box-shadow: none !important;
+}
+
+.yom-fb-chip:hover {
+  background: var(--yom-lime) !important;
 }
 
 #yom-root .yom-chips {

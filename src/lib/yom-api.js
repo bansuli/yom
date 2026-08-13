@@ -65,8 +65,12 @@ export function yomLogin(email, password) {
   return post("/api/login", { email, password });
 }
 
-export function yomSignup(email, password, name) {
-  return post("/api/signup", { email, password, name });
+export function yomSignup(email, password, name, extra = {}) {
+  return post("/api/signup", { email, password, name, ...extra });
+}
+
+export function yomCloset(token, body) {
+  return post("/api/closet", body, token);
 }
 
 export function yomMe(token) {
