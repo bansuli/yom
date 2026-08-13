@@ -102,6 +102,10 @@ function App() {
             </Link>
           </div>
         </div>
+
+        <Link to="/beta" className="beta-corner">
+          beta login
+        </Link>
       </section>
 
       {waitlistOpen && (
@@ -127,6 +131,7 @@ function App() {
                 <div className="waitlist-nudge">
                   <p>don&rsquo;t forget — take yom on a shopping trip too. that&rsquo;s how yom actually learns about you.</p>
                   <Link to="/survey" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
+                  <Link to="/beta" className="waitlist-trip-link" onClick={closeModal}>already in beta? log in →</Link>
                 </div>
               </>
             ) : (

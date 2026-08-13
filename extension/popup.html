@@ -16,33 +16,27 @@
     <main class="popup">
       <p class="eyebrow">shopping companion</p>
       <h1 class="brand">yom</h1>
-      <p class="tag">
-        yom thinks for everyone through youryom.com. no one else pastes a key.
-      </p>
-      <button id="launch" type="button">open Reformation</button>
-      <button id="launch-green" type="button" class="secondary">open green dresses</button>
-      <button id="launch-tab" type="button" class="secondary">use this tab</button>
+      <p class="tag">tap yom, then hover over a piece. it knows your style better than you do.</p>
 
-      <section class="key-block">
-        <label for="api-key">optional override</label>
-        <p class="key-status" id="key-status">shared brain is on. a personal key is only if you want to test against your own account.</p>
-        <div class="provider" id="provider">
-          <button type="button" data-provider="anthropic" class="on">Anthropic</button>
-          <button type="button" data-provider="openai">OpenAI</button>
-        </div>
-        <input
-          id="api-key"
-          type="password"
-          autocomplete="off"
-          spellcheck="false"
-          placeholder="personal key — optional"
-        />
-        <div class="key-row">
-          <button id="save-key" type="button" class="secondary">save override</button>
-          <button id="clear-key" type="button" class="ghost">clear</button>
-        </div>
-      </section>
-      <p class="hint">the shared key lives on the server, not in the extension.</p>
+      <div id="auth-out">
+        <form id="login-form">
+          <input id="email" type="email" autocomplete="username" placeholder="email" required />
+          <input id="password" type="password" autocomplete="current-password" placeholder="password" required />
+          <button type="submit" id="login-btn">log in</button>
+        </form>
+        <button type="button" class="secondary" id="signup-btn">create account</button>
+        <p class="err" id="auth-err" hidden></p>
+        <p class="hint" id="auth-hint">beta list only. you can still shop as the demo.</p>
+      </div>
+
+      <div id="auth-in" hidden>
+        <p class="who" id="who"></p>
+        <button type="button" class="secondary" id="logout">log out</button>
+      </div>
+
+      <button type="button" id="launch">shop Reformation</button>
+      <button type="button" class="secondary" id="launch-green">green dresses</button>
+      <button type="button" class="secondary" id="launch-tab">use this tab</button>
     </main>
     <script src="popup.js"></script>
   </body>

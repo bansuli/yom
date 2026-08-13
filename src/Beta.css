@@ -1,0 +1,292 @@
+.beta-page {
+  min-height: 100dvh;
+  background: #fff;
+  color: #111;
+}
+
+.beta-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
+  background-size: 13px 13px;
+  -webkit-mask-image: radial-gradient(ellipse 55% 70% at 70% 18%, black 8%, transparent 70%);
+  mask-image: radial-gradient(ellipse 55% 70% at 70% 18%, black 8%, transparent 70%);
+  opacity: 0.4;
+}
+
+.beta-back {
+  position: fixed;
+  top: 1.5rem;
+  left: 2rem;
+  z-index: 5;
+  font-family: "Archivo", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.beta-back:hover {
+  opacity: 0.5;
+}
+
+.beta-gate {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 1.25rem 3rem;
+}
+
+.beta-card {
+  width: min(440px, 100%);
+  background: #fff;
+  border: 2px solid #111;
+  box-shadow: 5px 6px 0 #111;
+  padding: 2.25rem 2.4rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.beta-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.beta-card h1 {
+  font-family: "Archivo Black", "Arial Black", sans-serif;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+}
+
+.beta-card p {
+  font-family: "Archivo", sans-serif;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.beta-who {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.15rem;
+}
+
+.beta-who button {
+  flex: 1;
+  border: 1.5px solid #111;
+  background: #fff;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.beta-who button.on {
+  background: #c8f060;
+}
+
+.beta-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.beta-card input {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border: 1.5px solid #111;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-size: 1rem;
+  outline: none;
+}
+
+.beta-card input:focus {
+  box-shadow: 2px 2px 0 #111;
+}
+
+.beta-go {
+  align-self: flex-start;
+  padding: 0.75rem 1.6rem;
+  background: #111;
+  color: #fff;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.beta-go:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.beta-toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-size: 0.88rem;
+  color: #5a5a5a;
+  cursor: pointer;
+  text-align: left;
+}
+
+.beta-err {
+  color: #8a3a00;
+  font-size: 0.88rem;
+}
+
+.beta-profile {
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 5.5rem 1.5rem 5rem;
+}
+
+.beta-from {
+  font-family: "Caveat", cursive;
+  font-size: 1.45rem;
+  color: #5a5a5a;
+  margin-bottom: 0.35rem;
+}
+
+.beta-profile h1 {
+  font-family: "Archivo Black", "Arial Black", sans-serif;
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.4rem;
+}
+
+.beta-switch {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.beta-switch button,
+.beta-switch a {
+  border: 1.5px solid #111;
+  background: #fff;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.beta-switch button.on,
+.beta-switch a.on {
+  background: #c8f060;
+}
+
+.beta-signed {
+  font-size: 0.82rem;
+  color: #5a5a5a;
+  align-self: center;
+  margin-right: auto;
+}
+
+.beta-out {
+  margin-left: auto;
+  background: transparent;
+  font-weight: 500;
+  color: #5a5a5a;
+}
+
+.beta-block {
+  margin-bottom: 1.85rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid #ececec;
+}
+
+.beta-block:last-child {
+  border-bottom: none;
+}
+
+.beta-block h2 {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5a5a5a;
+  margin-bottom: 0.65rem;
+}
+
+.beta-read {
+  font-family: "Archivo", sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+
+.beta-sizes {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.beta-size {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.98rem;
+}
+
+.beta-size span {
+  color: #5a5a5a;
+}
+
+.beta-block ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.beta-block li {
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.beta-kept {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.beta-kept-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.7rem 0.85rem;
+  border: 1.5px solid #111;
+  box-shadow: 2px 3px 0 #c8f060;
+}
+
+.beta-kept-row strong {
+  font-size: 0.98rem;
+}
+
+.beta-kept-row span {
+  font-size: 0.85rem;
+  color: #5a5a5a;
+  text-align: right;
+}
+
+.beta-shop {
+  font-family: "Archivo", sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.55;
+}

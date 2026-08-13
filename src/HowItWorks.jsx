@@ -42,6 +42,7 @@ const STEPS = [
     num: '5.',
     title: 'decide with confidence',
     lead: 'buy it. save it. skip it.',
+    body: 'save shipped. anything yom flags — or anything you like — can go to your list for later.',
     footer: 'whatever you choose, yom remembers and gets smarter for next time.',
   },
   {

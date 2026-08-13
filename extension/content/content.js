@@ -1,24 +1,27 @@
 (() => {
-  if (window.__YOM_LOADED__) return;
+  if (window.__YOM_BUILD__ === "1.1.14") return;
+  window.__YOM_BUILD__ = "1.1.14";
   window.__YOM_LOADED__ = true;
+  document.getElementById("yom-root")?.remove();
 
   const DATA = window.YOM_DEMO;
   const EXTRACT = window.YOM_EXTRACT;
   const USER_KEY = "yom-user";
   const STORAGE_KEY = "yom-companion-v4";
   const PROFILE_KEY = "yom-profile";
-  const PAUSE_MS = 1000;
-  const NOTE_HOLD_MS = 3800;
+  const LIVE_KEY = "yom-session";
+  const PAUSE_MS = 400;
   const GREEN_WORDS =
     /\b(green|emerald|forest|jade|moss|olive|sage|evergreen|tarragon|fern|kelly|pistachio)\b/i;
-  const SHOE_WORDS = /\b(shoe|heel|sandal|boot|mule|pump|loafer|sneaker|slingback)\b/i;
+  const SHOE_WORDS = /\b(shoe|heel|sandal|boot|mule|pump|loafer|sneaker|slingback|flat|flats|slide|slides|thong|espadrille|ballet)\b/i;
 
   const defaultState = () => ({
-    mode: null, // browse | purpose | gift
+    mode: null, // browse | purpose | sos | gift
     purpose: null,
     budget: null,
     spent: 0,
     cartNames: [],
+    saved: [],
     insightN: 0,
     checked: {},
     checking: false,
@@ -39,6 +42,7 @@
     "budget",
     "spent",
     "cartNames",
+    "saved",
     "insightN",
     "checked",
     "budgetAsked",
@@ -47,6 +51,7 @@
   const USER_FIELDS = ["userId", "trait", "preBuy", "keepLean", "read"];
 
   let state = defaultState();
+  let liveAccount = null;
   let hoverTimer = null;
   let hoverTile = null;
   let whisperEl = null;
@@ -115,19 +120,87 @@
   }
 
   function demoPersona() {
-    return isDemoSite() ? DATA.persona?.demo : null;
+    return DATA.persona?.demo || null;
+  }
+
+  function sizeMap(sizes) {
+    if (!sizes) return {};
+    if (!Array.isArray(sizes) && sizes.us) return sizes;
+    const map = { ...(sizes.us || sizes.denim || sizes.shoes ? sizes : {}) };
+    const list = Array.isArray(sizes) ? sizes : sizes.display || [];
+    for (const row of list) {
+      const label = String(row.label || "");
+      if (/dress|top|usual/i.test(label)) map.us = row.value;
+      else if (/denim/i.test(label)) map.denim = row.value;
+      else if (/shoe/i.test(label)) map.shoes = row.value;
+    }
+    return map;
+  }
+
+  function livePersona() {
+    const profile = liveAccount?.profile;
+    if (!profile?.id && !profile?.userId) return null;
+    return {
+      userId: profile.userId || profile.id,
+      trait: profile.trait,
+      preBuy: profile.preBuy,
+      keepLean: profile.keepLean,
+      read: profile.read || composeRead(profile.trait, profile.preBuy, profile.keepLean),
+      memory: profile.memory || "",
+      sizes: sizeMap(profile.sizeMap || profile.sizes),
+    };
+  }
+
+  function applyLivePersona() {
+    const live = livePersona();
+    if (!live) return false;
+    state.userId = live.userId;
+    if (live.trait) state.trait = live.trait;
+    if (live.preBuy) state.preBuy = live.preBuy;
+    if (live.keepLean) state.keepLean = live.keepLean;
+    if (live.read) state.read = live.read;
+    const remote = liveAccount?.profile?.saved;
+    if (Array.isArray(remote)) {
+      state.saved = state.saved || [];
+      const have = new Set(state.saved.map((item) => item.href || item.name));
+      for (const item of remote) {
+        const name = item.name || item.item;
+        const key = item.href || name;
+        if (!key || have.has(key)) continue;
+        state.saved.push({
+          name,
+          href: item.href || "",
+          price: item.price || 0,
+          at: Date.parse(item.at) || Date.now(),
+        });
+        have.add(key);
+      }
+    }
+    return true;
+  }
+
+  async function loadLiveAccount() {
+    try {
+      const stored = await chrome.storage.local.get(LIVE_KEY);
+      liveAccount = stored[LIVE_KEY] || null;
+    } catch {
+      liveAccount = null;
+    }
   }
 
   function activePersona() {
+    const live = livePersona();
+    if (live) return live;
     const demo = demoPersona();
     if (demo) {
       return {
-        userId: demo.userId || state.userId,
+        userId: demo.userId || "yom-ban",
         trait: demo.trait,
         preBuy: demo.preBuy,
         keepLean: demo.keepLean,
-        read: demo.read,
-        memory: demo.memory,
+        read: demo.read || composeRead(demo.trait, demo.preBuy, demo.keepLean),
+        memory: demo.memory || "",
+        sizes: demo.sizes || {},
       };
     }
     return {
@@ -137,6 +210,7 @@
       keepLean: state.keepLean,
       read: state.read,
       memory: "",
+      sizes: {},
     };
   }
 
@@ -224,12 +298,77 @@
   }
 
   function findTiles() {
-    if (isDemoSite()) {
-      return [...document.querySelectorAll(".product-tile-wrapper, .product-tile")];
+    const seen = new Set();
+    const picked = [];
+    const add = (node) => {
+      if (!node || seen.has(node) || node.closest?.("#yom-root")) return;
+      const host = tileHost(node);
+      if (!host || seen.has(host) || host.closest("#yom-root")) return;
+      seen.add(host);
+      picked.push(host);
+    };
+    document
+      .querySelectorAll(
+        "[data-product-tile-wrapper], [data-product-tile], .product-tile, .product-grid__item"
+      )
+      .forEach(add);
+    if (picked.length) return picked.slice(0, 80);
+    document.querySelectorAll("a[href*='/products/'], a[href*='/product/']").forEach((a) => {
+      add(a.closest(".product-grid__item, li, article") || a.parentElement || a);
+    });
+    return picked.slice(0, 80);
+  }
+
+  function tileHost(node) {
+    if (!node?.closest) return node;
+    return (
+      node.closest("[data-product-tile-wrapper]") ||
+      node.closest(".product-tile-wrapper") ||
+      node.closest("[data-product-tile]") ||
+      node.closest(".product-tile") ||
+      node.closest(".product-grid__item") ||
+      node.closest(".yom-tile-host") ||
+      node
+    );
+  }
+
+  function cardFromNode(node) {
+    const el = node?.nodeType === 1 ? node : node?.parentElement;
+    if (!el?.closest) return null;
+    if (
+      el.closest(
+        "#yom-root, #yom-notes-layer, .yom-tile-note, .yom-pdp-note, .yom-cart-panel, .yom-ask, .yom-panel"
+      )
+    ) {
+      return null;
     }
-    const tiles = EXTRACT.findTiles();
-    tiles.forEach((t) => t.classList.add("yom-tile-host"));
-    return tiles;
+    return (
+      el.closest("[data-product-tile-wrapper]") ||
+      el.closest(".product-tile-wrapper") ||
+      el.closest("[data-product-tile]") ||
+      el.closest(".product-tile") ||
+      el.closest(".product-grid__item") ||
+      el.closest(".product-card") ||
+      el.closest(".product-item") ||
+      el.closest("[data-product-id]") ||
+      el.closest("a[href*='/products/']") ||
+      el.closest("a[href*='/product/']") ||
+      null
+    );
+  }
+
+  function cardAtEvent(e) {
+    const direct = cardFromNode(e.target);
+    if (direct) return direct;
+    const x = e.clientX;
+    const y = e.clientY;
+    if (typeof x !== "number" || typeof document.elementsFromPoint !== "function") return null;
+    const stack = document.elementsFromPoint(x, y) || [];
+    for (let i = 0; i < stack.length; i += 1) {
+      const card = cardFromNode(stack[i]);
+      if (card) return card;
+    }
+    return null;
   }
 
   function el(tag, attrs = {}, html = "") {
@@ -243,8 +382,16 @@
   }
 
   function parseTracking(node) {
-    const anchor = node.querySelector?.("[data-tracking]") || node.closest?.("[data-tracking]");
-    const raw = anchor?.getAttribute("data-tracking");
+    const anchor =
+      (node.hasAttribute?.("data-aggregate") || node.hasAttribute?.("data-tracking")
+        ? node
+        : null) ||
+      node.querySelector?.("[data-aggregate], [data-tracking], [data-product-tile]") ||
+      node.closest?.("[data-aggregate], [data-tracking], [data-product-tile]");
+    const raw =
+      anchor?.getAttribute("data-aggregate") ||
+      anchor?.getAttribute("data-tracking") ||
+      "";
     if (!raw) return null;
     try {
       return JSON.parse(raw.replace(/&quot;/g, '"'));
@@ -296,10 +443,7 @@
   }
 
   function tileInfo(tile) {
-    const host =
-      tile.closest(".product-tile-wrapper") ||
-      tile.closest(".product-tile") ||
-      tile;
+    const host = tileHost(tile);
     const tracking = parseTracking(host);
     const product =
       tracking?.trackObject?.ecommerce?.click?.products?.[0] ||
@@ -336,20 +480,20 @@
         generic.color ||
         ""
     );
-    const price = EXTRACT.parsePrice
-      ? EXTRACT.parsePrice(
-          product?.price ||
-            product?.item_price ||
-            host.querySelector("[itemprop='price']")?.getAttribute("content") ||
-            host.querySelector(".price--formated, .price__sales .value, [data-product-component='price']")
-              ?.textContent ||
-            ""
-        )
-      : Number(
-          product?.price ||
-            host.querySelector("[itemprop='price']")?.getAttribute("content") ||
-            0
-        );
+    const priceRaw =
+      product?.price ||
+      product?.item_price ||
+      host.querySelector("[itemprop='price']")?.getAttribute("content") ||
+      host.querySelector(
+        ".price--formated, .price__sales .value, [data-product-component='price'], .price .value, .price"
+      )?.textContent ||
+      "";
+    const price =
+      (EXTRACT?.parsePrice ? EXTRACT.parsePrice(priceRaw) : 0) ||
+      Number(product?.price) ||
+      (EXTRACT?.parsePrice ? EXTRACT.parsePrice(host.innerText?.slice(0, 180) || "") : 0) ||
+      generic.price ||
+      0;
     const href = tileHref(host) || generic.href || "";
     const id = String(
       product?.id ||
@@ -472,6 +616,9 @@
             : `keeping an eye on $${state.budget}.`,
       };
     }
+    if (state.mode === "sos") {
+      return DATA.tips.sos;
+    }
     if (isGift()) {
       return {
         title: "shopping for someone else",
@@ -488,14 +635,19 @@
   }
 
   function mediaHost(tile) {
-    const media = tile.querySelector(
-      ".product-tile__media, .product-tile__media-container, .tile-image"
-    );
-    if (media) return media;
-    const img = tile.querySelector("picture, img");
-    if (!img) return tile;
-    const host = img.closest("[class*='media'], [class*='image'], [class*='Image']") || img.parentElement;
-    return host || tile;
+    const candidates = [
+      tile.querySelector(".product-tile__media-container"),
+      tile.querySelector(".product-tile__media"),
+      tile.querySelector("[class*='media-container']"),
+    ].filter(Boolean);
+    for (let i = 0; i < candidates.length; i += 1) {
+      const node = candidates[i];
+      if (node && !/^(IMG|PICTURE|SOURCE|VIDEO)$/.test(node.tagName)) return node;
+    }
+    const img = tile.querySelector("img, picture");
+    const parent = img?.parentElement;
+    if (parent && parent !== tile && !/^(IMG|PICTURE)$/.test(parent.tagName)) return parent;
+    return tile;
   }
 
   // ── shell ────────────────────────────────────────────────────
@@ -503,12 +655,12 @@
   host.id = "yom-root";
   host.setAttribute("data-yom-host", "1");
   host.style.cssText =
-    "position:fixed;right:0;bottom:0;width:0;height:0;z-index:2147483647;pointer-events:none;overflow:visible;background:transparent;";
+    "position:fixed;inset:0;width:auto;height:auto;z-index:2147483647;pointer-events:none;overflow:visible;background:transparent;";
 
   const shadow = host.attachShadow({ mode: "open" });
   const shadowCss = document.createElement("style");
   shadowCss.textContent = `
-    :host { display: block; position: fixed; right: 0; bottom: 0; width: 0; height: 0; overflow: visible; z-index: 2147483647; pointer-events: none; }
+    :host { display: block; position: fixed; inset: 0; width: auto; height: auto; overflow: visible; z-index: 2147483647; pointer-events: none; }
     .yom-buddy {
       position: fixed !important;
       right: 20px !important;
@@ -531,6 +683,50 @@
     }
     .yom-buddy img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
     .yom-ask, .yom-panel, .yom-whisper, .yom-mode-pill { pointer-events: auto; }
+    .yom-marks { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+    .yom-stamp {
+      position: fixed !important;
+      z-index: 2147483646;
+      display: inline-flex;
+      align-items: center;
+      width: max-content;
+      background: #c8f060;
+      border: 1px solid #111;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font: 700 11px/1.2 Schibsted Grotesk, Helvetica Neue, sans-serif;
+      color: #111;
+      pointer-events: none;
+      box-shadow: 1px 2px 0 #111;
+      white-space: nowrap;
+    }
+    .yom-stamp.warn { background: #f3d27a; }
+    .yom-stamp.neutral { background: #fff; }
+    .yom-tile-note {
+      position: fixed;
+      z-index: 2147483646;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      max-width: 280px;
+      background: #fff;
+      border: 1.5px solid #111;
+      border-radius: 12px;
+      padding: 8px 10px;
+      color: #111;
+      font: 500 13px/1.3 Schibsted Grotesk, Helvetica Neue, sans-serif;
+      pointer-events: none;
+      box-shadow: 2px 3px 0 #111;
+    }
+    .yom-tile-note strong { display: block; font-size: 13px; }
+    .yom-tile-note span { display: block; font-size: 12px; color: #5a5a5a; }
+    .yom-tile-note img { width: 40px; height: 50px; object-fit: cover; border-radius: 6px; }
+    .yom-dim {
+      position: fixed;
+      z-index: 2147483645;
+      background: rgba(255,255,255,0.55);
+      pointer-events: none;
+    }
   `;
   shadow.appendChild(shadowCss);
 
@@ -546,6 +742,12 @@
   const root = document.createElement("div");
   root.className = "yom-shell";
   shadow.appendChild(root);
+  const marks = document.createElement("div");
+  marks.className = "yom-marks";
+  shadow.appendChild(marks);
+  const stampEls = new Map();
+  const dimEls = new Map();
+  let liveNote = null;
 
   function mountHost() {
     const parent = document.body || document.documentElement;
@@ -643,11 +845,13 @@
       modePill.classList.remove("hidden");
       modePill.classList.toggle("purpose", state.mode === "purpose");
       const label =
-        state.mode === "gift"
-          ? "a gift"
-          : state.mode === "browse"
-            ? "browsing"
-            : state.purpose || "something coming up";
+        state.mode === "sos"
+          ? "sos"
+          : state.mode === "gift"
+            ? "a gift"
+            : state.mode === "browse"
+              ? "browsing"
+              : state.purpose || "an event";
       modePill.innerHTML = `<span class="dot"></span><span>${label}</span>`;
       modePill.style.left = "auto";
       modePill.style.top = "auto";
@@ -739,77 +943,119 @@
     pulseBuddy();
   }
 
-  // ── in-page tile marks ───────────────────────────────────────
+  // ── in-page tile marks (drawn on yom's overlay, not the shop DOM) ──
+  function tileBox(tile) {
+    const img = tile.querySelector?.("img");
+    const node = img && img.getBoundingClientRect().height > 20 ? img : tile;
+    return node.getBoundingClientRect();
+  }
+
   function clearExpandedNotes() {
-    document.querySelectorAll(".yom-tile-note").forEach((n) => n.remove());
+    if (liveNote) {
+      liveNote.remove();
+      liveNote = null;
+    }
     noteTimers.forEach((t) => clearTimeout(t));
     noteTimers.clear();
   }
 
   function clearAllMarks() {
     clearExpandedNotes();
-    document.querySelectorAll(".yom-stamp, .yom-budget-flag").forEach((n) => n.remove());
+    stampEls.forEach((n) => n.remove());
+    stampEls.clear();
+    dimEls.forEach((n) => n.remove());
+    dimEls.clear();
+    document.querySelectorAll(".yom-stamp, .yom-budget-flag, .yom-tile-note").forEach((n) => n.remove());
     document.querySelectorAll(".yom-tile-love, .yom-tile-dim").forEach((n) => {
       n.classList.remove("yom-tile-love", "yom-tile-dim");
     });
   }
 
-  function applyStamp(tile, mark) {
-    const host = mediaHost(tile);
-    if (getComputedStyle(host).position === "static") host.style.position = "relative";
-    const wrap = tile.closest(".product-tile-wrapper, .yom-tile-host") || tile;
-    wrap.classList.toggle("yom-tile-love", !!mark.love);
-    tile.classList.toggle("yom-tile-love", !!mark.love);
-    const existing = host.querySelector(".yom-stamp");
-    const cls = `yom-stamp${mark.love ? " love" : ""}${mark.warn ? " warn" : ""}`;
-    if (existing && existing.textContent === mark.stamp && existing.className === cls) return;
-    existing?.remove();
-    host.appendChild(el("div", { class: cls }, mark.stamp));
-  }
-
-  function restampTiles() {
-    findTiles().forEach((tile) => {
-      const info = tileInfo(tile);
-      const mark = state.stamps[info.id];
-      if (mark) applyStamp(info.root, mark);
+  function pinMark(node, left, top, extra = {}) {
+    node.style.setProperty("position", "fixed", "important");
+    node.style.setProperty("left", `${Math.round(left)}px`, "important");
+    node.style.setProperty("top", `${Math.round(top)}px`, "important");
+    node.style.setProperty("right", "auto", "important");
+    node.style.setProperty("bottom", "auto", "important");
+    Object.entries(extra).forEach(([key, value]) => {
+      node.style.setProperty(key, value, "important");
     });
   }
 
-  function noteTile(tile, tip, { love = false, warn = false } = {}) {
-    const info = tileInfo(tile);
-    if (!info.name) return;
-    clearExpandedNotes();
+  function hideStamps() {
+    stampEls.forEach((n) => n.remove());
+    stampEls.clear();
+    document.querySelectorAll(".yom-stamp, .yom-budget-flag").forEach((n) => n.remove());
+  }
 
-    const mark = {
-      stamp: tip.stamp || "yom",
-      love,
-      warn,
-      closetKey: tip.closetKey || null,
+  function noteOnTile(box, width) {
+    if (!box || box.bottom < 24 || box.top > window.innerHeight - 24) return null;
+    const w = width || Math.max(168, Math.min(280, box.width > 40 ? box.width - 16 : 220));
+    return {
+      left: Math.max(8, Math.min(box.left + 8, window.innerWidth - w - 8)),
+      top: box.top + 12,
+      width: w,
     };
-    state.stamps[info.id] = mark;
-    saveState();
-    applyStamp(info.root, mark);
+  }
 
-    const host = mediaHost(info.root);
-    if (getComputedStyle(host).position === "static") host.style.position = "relative";
-    const closet = tip.closetKey ? DATA.closet[tip.closetKey] : null;
-    const note = el("div", { class: "yom-tile-note yom-ui" });
-    note.innerHTML = `
-      ${closet ? `<img src="${asset(closet.file)}" alt="" />` : ""}
-      <div>
-        <strong>${tip.title}</strong>
-        <span>${closet ? closet.note : tip.body || ""}</span>
-      </div>
-    `;
-    host.appendChild(note);
-    pulseBuddy();
+  function syncMarkPositions() {
+    applyBudgetFlags();
+    if (!liveNote) return;
+    if (!hoverTile) {
+      clearExpandedNotes();
+      return;
+    }
+    const pos = noteOnTile(tileBox(hoverTile));
+    if (!pos) {
+      clearExpandedNotes();
+      return;
+    }
+    pinMark(liveNote, pos.left, pos.top, { width: `${pos.width}px` });
+  }
 
-    const timer = setTimeout(() => {
-      note.classList.add("out");
-      setTimeout(() => note.remove(), 360);
-      noteTimers.delete(info.id);
-    }, NOTE_HOLD_MS);
-    noteTimers.set(info.id, timer);
+  function noteTile(tile, tip, { love = false, warn = false } = {}) {
+    try {
+      const info = tileInfo(tile);
+      const name = info.name || info.alt || "this piece";
+      info.name = name;
+      clearExpandedNotes();
+
+      const mark = {
+        stamp: tip.stamp || "yom",
+        title: tip.title,
+        body: tip.body || "",
+        love,
+        warn,
+        closetKey: tip.closetKey || null,
+      };
+      state.stamps[info.id] = mark;
+
+      const closet = tip.closetKey && DATA?.closet ? DATA.closet[tip.closetKey] : null;
+      const note = document.createElement("div");
+      note.className = "yom-tile-note";
+      if (closet?.file) {
+        const img = document.createElement("img");
+        img.alt = "";
+        img.src = asset(closet.file);
+        note.appendChild(img);
+      }
+      const copy = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = tip.title || "";
+      const line = document.createElement("span");
+      line.textContent = closet?.note || tip.body || "";
+      copy.appendChild(title);
+      copy.appendChild(line);
+      note.appendChild(copy);
+      const pos = noteOnTile(tileBox(info.root));
+      if (!pos) return;
+      pinMark(note, pos.left, pos.top, { width: `${pos.width}px` });
+      marks.appendChild(note);
+      liveNote = note;
+      pulseBuddy();
+    } catch (err) {
+      console.warn("yom note", err);
+    }
   }
 
   // ── PDP injection ────────────────────────────────────────────
@@ -883,13 +1129,51 @@
     else target.prepend(node);
   }
 
-  function pdpNote(tip, { closetKey, resolve, alts, chips, otherChoices, checking = false, kicker = "yom" } = {}) {
+  function pdpNote(tip, extras = {}) {
+    const {
+      closetKey,
+      resolve,
+      alts,
+      chips,
+      otherChoices,
+      checking = false,
+      kicker = "yom",
+      size,
+      reviews,
+      shipping,
+      regret,
+      regretLabel,
+    } = extras;
     const closet = closetKey ? DATA.closet[closetKey] : tip.closetKey ? DATA.closet[tip.closetKey] : null;
+    const regretN = Number(regret);
+    const hasRegret = Number.isFinite(regretN);
+    const tone = hasRegret ? regretTone(regretN) : "";
+    const label = hasRegret ? regretLabel(regretN) : "";
+    const facts = [
+      size ? `<div class="yom-fact"><em>size</em><span>${size}</span></div>` : "",
+      reviews ? `<div class="yom-fact"><em>reviews</em><span>${reviews}</span></div>` : "",
+      shipping ? `<div class="yom-fact"><em>shipping</em><span>${shipping}</span></div>` : "",
+    ]
+      .filter(Boolean)
+      .join("");
     const node = el("div", { class: `yom-ui yom-pdp-note${checking ? " checking" : ""}` });
     node.innerHTML = `
       <div class="yom-pdp-kicker">${kicker}</div>
       <h3>${tip.title}</h3>
       ${tip.body ? `<p>${tip.body}</p>` : ""}
+      ${facts ? `<div class="yom-facts">${facts}</div>` : ""}
+      ${
+        hasRegret
+          ? `<div class="yom-regret ${tone}">
+              <div>
+                <strong>regret score</strong>
+                <div class="yom-keep-bar"><span style="width:${regretN}%"></span></div>
+                <span class="yom-regret-label">${label}</span>
+              </div>
+              <div class="yom-keep-score">${regretN}</div>
+            </div>`
+          : ""
+      }
       ${resolve ? `<div class="yom-pdp-resolve">${resolve}</div>` : ""}
       ${
         closet
@@ -919,31 +1203,36 @@
 
   // ── budget dimming on the grid ───────────────────────────────
   function clearBudgetFlags() {
+    dimEls.forEach((n) => n.remove());
+    dimEls.clear();
     document.querySelectorAll(".yom-budget-flag").forEach((n) => n.remove());
     document.querySelectorAll(".yom-tile-dim").forEach((n) => n.classList.remove("yom-tile-dim"));
   }
 
   function applyBudgetFlags() {
+    dimEls.forEach((n) => n.remove());
+    dimEls.clear();
+    document.querySelectorAll(".yom-budget-flag").forEach((n) => n.remove());
     if (state.budget == null) {
-      if (document.querySelector(".yom-budget-flag, .yom-tile-dim")) clearBudgetFlags();
+      document.querySelectorAll(".yom-tile-dim").forEach((n) => n.classList.remove("yom-tile-dim"));
       return;
     }
     const rem = remainingBudget();
+    const keep = new Set();
     findTiles().forEach((tile) => {
-      const info = tileInfo(tile);
-      const wrap = info.root.closest(".product-tile-wrapper, .yom-tile-host") || info.root;
-      const host = mediaHost(info.root);
-      const over = info.price && info.price > rem;
-      wrap.classList.toggle("yom-tile-dim", over);
-      info.root.classList.toggle("yom-tile-dim", over);
-      if (!over) {
-        host.querySelector(".yom-budget-flag")?.remove();
-        return;
+      try {
+        const host = tileHost(tile);
+        const info = tileInfo(tile);
+        const over = Number(info.price) > rem;
+        host.classList.add("yom-tile-host");
+        host.classList.toggle("yom-tile-dim", over);
+        if (over) keep.add(host);
+      } catch {
+        /* skip */
       }
-      if (getComputedStyle(host).position === "static") host.style.position = "relative";
-      if (!host.querySelector(".yom-budget-flag")) {
-        host.appendChild(el("div", { class: "yom-budget-flag" }, "over budget"));
-      }
+    });
+    document.querySelectorAll(".yom-tile-dim").forEach((n) => {
+      if (!keep.has(n)) n.classList.remove("yom-tile-dim");
     });
   }
 
@@ -996,14 +1285,11 @@
       title: "what’s the vibe?",
       body: "i’ll hang on the page. no chat unless i need a tap.",
       options: [
-        { label: "just browsing", onPick: () => startBrowseMode() },
-        { label: "something coming up", onPick: () => openPurposePicker() },
+        { label: "casually browsing", onPick: () => startBrowseMode() },
+        { label: "buying for an event", onPick: () => openPurposePicker() },
+        { label: "sos", onPick: () => startSosMode() },
       ],
-      otherChoices: [
-        { label: "just looking around", onPick: () => startBrowseMode() },
-        { label: "a gift", onPick: () => startGiftMode() },
-        { label: "not sure yet", onPick: () => startBrowseMode() },
-      ],
+      otherChoices: [{ label: "not sure yet", onPick: () => startBrowseMode() }],
     });
   }
 
@@ -1049,20 +1335,27 @@
     finishSession("purpose", purpose, budget);
   }
 
+  function startSosMode() {
+    finishSession("sos", null, null);
+    if (!isPdp()) {
+      whisper({ title: "open the piece", body: "size, reviews, buy or not. i’ll go now." });
+    }
+  }
+
   function finishSession(mode, purpose, budget) {
     state.mode = mode;
     state.purpose = purpose;
     state.budget = budget;
     state.panelOpen = false;
     saveState();
-    if (!isDemoSite() && !hasPersona()) {
-      askPersona();
-      return;
-    }
     closeAsk();
     dockBuddy(true);
     render();
     whisper(welcomeTip());
+    chrome.runtime.sendMessage({
+      type: "YOM_SESSION",
+      session: { mode, purpose, budget, spent: state.spent || 0 },
+    });
   }
 
   function askPersona() {
@@ -1164,8 +1457,9 @@
     }
     panel.classList.remove("hidden");
     const contextChips = [
-      { label: "just browsing", value: "browse", on: state.mode === "browse" },
-      { label: "a gift", value: "gift", on: state.mode === "gift" },
+      { label: "casually browsing", value: "browse", on: state.mode === "browse" },
+      { label: "buying for an event", value: "event", on: state.mode === "purpose" },
+      { label: "sos", value: "sos", on: state.mode === "sos" },
       ...DATA.events.map((e) => ({
         label: e.label,
         value: e.label,
@@ -1180,14 +1474,19 @@
       { label: "$400", value: "400", on: state.budget === 400 },
     ];
 
-    const persona = activePersona();
-    const readHtml = persona.read ? `<p class="yom-read">${persona.read}</p>` : "";
     const spentHtml = state.spent
       ? `bag so far · $${state.spent}${state.budget != null ? ` · $${remainingBudget()} left` : ""}`
       : "";
     const newYomHtml = isDemoSite()
       ? ""
       : `<button type="button" class="yom-new-yom" data-new-yom>new yom</button>`;
+
+    const savedHtml = (state.saved || []).length
+      ? `saved · ${state.saved
+          .slice(-3)
+          .map((s) => s.name)
+          .join(" · ")}`
+      : "";
 
     panel.innerHTML = `
       <div class="yom-panel-head">
@@ -1202,8 +1501,8 @@
         <label>budget</label>
         <div class="yom-chips" data-budget></div>
       </div>
-      ${readHtml}
       ${spentHtml ? `<div class="yom-meta">${spentHtml}</div>` : ""}
+      ${savedHtml ? `<div class="yom-meta">${savedHtml}</div>` : ""}
       ${newYomHtml}
     `;
 
@@ -1277,6 +1576,16 @@
       render();
       return;
     }
+    if (next === "sos") {
+      state.panelOpen = false;
+      startSosMode();
+      return;
+    }
+    if (next === "event") {
+      state.panelOpen = false;
+      openPurposePicker();
+      return;
+    }
     if (next === "gift") {
       state.mode = "gift";
       state.purpose = null;
@@ -1310,15 +1619,219 @@
     return hashStr(info.name || location.pathname) % 2 === 0 ? DATA.reviews.strong : DATA.reviews.mixed;
   }
 
+  function pageFacts() {
+    if (pageFacts.path === location.pathname && pageFacts.cache) return pageFacts.cache;
+    let facts = { reviews: "", shipping: "", sizeNote: "" };
+    try {
+      facts = EXTRACT.pageFacts?.() || facts;
+    } catch {
+      /* ignore */
+    }
+    pageFacts.path = location.pathname;
+    pageFacts.cache = facts;
+    return facts;
+  }
+
+  function findPrior(info) {
+    if (info?.id && state.stamps[info.id]) return state.stamps[info.id];
+    const name = (info?.name || "").toLowerCase();
+    if (name.length > 4) {
+      const hit = Object.values(state.stamps || {}).find((m) => {
+        const title = String(m?.title || "").toLowerCase();
+        return title && (title.includes(name.slice(0, 12)) || name.includes(title.slice(0, 12)));
+      });
+      if (hit) return hit;
+    }
+    const take = opinionFor(info);
+    if (!take?.tip) return null;
+    return { ...take.tip, love: !!take.love, warn: !!take.warn };
+  }
+
+  function sizeRead(info) {
+    const sizes = activePersona().sizes || DATA.persona?.demo?.sizes || {};
+    const kind = kindOf(info);
+    const note = pageFacts().sizeNote;
+    let base = "";
+    if (kind === "shoes" || isShoeProduct(info)) {
+      base = `you wear ${sizes.shoes || "EU 37"}, and only rounder toes stick.`;
+    } else if (kind === "jeans") base = `you wear a ${sizes.denim || "26"} in denim.`;
+    else if (sizes.us) base = `you usually take a ${sizes.us}.`;
+    if (base && note) return `${base} page says ${note.toLowerCase()}.`;
+    return base || note || "";
+  }
+
+  function shippingRead() {
+    const ev = purposeMeta();
+    if (ev?.delivery?.body) {
+      return ev.delivery.title ? `${ev.delivery.title} — ${ev.delivery.body}` : ev.delivery.body;
+    }
+    const ship = pageFacts().shipping;
+    if (ship && !/regret|look into|checking this|whether you/i.test(ship) && /\d|day|week|free|arrive|deliver/i.test(ship)) {
+      return ship;
+    }
+    return "this shop is usually 3–5 days. fine unless you need it tomorrow.";
+  }
+
+  function reviewsRead(info) {
+    const scraped = pageFacts().reviews;
+    if (scraped) return scraped;
+    return checkResult(info).body;
+  }
+
+  function regretScore(info, prior) {
+    let n = 46;
+    if (prior?.love) n -= 18;
+    if (prior?.warn) n += 16;
+    if (prior?.closetKey === "green") n -= 16;
+    if (prior?.closetKey === "similar") n += 18;
+    if (isShoeProduct(info) && !isGift()) n += 22;
+    if (state.budget != null && Number(info.price) > remainingBudget()) n += 20;
+    const reviews = checkResult(info);
+    if (reviews === DATA.reviews.mixed || /thinner|pilling|mixed/i.test(reviews.body || "")) n += 10;
+    if (reviews === DATA.reviews.long || /long|hem/i.test(reviews.body || "")) n += 6;
+    if (reviews === DATA.reviews.strong) n -= 8;
+    if (purposeMeta()?.kind === "wedding" && isDress(info)) n -= 10;
+    return Math.max(8, Math.min(92, n));
+  }
+
+  function regretTone(n) {
+    const score = Number(n);
+    if (score <= 40) return "keep";
+    if (score <= 69) return "ok";
+    return "return";
+  }
+
+  function regretLabel(n) {
+    const tone = regretTone(n);
+    if (tone === "keep") return "keep";
+    if (tone === "ok") return "ok";
+    return "return";
+  }
+
+  function localBrief(info) {
+    const prior = findPrior(info) || {
+      title: pieceLabel(info),
+      body: "let me look at it against what you actually wear.",
+    };
+    const reviews = reviewsRead(info);
+    const size = sizeRead(info) || "no size on file yet — check the chart against how this brand runs.";
+    const shipping = shippingRead();
+    const regret = regretScore(info, prior);
+    const extra = checkResult(info).resolve;
+    return {
+      title: prior.title,
+      body: prior.body,
+      stamp: prior.stamp,
+      closetKey: prior.closetKey,
+      size,
+      reviews,
+      shipping,
+      regret,
+      regretLabel: regretLabel(regret),
+      resolve: extra || null,
+    };
+  }
+
+  function mergeBrief(info, advice) {
+    const local = localBrief(info);
+    if (!advice || advice.quiet) return local;
+    const regret = Number.isFinite(Number(advice.regret)) ? Number(advice.regret) : local.regret;
+    return {
+      title: advice.title || local.title,
+      body: advice.body || local.body,
+      stamp: advice.stamp || local.stamp,
+      closetKey: local.closetKey,
+      size: advice.size || local.size,
+      reviews: advice.reviews || local.reviews,
+      shipping: advice.shipping || local.shipping,
+      regret,
+      regretLabel: advice.regretLabel || regretLabel(regret),
+      resolve: advice.resolve || local.resolve,
+    };
+  }
+
+  function briefExtras(brief, extras = {}) {
+    const withRegret = extras.withRegret === true;
+    const rest = { ...extras };
+    delete rest.withRegret;
+    return {
+      ...rest,
+      closetKey: rest.closetKey || brief.closetKey,
+      resolve: rest.resolve || brief.resolve,
+      size: brief.size,
+      reviews: brief.reviews,
+      shipping: brief.shipping,
+      ...(withRegret
+        ? { regret: brief.regret, regretLabel: brief.regretLabel }
+        : { regret: undefined, regretLabel: undefined }),
+    };
+  }
+
+  function saveItem(info) {
+    const name = info?.name || pdpInfo().name || "this piece";
+    const href = info?.href || location.href;
+    const price = info?.price || 0;
+    state.saved = state.saved || [];
+    if (!state.saved.some((s) => s.href === href || s.name === name)) {
+      state.saved.push({ name, href, price, at: Date.now() });
+    }
+    saveState();
+    chrome.runtime.sendMessage({
+      type: "YOM_SAVE",
+      item: { name, href, price, site: location.hostname },
+    });
+    whisper({ title: DATA.tips.saved.title, body: `${name} is on your list.` });
+  }
+
+  function decideChips(info, extras = {}) {
+    return {
+      ...extras,
+      chips: [
+        {
+          label: "buy it",
+          onPick: () => whisper({ title: "add it", body: "i’ll keep it against what you told me." }),
+        },
+        { label: "save for later", onPick: () => saveItem(info) },
+        { label: "skip", onPick: () => whisper(DATA.tips.skipped) },
+      ],
+      otherChoices: [{ label: "not sure yet", onPick: () => saveItem(info) }],
+    };
+  }
+
+  function runSos() {
+    if (!isPdp()) return;
+    const info = pdpInfo();
+    const pageKey = location.pathname;
+    const prior = state.checked[pageKey];
+    if (prior?.title) {
+      speakOnce(`sos:${pageKey}`, () => {
+        pdpNote(prior, decideChips(info, briefExtras(prior, { kicker: "yom · sos", withRegret: true })));
+      });
+      return;
+    }
+    speakOnce(`sos:${pageKey}`, () => {
+      pdpNote(DATA.tips.checking, { checking: true, kicker: "yom · sos" });
+      advise("check", info).then((advice) => {
+        const brief = mergeBrief(info, advice);
+        state.checked[pageKey] = brief;
+        state.checking = false;
+        saveState();
+        if (location.pathname !== pageKey) return;
+        pdpNote(brief, decideChips(info, briefExtras(brief, { kicker: "yom · sos", withRegret: true })));
+      });
+    });
+  }
+
   function lookIntoChips(tip, extras = {}) {
     return {
       ...extras,
       chips: [
         { label: "look into this", onPick: () => runCheck() },
+        { label: "save for later", onPick: () => saveItem(pdpInfo()) },
         { label: "not now", onPick: () => pdpNote(tip, extras) },
       ],
       otherChoices: [
-        { label: "remind me later", onPick: () => pdpNote(tip, extras) },
+        { label: "remind me later", onPick: () => saveItem(pdpInfo()) },
         { label: "I’ll handle it", onPick: () => pdpNote(tip, extras) },
       ],
     };
@@ -1332,8 +1845,10 @@
     saveState();
     renderPanel();
     positionCluster();
-    const tip = deliveryTip();
-    pdpNote(tip, lookIntoChips(tip));
+    const info = pdpInfo();
+    const prior = findPrior(info);
+    const tip = prior?.title ? { title: prior.title, body: prior.body } : deliveryTip();
+    pdpNote(tip, lookIntoChips(tip, { shipping: shippingRead(), closetKey: prior?.closetKey }));
   }
 
   function runCheck() {
@@ -1348,20 +1863,11 @@
       state.checked[pageKey] = result;
       saveState();
       if (location.pathname !== pageKey) return;
-      pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
+      pdpNote(result, decideChips(info, briefExtras(result, { kicker: "yom · checked", withRegret: true })));
     };
 
     advise("check", info).then((advice) => {
-      if (advice && !advice.quiet && advice.title) {
-        finish({
-          title: advice.title,
-          body: advice.body,
-          resolve: advice.resolve,
-          stamp: advice.stamp,
-        });
-        return;
-      }
-      finish(checkResult(info));
+      finish(mergeBrief(info, advice));
     });
   }
 
@@ -1402,7 +1908,9 @@
 
   function advise(surface, product) {
     return new Promise((resolve) => {
+      let done = false;
       const productUrl = product.href || (isPdp() ? location.href : "");
+      const prior = findPrior(product);
       const payload = {
         surface,
         product: {
@@ -1430,12 +1938,31 @@
           spent: state.spent,
           gift: isGift(),
           memory: activePersona().memory || "",
+          sizes: activePersona().sizes || {},
+          prior: prior
+            ? {
+                title: prior.title,
+                body: prior.body,
+                stamp: prior.stamp || null,
+                kind: prior.love ? "love" : prior.warn ? "warn" : "neutral",
+              }
+            : null,
+          facts: isPdp() ? pageFacts() : {},
         },
       };
       chrome.runtime.sendMessage({ type: "YOM_ADVISE", payload }, (res) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
         if (chrome.runtime.lastError || !res?.ok) resolve(null);
         else resolve(res.advice || null);
       });
+      const wait = surface === "tile" ? 2500 : 7000;
+      const timer = setTimeout(() => {
+        if (done) return;
+        done = true;
+        resolve(null);
+      }, wait);
     });
   }
 
@@ -1451,8 +1978,13 @@
 
   async function liveOnPause(tile) {
     const info = tileInfo(tile);
-    if (!info.name) return true;
-    if (state.stamps[info.id]) return true;
+    info.name = info.name || info.alt || "this piece";
+
+    const prior = state.stamps[info.id];
+    if (prior?.title) {
+      noteTile(info.root, prior, { love: prior.love, warn: prior.warn });
+      return true;
+    }
 
     if (state.budget != null && info.price > remainingBudget()) {
       noteTile(info.root, DATA.tips.overBudget, { warn: true });
@@ -1478,7 +2010,7 @@
     if (state.checked[pageKey]) {
       speakOnce(`checked:${pageKey}`, () => {
         const result = state.checked[pageKey];
-        pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
+        pdpNote(result, decideChips(info, briefExtras(result, { kicker: "yom · checked", withRegret: true })));
       });
       return true;
     }
@@ -1489,101 +2021,375 @@
     const advice = await advise("pdp", info);
     if (location.pathname !== pageKey) return true;
     if (advice && !advice.quiet && advice.title) {
-      const tip = { title: advice.title, body: advice.body, stamp: advice.stamp };
-      const extras = { resolve: advice.resolve, kicker: "yom" };
-      if (advice.checkable) pdpNote(tip, lookIntoChips(tip, extras));
-      else pdpNote(tip, extras);
+      const brief = mergeBrief(info, advice);
+      if (advice.checkable && !advice.size && !advice.reviews) {
+        pdpNote(brief, lookIntoChips(brief, { kicker: "yom", closetKey: brief.closetKey, resolve: brief.resolve }));
+      } else {
+        state.checked[pageKey] = brief;
+        saveState();
+        pdpNote(brief, decideChips(info, briefExtras(brief, { kicker: "yom", withRegret: true })));
+      }
       return true;
     }
     spokenKey = null;
     return false;
   }
 
-  function demoOnPause(tile) {
-    const info = tileInfo(tile);
-    if (!info.name) return;
-    if (state.stamps[info.id]) return;
-
-    if (state.budget != null && info.price > remainingBudget()) {
-      noteTile(info.root, DATA.tips.overBudget, { warn: true });
-      return;
-    }
-
-    if (!isGift() && isGreenProduct(info)) {
-      state.insightN += 1;
-      saveState();
-      noteTile(info.root, DATA.tips.green, { love: true });
-      return;
-    }
-
-    const ev = purposeMeta();
-    if (ev?.plp && occasionMatch(info)) {
-      state.insightN += 1;
-      saveState();
-      noteTile(info.root, ev.plp, { love: true });
-      return;
-    }
-
-    if (!isGift() && state.spent > 0 && pairingMatch(info)) {
-      noteTile(info.root, DATA.tips.pairing, { love: true });
-      return;
-    }
-
-    if (isGift()) {
-      noteTile(info.root, DATA.tips.material, { warn: true });
-      return;
-    }
-
-    if (state.insightN === 0) {
-      state.insightN = 1;
-      saveState();
-      noteTile(info.root, DATA.tips.similar);
-      return;
-    }
-    if (state.insightN === 1) {
-      state.insightN = 2;
-      saveState();
-      noteTile(info.root, DATA.tips.material, { warn: true });
-      return;
-    }
-
-    const lane = hashStr(info.id) % 2;
-    noteTile(info.root, lane === 0 ? DATA.tips.similar : DATA.tips.material, { warn: lane === 1 });
+  function pieceLabel(info) {
+    const name = cleanProductName(info.name || info.alt || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    if (name.length > 2) return name;
+    const color = cleanProductName(info.color || "").trim();
+    const kind = kindOf(info);
+    if (color) return `${color} ${kind}`;
+    if (info.price) return `$${info.price} ${kind}`;
+    return kind;
   }
 
-  async function onPause(tile) {
-    if (!state.mode) return;
-    const applied = await liveOnPause(tile);
-    if (applied) return;
-    if (isDemoSite()) demoOnPause(tile);
+  function kindOf(info) {
+    const t = `${info.name || ""} ${info.category || ""} ${info.href || ""} ${info.alt || ""}`.toLowerCase();
+    if (/shoe|heel|sandal|boot|mule|loafer|sneaker|flat|slide/.test(t) || /\/shoes\//.test(t)) return "shoes";
+    if (/two[- ]?piece|\bset\b/.test(t)) return "set";
+    if (/jean|denim/.test(t)) return "jeans";
+    if (/dress/.test(t)) return "dress";
+    if (/skirt/.test(t)) return "skirt";
+    if (/short/.test(t)) return "shorts";
+    if (/pant|trouser/.test(t)) return "pants";
+    if (/jacket|coat|blazer|outer/.test(t)) return "jacket";
+    if (/sweater|cardigan|cashmere/.test(t)) return "knit";
+    if (/\btee\b|t-shirt/.test(t)) return "tee";
+    if (/shirt|blouse|top/.test(t)) return "top";
+    return "piece";
+  }
+
+  function fitBits(info) {
+    const t = `${info.name || ""} ${info.alt || ""} ${info.color || ""}`.toLowerCase();
+    const bits = [];
+    if (/oversize/.test(t)) bits.push("oversized");
+    if (/crop/.test(t)) bits.push("cropped");
+    if (/low[- ]?(rise|waist)/.test(t)) bits.push("low-rise");
+    if (/\bmidi\b/.test(t)) bits.push("midi");
+    if (/\bmini\b/.test(t)) bits.push("mini");
+    if (/\bmaxi\b/.test(t)) bits.push("maxi");
+    if (/straight/.test(t)) bits.push("straight");
+    if (/wide/.test(t)) bits.push("wide-leg");
+    if (/\bknit\b/.test(t)) bits.push("knit");
+    if (/\bsilk\b/.test(t)) bits.push("silk");
+    if (/cashmere/.test(t)) bits.push("cashmere");
+    if (/poplin/.test(t)) bits.push("poplin");
+    if (/linen/.test(t)) bits.push("linen");
+    if (/satin/.test(t)) bits.push("satin");
+    if (/leather/.test(t)) bits.push("leather");
+    return bits;
+  }
+
+  function takeOf(title, body, stamp, extra = {}) {
+    return {
+      tip: { title, body, stamp, closetKey: extra.closetKey || null },
+      love: !!extra.love,
+      warn: !!extra.warn,
+    };
+  }
+
+  function specificTake(info) {
+    const label = pieceLabel(info);
+    const who = label.toLowerCase();
+    const color = cleanProductName(info.color || "").trim().toLowerCase();
+    const price = Number(info.price) || 0;
+    const kind = kindOf(info);
+    const bits = fitBits(info);
+    const fabric = bits.find((b) =>
+      /silk|cashmere|poplin|linen|satin|leather|knit|denim/.test(b)
+    );
+    const cut = bits.find((b) =>
+      /oversized|cropped|low-rise|midi|mini|maxi|straight|wide-leg/.test(b)
+    );
+    const rem = remainingBudget();
+    const ev = purposeMeta();
+
+    if (state.budget != null && price > rem) {
+      return takeOf(
+        `${who} is $${price}`,
+        rem > 0 ? `you have $${rem} left. this blows it.` : "you're already at the cap.",
+        "over budget",
+        { warn: true }
+      );
+    }
+
+    if (kind === "shoes") {
+      return takeOf(
+        `${who} isn't your toe`,
+        "the shoes you keep are rounder. this shape never makes it out.",
+        "skip the toe",
+        { warn: true }
+      );
+    }
+
+    if (isGreenProduct(info)) {
+      return takeOf(
+        color ? `${who} in ${color}` : who,
+        "you've kept every green piece. this one would too.",
+        "your color",
+        { love: true, closetKey: "green" }
+      );
+    }
+
+    if (ev?.kind === "wedding" && kind === "dress") {
+      return takeOf(
+        `${who} could do sofia's wedding`,
+        color ? `${color} reads right for the day.` : "silhouette and formality both fit.",
+        "for the wedding",
+        { love: true }
+      );
+    }
+
+    if (kind === "set" || /maya/i.test(label)) {
+      return takeOf(
+        `${who} is your maya set again`,
+        "same silhouette you already own. you don't need a second.",
+        "in your closet",
+        { closetKey: "similar" }
+      );
+    }
+
+    if (!isGift() && state.spent > 0 && /top|tee|knit/.test(kind)) {
+      return takeOf(
+        `${who} with the jaded shorts`,
+        color ? `${color} against those. already an outfit.` : "already an outfit with what's in the bag.",
+        "with your shorts",
+        { love: true, closetKey: "shorts" }
+      );
+    }
+
+    if (fabric === "cashmere") {
+      return takeOf(
+        `${who} is cashmere`,
+        price ? `$${price} for a fabric you actually keep.` : "this is the fabric you don't return.",
+        "you'd keep it",
+        { love: true }
+      );
+    }
+    if (fabric === "silk" || fabric === "satin") {
+      return takeOf(
+        `${who} is ${fabric}`,
+        "beautiful, and high-maintenance. you research this and then don't wear it.",
+        "think twice",
+        { warn: true }
+      );
+    }
+    if (fabric === "poplin") {
+      return takeOf(
+        `${who} is a poplin shirt`,
+        "crisp. you'll think you need it and it'll hang next to the ones you already have.",
+        "you own this"
+      );
+    }
+
+    if (kind === "jeans") {
+      return takeOf(
+        cut ? `${who} is another ${cut}` : who,
+        "your closet already does this job. you're filling a hole that isn't there.",
+        "you have this"
+      );
+    }
+
+    if (kind === "skirt") {
+      if (cut === "midi") {
+        return takeOf(
+          color ? `${who} in ${color}` : who,
+          "midi length — you'd actually wear this, unlike the minis you skip.",
+          "you'd wear it",
+          { love: true }
+        );
+      }
+      return takeOf(
+        who,
+        "a skirt you'll need a reason for. do you have one?",
+        "needs a reason"
+      );
+    }
+
+    if (kind === "tee") {
+      return takeOf(
+        price ? `${who} is a $${price} tee` : who,
+        cut === "oversized"
+          ? "oversized. you'll live in it or never pick it up — no in between."
+          : "a tee. you already think you have nothing to wear with a drawer of these.",
+        "maybe skip"
+      );
+    }
+
+    if (kind === "dress") {
+      if (fabric === "knit") {
+        return takeOf(
+          color ? `${who} · ${color}` : who,
+          "knit dress — easy, and you'd actually put it on a Tuesday.",
+          "easy yes",
+          { love: true }
+        );
+      }
+      return takeOf(
+        who,
+        ev
+          ? `this only earns a yes if it's for ${ev.label}.`
+          : "a dress without a date on it tends to sit.",
+        ev ? `for ${ev.label}` : "needs a date"
+      );
+    }
+
+    if (kind === "pants") {
+      return takeOf(
+        who,
+        cut === "cropped"
+          ? "cropped. check it against the trousers you already rotate."
+          : "another pant. map it against what you already wear.",
+        "compare first"
+      );
+    }
+
+    if (kind === "knit" || kind === "top") {
+      return takeOf(
+        color ? `${who} in ${color}` : who,
+        kind === "top" && fabric === "knit"
+          ? "a knit top. check it against the ones you already rotate."
+          : "you'll reach for this or ignore it. you already own the one you reach for.",
+        "closet check"
+      );
+    }
+
+    if (kind === "jacket") {
+      return takeOf(
+        who,
+        "outerwear only pays off if it does a job the closet doesn't. does it?",
+        "needs a job"
+      );
+    }
+
+    if (kind === "shorts" && !isGift()) {
+      return takeOf(
+        who,
+        "you just bought the jaded london pair. this is how duplicates happen.",
+        "you just bought this",
+        { warn: true, closetKey: "shorts" }
+      );
+    }
+
+    const named = [
+      takeOf(
+        `${who} is new, not different`,
+        color ? `${color} doesn't make it a gap in the closet.` : "same job as something you already own.",
+        "not a gap"
+      ),
+      takeOf(
+        `pause on ${who}`,
+        price ? `$${price}. would you still want it in three weeks?` : "would you still want it in three weeks?",
+        "slow down",
+        { warn: true }
+      ),
+      takeOf(
+        `${who} might be the one`,
+        "this actually looks like you'd wear it, not just buy it.",
+        "maybe yes",
+        { love: true }
+      ),
+    ];
+    return named[hashStr(String(info.id || label)) % named.length];
+  }
+
+  function opinionFor(info) {
+    return specificTake(info);
+  }
+
+  function seedOpinions() {
+    if (state.mode === "sos") return;
+    findTiles().forEach((tile) => {
+      try {
+        const info = tileInfo(tile);
+        info.name = info.name || info.alt || "this piece";
+        const take = opinionFor(info);
+        if (!take?.tip?.title) return;
+        const mark = {
+          stamp: take.tip.stamp || "yom",
+          title: take.tip.title,
+          body: take.tip.body || "",
+          love: !!take.love,
+          warn: !!take.warn,
+          closetKey: take.tip.closetKey || null,
+        };
+        if (!state.stamps[info.id] || state.stamps[info.id].title !== mark.title) {
+          state.stamps[info.id] = mark;
+        }
+      } catch (err) {
+        console.warn("yom seed", err);
+      }
+    });
+    applyBudgetFlags();
+  }
+
+  function demoOnPause(tile) {
+    const info = tileInfo(tile);
+    info.name = info.name || info.alt || "this piece";
+    const take = opinionFor(info);
+    if (!take?.tip) return;
+    noteTile(info.root, take.tip, { love: !!take.love, warn: !!take.warn });
+  }
+
+  function onPause(tile) {
+    try {
+      demoOnPause(tile);
+    } catch (err) {
+      console.warn("yom pause", err);
+    }
+    try {
+      applyBudgetFlags();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function enterCard(card) {
+    if (!card) return;
+    if (hoverTile === card) return;
+    hoverTile = card;
+    if (state.mode === "sos") return;
+    onPause(card);
+  }
+
+  function leaveCard() {
+    if (!hoverTile && !liveNote) return;
+    hoverTile = null;
+    clearExpandedNotes();
+  }
+
+  function startHoverWatch() {
+    if (document.documentElement.dataset.yomHover === "111") return;
+    document.documentElement.dataset.yomHover = "111";
+    const onMove = (e) => {
+      const card = cardAtEvent(e);
+      if (card) enterCard(card);
+      else leaveCard();
+    };
+    document.addEventListener("pointerover", onMove, true);
+    document.addEventListener("mouseover", onMove, true);
   }
 
   function bindTiles() {
     findTiles().forEach((tile) => {
-      if (tile.dataset.yomBound) return;
-      tile.dataset.yomBound = "1";
-      const target = tile.classList.contains("product-tile-wrapper")
-        ? tile
-        : tile.closest(".product-tile-wrapper") || tile;
-
-      target.addEventListener("mouseenter", () => {
-        if (!state.mode) return;
-        hoverTile = target;
-        clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(() => {
-          if (hoverTile === target) onPause(target);
-        }, PAUSE_MS);
-      });
-
-      target.addEventListener("mouseleave", () => {
-        if (hoverTile === target) {
-          clearTimeout(hoverTimer);
-          hoverTile = null;
-        }
-      });
+      tileHost(tile).classList.add("yom-tile-host");
     });
-    restampTiles();
+    hideStamps();
+    seedOpinions();
     applyBudgetFlags();
+  }
+
+  startHoverWatch();
+  window.addEventListener("scroll", syncMarkPositions, true);
+  window.addEventListener("resize", syncMarkPositions);
+  try {
+    bindTiles();
+  } catch (err) {
+    console.warn("yom bind", err);
   }
 
   function yomNode(node) {
@@ -1592,7 +2398,8 @@
       node.id === "yom-root" ||
       node.id === "yom-pdp-note" ||
       node.id === "yom-cart-panel" ||
-      node.closest?.("#yom-root, .yom-pdp-note, .yom-cart-panel") ||
+      node.id === "yom-notes-layer" ||
+      node.closest?.("#yom-root, #yom-notes-layer, .yom-pdp-note, .yom-cart-panel") ||
       node.classList?.contains("yom-stamp") ||
       node.classList?.contains("yom-tile-note") ||
       node.classList?.contains("yom-budget-flag")
@@ -1647,10 +2454,12 @@
 
   async function renderPdpPresence() {
     if (!isPdp() || !state.mode) return;
-    const applied = await livePdp();
-    if (applied) return;
+    if (state.mode === "sos") {
+      runSos();
+      return;
+    }
     if (isDemoSite()) demoPdp();
-    else if (purposeMeta()) enterPurposeOnPdp();
+    livePdp().catch(() => {});
   }
 
   function demoPdp() {
@@ -1728,8 +2537,22 @@
 
     const ev = purposeMeta();
     const rows = (names.length ? names : ["Your picks"]).map((name) => {
+      const checked = Object.values(state.checked || {}).find((c) => {
+        const hay = `${c.title || ""} ${c.body || ""}`.toLowerCase();
+        return name && hay.includes(String(name).toLowerCase().slice(0, 10));
+      });
+      if (Number.isFinite(Number(checked?.regret))) {
+        return {
+          name,
+          score: Number(checked.regret),
+          tone: regretTone(checked.regret),
+          label: regretLabel(Number(checked.regret)),
+        };
+      }
       const kind = /dress/i.test(name) ? "dress" : "pairing";
-      return { name, keep: DATA.keep[kind] || DATA.keep.other };
+      const keep = DATA.keep[kind] || DATA.keep.other;
+      const score = Math.max(8, 100 - keep.score);
+      return { name, score, tone: regretTone(score), label: regretLabel(score) };
     });
 
     const contextLine = ev
@@ -1742,18 +2565,18 @@
 
     panelEl.innerHTML = `
       <div class="yom-pdp-kicker">yom</div>
-      <h3>keep confidence</h3>
-      <p>${contextLine}${budgetLine}. a read on sizing, reviews, closet, and what you told me.</p>
+      <h3>regret score</h3>
+      <p>${contextLine}${budgetLine}. size, reviews, shipping, and whether you’d still want this in three weeks.</p>
       ${rows
         .map(
           (r) => `
-        <div class="yom-keep-row">
+        <div class="yom-keep-row yom-regret ${r.tone}">
           <div>
             <strong>${r.name}</strong>
-            <div class="yom-keep-bar"><span style="width:${r.keep.score}%"></span></div>
-            <span style="font-size:12px;color:#5a5a5a">${r.keep.label}</span>
+            <div class="yom-keep-bar"><span style="width:${r.score}%"></span></div>
+            <span class="yom-regret-label">${r.label}</span>
           </div>
-          <div class="yom-keep-score">${r.keep.score}</div>
+          <div class="yom-keep-score">${r.score}</div>
         </div>`
         )
         .join("")}
@@ -1808,6 +2631,7 @@
   });
 
   let lastHref = location.href;
+  let bindTimer = null;
   const mo = new MutationObserver((mutations) => {
     ensureMounted();
     if (location.href !== lastHref) {
@@ -1826,18 +2650,57 @@
     const foreign = mutations.some((m) =>
       [...m.addedNodes, ...m.removedNodes].some((n) => n.nodeType === 1 && !yomNode(n))
     );
-    if (foreign) bindTiles();
+    if (!foreign) return;
+    if (bindTimer) return;
+    bindTimer = setTimeout(() => {
+      bindTimer = null;
+      bindTiles();
+    }, 250);
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
 
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes[LIVE_KEY]) return;
+    liveAccount = changes[LIVE_KEY].newValue || null;
+    if (applyLivePersona()) return;
+    const demo = demoPersona();
+    if (!demo) return;
+    state.userId = demo.userId || state.userId || "yom-ban";
+    state.trait = demo.trait;
+    state.preBuy = demo.preBuy;
+    state.keepLean = demo.keepLean;
+    state.read = demo.read || composeRead(demo.trait, demo.preBuy, demo.keepLean);
+  });
+
   async function boot() {
     try {
+      await loadLiveAccount();
       state = await loadState();
     } catch {
       state = defaultState();
     }
+    if (!applyLivePersona()) {
+      const demo = demoPersona();
+      if (demo) {
+        state.userId = demo.userId || state.userId || "yom-ban";
+        state.trait = demo.trait;
+        state.preBuy = demo.preBuy;
+        state.keepLean = demo.keepLean;
+        state.read = demo.read || composeRead(demo.trait, demo.preBuy, demo.keepLean);
+      }
+    }
     dockBuddy(true);
-    render();
+    startHoverWatch();
+    try {
+      render();
+    } catch (err) {
+      console.warn("yom boot", err);
+      try {
+        bindTiles();
+      } catch {
+        /* ignore */
+      }
+    }
   }
 
   boot();

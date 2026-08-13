@@ -1,3 +1,7 @@
+import { bearer, json, preflight } from "../lib/http.js";
+import { accountFromToken } from "../lib/profile.js";
+import { supabaseConfigured } from "../lib/supabase.js";
+
 const SYSTEM = `You are yom, a shopping companion sitting on the store page.
 
 You are talking to ONE specific person. Their user id, trait, keep lean, and yom_read are in the prompt. Two people looking at the same product must not get the same title or body. Write as if you already know them.
@@ -32,13 +36,26 @@ Rules:
 - title is the opinion. body is one line of why it fits or fights their pattern
 - if keep lean is green and the piece is green, that can be love. if not, do not say "your color"
 - gift mode: judge the object, not their wardrobe
-- if over budget, say so plainly`;
+- sos mode: they need a decision NOW. lead with size for THIS person, then reviews, then buy / save / skip. do not be quiet.
+- if over budget, say so plainly
 
-function cors(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+If surface is pdp or check, also return:
+{
+  "size": string,
+  "reviews": string,
+  "shipping": string,
+  "regret": number,
+  "regretLabel": string
 }
+
+Check / PDP rules:
+- continue prior_take. if they were told it's in their closet, their color, over budget, or not their toe — the check deepens that, it does not replace it with generic "reviews are good"
+- size: one line for THIS person's sizes vs how this piece runs. use sizes + page_size_note. if you don't know the run, still give their size and say so
+- reviews: 1–2 lines collating page_reviews. do not invent star ratings or quotes
+- shipping: one line from page_shipping plus their occasion/date. if no date, typical timing
+- regret: integer 0–100. 0 = they will live in this. 100 = they will regret the buy. this is whether THIS person keeps it, not whether the product is "good"
+- regretLabel: 2–4 words ("you'd keep it", "low regret", "could go either way", "likely regret")`;
+
 
 function parseAdvice(text) {
   if (!text) return null;
@@ -54,14 +71,20 @@ function parseAdvice(text) {
     const raw = JSON.parse(stripped.slice(start, end + 1));
     if (raw.quiet && !raw.title) return { quiet: true };
     if (!raw.title && !raw.stamp) return { quiet: true };
+    const regret = Number(raw.regret);
     return {
       quiet: Boolean(raw.quiet),
       stamp: raw.stamp || null,
       kind: raw.kind === "love" || raw.kind === "warn" ? raw.kind : "neutral",
       title: String(raw.title || "").slice(0, 90),
       body: String(raw.body || "").slice(0, 180),
-      resolve: raw.resolve ? String(raw.resolve).slice(0, 280) : null,
+      resolve: raw.resolve ? String(raw.resolve).slice(0, 320) : null,
       checkable: Boolean(raw.checkable),
+      size: raw.size ? String(raw.size).slice(0, 180) : null,
+      reviews: raw.reviews ? String(raw.reviews).slice(0, 240) : null,
+      shipping: raw.shipping ? String(raw.shipping).slice(0, 180) : null,
+      regret: Number.isFinite(regret) ? Math.max(0, Math.min(100, Math.round(regret))) : null,
+      regretLabel: raw.regretLabel ? String(raw.regretLabel).slice(0, 40) : null,
     };
   } catch {
     return null;
@@ -98,6 +121,13 @@ function userBlock(payload) {
     `over_budget: ${over}`,
     `gift: ${Boolean(profile.gift)}`,
     profile.memory ? `memory: ${profile.memory}` : "memory: none (do not invent a closet)",
+    `sizes: ${JSON.stringify(profile.sizes || {})}`,
+    profile.prior
+      ? `prior_take: ${JSON.stringify(profile.prior)} — continue this. do not overwrite it.`
+      : "prior_take: none",
+    `page_reviews: ${profile.facts?.reviews || "none scraped"}`,
+    `page_shipping: ${profile.facts?.shipping || "none scraped"}`,
+    `page_size_note: ${profile.facts?.sizeNote || "none scraped"}`,
     "this is the hovered/open product. name it or a trait unique to it. do not describe the listing page.",
     "write a read that would not apply to a different user_id OR a different product.",
   ].join("\n");
@@ -107,7 +137,7 @@ async function callAnthropic(key, surface, user) {
   const model = surface === "tile" ? "claude-haiku-4-5" : "claude-sonnet-4-5";
   const fallback = surface === "tile" ? "claude-3-5-haiku-latest" : "claude-sonnet-4-5";
   const body = {
-    max_tokens: 400,
+    max_tokens: surface === "tile" ? 280 : 700,
     temperature: 0.8,
     system: SYSTEM,
     messages: [{ role: "user", content: user }],
@@ -149,7 +179,7 @@ async function callOpenAI(key, surface, user) {
     body: JSON.stringify({
       model,
       temperature: 0.8,
-      max_tokens: 400,
+      max_tokens: surface === "tile" ? 280 : 700,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: SYSTEM },
@@ -163,29 +193,42 @@ async function callOpenAI(key, surface, user) {
 }
 
 export default async function handler(req, res) {
-  cors(res);
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return;
-  }
+  if (preflight(req, res)) return;
   if (req.method !== "POST") {
-    res.status(405).json({ ok: false, error: "POST only" });
+    json(res, 405, { ok: false, error: "POST only" });
     return;
   }
 
   const anthropic = process.env.ANTHROPIC_API_KEY;
   const openai = process.env.OPENAI_API_KEY;
   if (!anthropic && !openai) {
-    res.status(503).json({ ok: false, error: "brain is not configured" });
+    json(res, 503, { ok: false, error: "brain is not configured" });
     return;
   }
 
   const payload = req.body || {};
+  const token = bearer(req);
+  if (token && supabaseConfigured()) {
+    const account = await accountFromToken(token);
+    if (account?.profile) {
+      const live = account.profile;
+      payload.profile = {
+        ...(payload.profile || {}),
+        userId: live.userId,
+        read: live.read || payload.profile?.read,
+        trait: live.trait || payload.profile?.trait,
+        preBuy: live.preBuy || payload.profile?.preBuy,
+        keepLean: live.keepLean || payload.profile?.keepLean,
+        memory: live.memory,
+      };
+    }
+  }
+
   const user = userBlock(payload);
   const surface = payload.surface || "pdp";
   const advice = anthropic
     ? await callAnthropic(anthropic, surface, user)
     : await callOpenAI(openai, surface, user);
 
-  res.status(200).json({ ok: true, advice });
+  json(res, 200, { ok: true, advice });
 }

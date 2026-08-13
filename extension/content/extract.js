@@ -87,6 +87,8 @@ window.YOM_EXTRACT = (() => {
     if (!rec) return true;
     return Boolean(rec.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_PRECEDING);
   }
+
+  function pdpRoot() {
     const h1 = document.querySelector("main h1, h1");
     if (!h1) return document.querySelector("main") || document.body;
     const col =
@@ -94,6 +96,41 @@ window.YOM_EXTRACT = (() => {
         ".product-detail, .pdp, [class*='product-detail'], [class*='ProductDetail'], [class*='pdp-'], [data-product-detail], article, main"
       ) || h1.parentElement;
     return col && !isRecNode(col) ? col : h1.parentElement || document.body;
+  }
+
+  function clip(text, n) {
+    return String(text || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, n);
+  }
+
+  function pageFacts() {
+    const root = pdpRoot();
+    const clone = root.cloneNode(true);
+    clone.querySelectorAll("#yom-root, .yom-pdp-note, .yom-cart-panel, .yom-ui, .yom-ask, .yom-panel").forEach((n) => n.remove());
+    const reviews = [];
+    clone
+      .querySelectorAll(
+        "[itemprop='reviewBody'], [class*='review-text'], [class*='review__body'], [class*='ReviewContent'], [data-review], [class*='yotpo'] p"
+      )
+      .forEach((n) => {
+        if (isRecNode(n)) return;
+        const t = clip(n.textContent, 180);
+        if (t.length > 36 && !/write a review|star rating|be the first|regret|look into/i.test(t)) reviews.push(t);
+      });
+    const blob = clip(clone.innerText, 5000);
+    const ship =
+      (blob.match(/\b((?:free (?:standard |express )?shipping|ships? (?:in|within) [^.]{0,50}|arrives? (?:in|within) [^.]{0,50}|deliver(?:y|s) in [^.]{0,50}|\d\s*[-–]\s*\d\s*(?:business\s*)?days)[^.!?]{0,40})/i) ||
+        [])[1] || "";
+    const sizeNote =
+      (blob.match(/((?:true to size|runs? (?:small|large|big|long|short)|size up|size down|fits (?:true|small|large))[^.!?]{0,90})/i) ||
+        [])[1] || "";
+    return {
+      reviews: reviews.slice(0, 4).join(" · "),
+      shipping: /regret|look into|checking this|whether you/i.test(ship) ? "" : clip(ship, 180),
+      sizeNote: clip(sizeNote, 180),
+    };
   }
 
   function jsonLdProduct() {
@@ -245,15 +282,17 @@ window.YOM_EXTRACT = (() => {
     const specific = [
       ...document.querySelectorAll(
         [
+          "[data-product-tile-wrapper]",
+          "[data-product-tile]",
           ".product-tile-wrapper",
           ".product-tile",
+          ".product-grid__item",
           ".product-card",
           ".product-item",
           ".product-grid-item",
           ".ProductItem",
           ".grid-product",
           "[data-product-id]",
-          "[data-product-tile]",
         ].join(",")
       ),
     ].filter((n) => !n.closest("#yom-root, .yom-pdp-note") && n.querySelector("img"));
@@ -321,6 +360,7 @@ window.YOM_EXTRACT = (() => {
     isCart,
     pdpInfo,
     pdpRoot,
+    pageFacts,
     findTiles,
     tileInfo,
     jsonLdProduct,

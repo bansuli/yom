@@ -381,6 +381,31 @@ a {
   animation-play-state: paused;
 }
 
+.beta-corner {
+  position: absolute;
+  right: 1.35rem;
+  bottom: 1.35rem;
+  z-index: 8;
+  display: inline-block;
+  padding: 0.42rem 0.9rem;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  background: #fff;
+  transform: rotate(4deg);
+  opacity: 0.72;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.beta-corner:hover {
+  opacity: 1;
+  background: var(--lime);
+  transform: rotate(4deg) scale(1.04);
+}
+
 @keyframes jiggle {
   0%, 60%, 100% { transform: rotate(var(--angle, -1deg)) translate(0, 0); }
   63%  { transform: rotate(calc(var(--angle, -1deg) + 6deg)) translate(2px, -2px); }

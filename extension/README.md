@@ -22,14 +22,23 @@ It lives as a Vercel env var. The extension calls `https://youryom.com/api/yom-a
 2. Deploy (Anthropic is used if both are set)
 3. Reload the extension
 
-Local override in the popup is optional, for your own testing only.
-
 ```bash
 # Vercel dashboard → Settings → Environment Variables
 # or:
 npx vercel env add ANTHROPIC_API_KEY
 npx vercel --prod
 ```
+
+## User login (Supabase)
+
+Profiles, saves, and beta allowlist live in Postgres. Same account on the site and in the popup.
+
+1. Follow [`../supabase/README.md`](../supabase/README.md)
+2. Vercel env: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+3. Popup → log in (or create account if you're on the allowlist)
+4. If you're not logged in, Reformation still uses Ban's hardcoded demo
+
+Do not put `SUPABASE_SERVICE_ROLE_KEY` in the extension.
 
 ## Test another website
 

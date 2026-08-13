@@ -3,14 +3,14 @@ window.YOM_DEMO = {
   events: [
     {
       id: "sofia-wedding",
-      label: "Sofia's wedding",
+      label: "sofia's wedding",
       when: "Sat, Mar 16",
       source: "from your calendar",
       kind: "wedding",
       story: "wedding",
       plp: {
         title: "right for the wedding",
-        body: "silhouette and colour both fit Sofia’s day.",
+        body: "silhouette and colour both fit sofia’s day.",
         stamp: "for the wedding",
       },
       delivery: {
@@ -26,17 +26,17 @@ window.YOM_DEMO = {
     },
     {
       id: "nyc-trip",
-      label: "NYC weekend",
+      label: "nyc weekend",
       when: "Apr 4–6",
       source: "from your calendar",
       kind: "trip",
       plp: {
         title: "works for a city weekend",
         body: "easy to wear walking around",
-        stamp: "for NYC",
+        stamp: "for nyc",
       },
       delivery: {
-        title: "lands before Apr 4",
+        title: "lands before apr 4",
         body: "usual Reformation timing — you’ll have it before the weekend.",
       },
       check: {
@@ -162,9 +162,21 @@ window.YOM_DEMO = {
       body: "still here if you want it.",
       stamp: "over budget",
     },
+    sos: {
+      title: "i’ll look now",
+      body: "size, reviews, and whether you should buy it.",
+    },
+    saved: {
+      title: "saved",
+      body: "it’s on your list. come back when you’re ready.",
+    },
+    skipped: {
+      title: "skipped",
+      body: "won’t bring it up again this session.",
+    },
     checking: {
       title: "checking this…",
-      body: "reviews, fit, fabric, and whether people actually keep it.",
+      body: "size, reviews, shipping, and whether you'd regret it.",
     },
     afterAdd: {
       title: "got it",
@@ -244,15 +256,25 @@ window.YOM_DEMO = {
       { id: "neutrals", label: "neutrals" },
       { id: "color", label: "color, always" },
     ],
-    //reformation interview: mal's read. other shops still get their own.
     demo: {
-      name: "mal",
-      userId: "yom-mal",
+      name: "ban",
+      userId: "yom-ban",
       trait: "nothing",
       preBuy: "research",
       keepLean: "green",
+      sizes: { us: "US 4", denim: "26", shoes: "EU 37" },
       memory:
-        "this is mal. she always thinks she has nothing to wear even though the closet is real: Reformation Maya Set (same silhouette as a lot of what she browses), every green piece she's bought (0 returns — green is her color), Jaded London shorts from last week, only rounder-toe shoes. she compares everything and still panics before trips and events. do not treat her like a generic shopper. do not say green is her color unless the piece is actually green.",
+        "this is ban. US 4, denim 26, EU 37 rounder-toe only. she always thinks she has nothing to wear even though the closet is real: Reformation Maya Set (apr 2026), every green piece she's bought (may, 0 returns — green is her color), Jaded London shorts (jun). she compares everything and still panics before trips and events. do not treat her like a generic shopper. do not say green is her color unless the piece is actually green.",
+    },
+    mal: {
+      name: "mal",
+      userId: "yom-mal",
+      trait: "decide",
+      preBuy: "friends",
+      keepLean: "black",
+      sizes: { us: "US 6", denim: "28", shoes: "EU 39" },
+      memory:
+        "this is mal. US 6, denim 28, EU 39. black and tailoring. she spends forever deciding and asks friends. spring 2026: COS column pant (apr, kept), Reformation Gavin blazer (may, kept), bought a gift in june and returned a pointed mule. do not treat her like ban. do not say green is her color.",
     },
     reads: {
       impulse: "you shop with your eyes. the thrill beats whether it actually fits your life.",

@@ -6,6 +6,7 @@ import App from './App.jsx'
 import Survey from './Survey.jsx'
 import About from './About.jsx'
 import HowItWorks from './HowItWorks.jsx'
+import Beta from './Beta.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,6 +16,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/survey" element={<Survey />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/beta" element={<Beta />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
