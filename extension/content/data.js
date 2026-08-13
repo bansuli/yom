@@ -225,4 +225,82 @@ window.YOM_DEMO = {
     pairing: { score: 88, label: "likely keep" },
     other: { score: 84, label: "likely keep" },
   },
+  persona: {
+    traits: [
+      { id: "impulse", label: "i buy things i never wear" },
+      { id: "nothing", label: "i always think i have nothing to wear" },
+      { id: "panic", label: "i panic before trips & events" },
+      { id: "decide", label: "i spend forever deciding" },
+    ],
+    preBuy: [
+      { id: "friends", label: "i ask my friends" },
+      { id: "feed", label: "i scroll tiktok / pinterest" },
+      { id: "research", label: "i compare everything" },
+      { id: "wing", label: "i just wing it" },
+    ],
+    keep: [
+      { id: "green", label: "green" },
+      { id: "black", label: "black" },
+      { id: "neutrals", label: "neutrals" },
+      { id: "color", label: "color, always" },
+    ],
+    //reformation interview: mal's read. other shops still get their own.
+    demo: {
+      name: "mal",
+      userId: "yom-mal",
+      trait: "nothing",
+      preBuy: "research",
+      keepLean: "green",
+      memory:
+        "this is mal. she always thinks she has nothing to wear even though the closet is real: Reformation Maya Set (same silhouette as a lot of what she browses), every green piece she's bought (0 returns — green is her color), Jaded London shorts from last week, only rounder-toe shoes. she compares everything and still panics before trips and events. do not treat her like a generic shopper. do not say green is her color unless the piece is actually green.",
+    },
+    reads: {
+      impulse: "you shop with your eyes. the thrill beats whether it actually fits your life.",
+      nothing: "your closet is bigger than it feels. you need to see combinations, not more stuff.",
+      panic: "everyday is autopilot. anything with a date on it sends you into a last-minute spiral.",
+      decide: "you already know what you like. you don’t need more research — you need to trust it.",
+      friends: "you outsource the last 10%. your taste is usually better than the people you ask.",
+      feed: "the algorithm has been dressing you. it doesn’t know your body or what you already own.",
+      research: "you optimise whether something is good. that still isn’t whether it’s right for you.",
+      wing: "your instinct is often right. the overthinking is just background noise.",
+      green: "you keep coming back to green. that’s the through-line, not a trend.",
+      black: "you default to black because it always works. that’s also how pieces disappear.",
+      neutrals: "you buy what won’t fight the rest. safe. sometimes too safe.",
+      color: "you keep the loud ones. the beige never makes it out of the drawer.",
+    },
+    combos: {
+      "impulse:wing":
+        "you shop on feeling and then wonder why nothing feels right. you're not impulsive — you're optimistic. every new thing is supposed to pull the wardrobe together. it won't.",
+      "impulse:feed":
+        "the algorithm has been dressing you, and it doesn't know your body or what you already own. you're buying the right things for someone else's closet.",
+      "impulse:research":
+        "you do all the research and still end up with things you don't wear. research tells you if something is good. it can't tell you if it's right for you.",
+      "impulse:friends":
+        "your friends have their own bodies and taste. you outsource the last yes because you don't fully trust your eye yet. your instinct got you this far.",
+      "nothing:feed":
+        "you've been consuming so much curated content that your own closet looks like a disappointment. you're comparing it to an algorithm's highlight reel.",
+      "nothing:research":
+        "you know what's available everywhere and still feel like you own nothing. the gap isn't supply — you've never mapped what you already have.",
+      "nothing:wing":
+        "you buy fast, forget faster, and rediscover things like you're meeting them for the first time. the wardrobe is bigger than it feels.",
+      "nothing:friends":
+        "you don't trust what you own until someone else validates it. your friends aren't there every morning.",
+      "panic:research":
+        "you plan everything except the part where the closet has to work in real time. thorough, and completely theoretical, until the night before.",
+      "panic:feed":
+        "you save looks constantly and none of it is in the closet when the date hits. you've been curating a fantasy wardrobe.",
+      "panic:wing":
+        "you live in denial until the deadline, then throw money at it. the wild part is it usually works. credit the instinct.",
+      "panic:friends":
+        "the group chat goes into overdrive before every trip. the styling system runs on other people's energy.",
+      "decide:research":
+        "you know the options better than the salesperson and still walk away unsure. you need fewer choices, not more data.",
+      "decide:friends":
+        "you need a second opinion on everything — not because the taste is bad, because you haven't backed it. you probably have better taste than the people you ask.",
+      "decide:feed":
+        "you use the feed to confirm what you already want. if it isn't there, you spiral. the taste is real. the confidence needs work.",
+      "decide:wing":
+        "you overthink it for days, then buy the first thing you touch. the weeks of deliberation were background noise. the instinct was the point.",
+    },
+  },
 };

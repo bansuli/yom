@@ -1,47 +1,47 @@
-# yom × Reformation
+# yom companion
 
-Companion on the live Reformation site. yom marks the catalog from what you actually told it.
+Marks the shopping page. Reformation still has an authored interview story. Other shops use the page + a shared brain on youryom.com.
 
 ## Load
 
 1. `chrome://extensions` → Load unpacked → `~/Desktop/yom/extension`
-2. Reload the extension after pulls
-3. Popup → **open Reformation**
-4. Click yom and answer the chips (always includes **other**)
+2. Reload after pulls
+3. Click the yom icon
 
-Triple-click yom to reset.
+Triple-click the character to reset.
 
-## What drives the product
+## Shared API key (every user)
 
-Onboarding is the product. yom keeps using those answers on every page:
+The key does **not** go in the extension. Anyone could unpack it.
 
-| You pick | What changes on the site |
-|---|---|
-| **just browsing** | closet / reviews / “your color” on greens. no occasion pressure |
-| **Sofia's wedding** | authored story: delivery before Mar 16, length + alterations |
-| **NYC weekend** | timing before Apr 4, travel-friendly notes |
-| **a work thing / a date** | occasion stamps and check copy follow that |
-| **a gift** | reviews and budget only — not *your* closet |
-| **a budget** | over-budget pieces dim immediately, remaining updates when you add |
+It lives as a Vercel env var. The extension calls `https://youryom.com/api/yom-advise`. Every install uses that.
 
-Closet memory (Maya Set, kept greens, Jaded shorts, rounder-toe shoes) is always on unless you’re shopping for a gift.
+1. In the Vercel project for youryom.com, add **one** of:
+   - `ANTHROPIC_API_KEY`
+   - `OPENAI_API_KEY`
+2. Deploy (Anthropic is used if both are set)
+3. Reload the extension
 
-Questions are chips + **other**. Reformation’s own **Add to Bag** is the confirm.
+Local override in the popup is optional, for your own testing only.
 
-## Interview example (hardcoded story)
+```bash
+# Vercel dashboard → Settings → Environment Variables
+# or:
+npx vercel env add ANTHROPIC_API_KEY
+npx vercel --prod
+```
 
-This is one authored path — not the only path.
+## Test another website
+
+1. Open Aritzia / SSENSE / etc.
+2. Popup → **use this tab** if yom didn’t appear
+3. Click yom → pick an occasion + budget
+4. Pause on products. Open a PDP.
+
+## Interview path (Reformation, hardcoded)
 
 1. **just browsing** → **no budget**
-2. Pause a piece → closet silhouette on the card
-3. Pause another → review stamp
-4. Pause a green dress → lime outline + “your color”
-5. Open it → **Sofia's wedding** (or pick the wedding during onboarding and skip this)
-6. Delivery note in the buy column → **look into this** → length / alterations
-7. Reformation **Add to Bag**
-8. Budget chips if you never set one → grid dims
-9. Pause an in-budget top → shorts pairing → open → check → add
-10. Open shoes → shape note + rounder-toe alts in the page
-11. Cart keep-confidence reflects the wedding + budget
-
-To show the live product instead: pick **NYC weekend** and **$200** at the start and shop anything. The page should follow that, not the wedding script.
+2. Pause → closet / reviews / green
+3. Open a green dress → **Sofia's wedding**
+4. **look into this** → length + alterations
+5. Add to bag → budget → pairing → shoes → cart

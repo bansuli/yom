@@ -3,7 +3,10 @@
   window.__YOM_LOADED__ = true;
 
   const DATA = window.YOM_DEMO;
+  const EXTRACT = window.YOM_EXTRACT;
+  const USER_KEY = "yom-user";
   const STORAGE_KEY = "yom-companion-v4";
+  const PROFILE_KEY = "yom-profile";
   const PAUSE_MS = 1000;
   const NOTE_HOLD_MS = 3800;
   const GREEN_WORDS =
@@ -23,9 +26,27 @@
     budgetAsked: false,
     stamps: {},
     checkedOut: false,
+    userId: null,
+    trait: null,
+    preBuy: null,
+    keepLean: null,
+    read: null,
   });
 
-  let state = loadState();
+  const PROFILE_FIELDS = [
+    "mode",
+    "purpose",
+    "budget",
+    "spent",
+    "cartNames",
+    "insightN",
+    "checked",
+    "budgetAsked",
+    "checkedOut",
+  ];
+  const USER_FIELDS = ["userId", "trait", "preBuy", "keepLean", "read"];
+
+  let state = defaultState();
   let hoverTimer = null;
   let hoverTile = null;
   let whisperEl = null;
@@ -37,22 +58,133 @@
   let lastAddAt = 0;
   let noteTimers = new Map();
 
-  function loadState() {
+  function profileSlice(s) {
+    const out = {};
+    PROFILE_FIELDS.forEach((k) => {
+      out[k] = s[k];
+    });
+    return out;
+  }
+
+  function userSlice(s) {
+    const out = {};
+    USER_FIELDS.forEach((k) => {
+      out[k] = s[k];
+    });
+    return out;
+  }
+
+  function newUserId() {
+    return crypto.randomUUID?.() || `yom-${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  function composeRead(trait, preBuy, keepLean) {
+    const persona = DATA.persona || {};
+    const reads = persona.reads || {};
+    const combo = persona.combos?.[`${trait}:${preBuy}`];
+    const core = combo || [reads[trait], reads[preBuy]].filter(Boolean).join(" ");
+    return [core, reads[keepLean]].filter(Boolean).join(" ");
+  }
+
+  function hashedPersona() {
+    const n = hashStr(state.userId || "yom");
+    const traits = DATA.persona.traits;
+    const pre = DATA.persona.preBuy;
+    const keep = DATA.persona.keep;
+    return {
+      trait: traits[n % traits.length].id,
+      preBuy: pre[Math.floor(n / 4) % pre.length].id,
+      keepLean: keep[Math.floor(n / 16) % keep.length].id,
+    };
+  }
+
+  function applyPersona(trait, preBuy, keepLean) {
+    state.trait = trait;
+    state.preBuy = preBuy;
+    state.keepLean = keepLean;
+    state.read = composeRead(trait, preBuy, keepLean);
+    saveState();
+    closeAsk();
+    dockBuddy(true);
+    render();
+    whisper({ title: (state.read || "this is you").split(/[.!?]/)[0] }, 4200);
+  }
+
+  function hasPersona() {
+    return Boolean(state.trait && state.read);
+  }
+
+  function demoPersona() {
+    return isDemoSite() ? DATA.persona?.demo : null;
+  }
+
+  function activePersona() {
+    const demo = demoPersona();
+    if (demo) {
+      return {
+        userId: demo.userId || state.userId,
+        trait: demo.trait,
+        preBuy: demo.preBuy,
+        keepLean: demo.keepLean,
+        read: demo.read,
+        memory: demo.memory,
+      };
+    }
+    return {
+      userId: state.userId,
+      trait: state.trait,
+      preBuy: state.preBuy,
+      keepLean: state.keepLean,
+      read: state.read,
+      memory: "",
+    };
+  }
+
+  async function loadState() {
+    let migrated = {};
+    let stamps = {};
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return defaultState();
-      return { ...defaultState(), ...JSON.parse(raw) };
+      if (raw) migrated = JSON.parse(raw);
+      const stampRaw = localStorage.getItem(`${STORAGE_KEY}-stamps`);
+      if (stampRaw) stamps = JSON.parse(stampRaw);
+      else if (migrated.stamps) stamps = migrated.stamps;
     } catch {
-      return defaultState();
+      migrated = {};
     }
+    const stored = await chrome.storage.local.get([PROFILE_KEY, USER_KEY]);
+    const user = stored[USER_KEY] || {};
+    const next = {
+      ...defaultState(),
+      ...migrated,
+      ...(stored[PROFILE_KEY] || {}),
+      ...user,
+      stamps,
+      panelOpen: false,
+    };
+    if (!next.userId) {
+      next.userId = newUserId();
+      chrome.storage.local.set({ [USER_KEY]: userSlice(next) });
+    }
+    return next;
   }
 
   function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(`${STORAGE_KEY}-stamps`, JSON.stringify(state.stamps || {}));
+    } catch {
+      /* ignore quota */
+    }
+    chrome.storage.local.set({
+      [PROFILE_KEY]: profileSlice(state),
+      [USER_KEY]: userSlice(state),
+    });
   }
 
   function resetState() {
-    state = defaultState();
+    const user = userSlice(state);
+    state = { ...defaultState(), ...user, userId: user.userId || newUserId() };
+    chrome.storage.local.remove(PROFILE_KEY);
     saveState();
     spokenKey = null;
     closeAsk();
@@ -64,16 +196,40 @@
     render();
   }
 
+  function isDemoSite() {
+    return /(^|\.)thereformation\.com$/i.test(location.hostname);
+  }
+
+  async function shouldRun() {
+    const host = location.hostname;
+    const forced = await chrome.storage.local.get("yomForceHost");
+    if (forced.yomForceHost && host.endsWith(forced.yomForceHost)) return true;
+    if (isDemoSite()) return true;
+    if (EXTRACT.skipHost(host)) return false;
+    return EXTRACT.looksLikeShop();
+  }
+
   function asset(file) {
     return chrome.runtime.getURL(`assets/${file}`);
   }
 
   function isPdp() {
-    return /\/products\//.test(location.pathname);
+    if (isDemoSite()) return /\/products\//.test(location.pathname);
+    return EXTRACT?.isPdp?.() || /\/products?\//i.test(location.pathname);
   }
 
   function isCart() {
-    return /^\/cart\/?$/.test(location.pathname);
+    if (isDemoSite()) return /^\/cart\/?$/.test(location.pathname);
+    return EXTRACT?.isCart?.() || /\/(cart|bag)(\/|$)/i.test(location.pathname);
+  }
+
+  function findTiles() {
+    if (isDemoSite()) {
+      return [...document.querySelectorAll(".product-tile-wrapper, .product-tile")];
+    }
+    const tiles = EXTRACT.findTiles();
+    tiles.forEach((t) => t.classList.add("yom-tile-host"));
+    return tiles;
   }
 
   function el(tag, attrs = {}, html = "") {
@@ -97,62 +253,156 @@
     }
   }
 
+  function cleanProductName(text) {
+    return String(text || "")
+      .replace(/\s+/g, " ")
+      .replace(/quick\s*view/gi, "")
+      .replace(/add to (bag|cart)/gi, "")
+      .replace(/\|\s*reformation/gi, "")
+      .replace(/\$[\d.,]+/g, "")
+      .trim();
+  }
+
+  function firstText(node, selectors) {
+    for (const sel of selectors) {
+      const hit = node.querySelector(sel);
+      const text = cleanProductName(hit?.textContent || hit?.getAttribute?.("content") || "");
+      if (text && text.length > 2) return text;
+    }
+    return "";
+  }
+
+  function tileHref(node) {
+    const a =
+      node.querySelector("a[href*='/products/']") ||
+      node.querySelector("a[href*='/product/']") ||
+      node.querySelector("a[href*='/p/']") ||
+      node.querySelector("a[href]");
+    return a?.href || "";
+  }
+
+  function tileImage(node) {
+    const img =
+      node.querySelector("img[src], img[data-src], img[srcset]") ||
+      node.querySelector("img");
+    const src =
+      img?.currentSrc ||
+      img?.src ||
+      img?.getAttribute("data-src") ||
+      (img?.getAttribute("srcset") || "").split(" ")[0] ||
+      "";
+    const alt = cleanProductName(img?.alt || img?.getAttribute("aria-label") || "");
+    return { src, alt };
+  }
+
   function tileInfo(tile) {
-    const root =
+    const host =
       tile.closest(".product-tile-wrapper") ||
       tile.closest(".product-tile") ||
       tile;
-    const nameEl = root.querySelector('[data-product-component="name"]');
-    const priceEl =
-      root.querySelector('[itemprop="price"]') ||
-      root.querySelector(".price--formated, .price__sales .value");
-    const tracking = parseTracking(root);
+    const tracking = parseTracking(host);
     const product =
       tracking?.trackObject?.ecommerce?.click?.products?.[0] ||
       tracking?.ecommerce?.click?.products?.[0] ||
+      tracking?.ecommerce?.items?.[0] ||
       null;
-    const name = (nameEl?.textContent || product?.name || "").trim();
-    const color = (product?.dimension1 || "").trim();
-    const price = Number(
-      product?.price ||
-        priceEl?.getAttribute("content") ||
-        (priceEl?.textContent || "").replace(/[^0-9.]/g, "") ||
-        0
+    const img = tileImage(host);
+    const generic = EXTRACT?.tileInfo?.(host) || {};
+    const name = cleanProductName(
+      firstText(host, [
+        '[data-product-component="name"]',
+        ".product-tile__name",
+        ".product-name",
+        "[itemprop='name']",
+        "h2",
+        "h3",
+      ]) ||
+        product?.name ||
+        img.alt ||
+        generic.name ||
+        host.getAttribute("aria-label") ||
+        ""
     );
-    const id =
+    const color = cleanProductName(
+      product?.dimension1 ||
+        product?.variant ||
+        product?.item_variant ||
+        firstText(host, [
+          ".product-attribute--color .selected",
+          "[data-attr='color']",
+          ".swatch.selected",
+          "[class*='color'] .selected",
+        ]) ||
+        generic.color ||
+        ""
+    );
+    const price = EXTRACT.parsePrice
+      ? EXTRACT.parsePrice(
+          product?.price ||
+            product?.item_price ||
+            host.querySelector("[itemprop='price']")?.getAttribute("content") ||
+            host.querySelector(".price--formated, .price__sales .value, [data-product-component='price']")
+              ?.textContent ||
+            ""
+        )
+      : Number(
+          product?.price ||
+            host.querySelector("[itemprop='price']")?.getAttribute("content") ||
+            0
+        );
+    const href = tileHref(host) || generic.href || "";
+    const id = String(
       product?.id ||
-      root.getAttribute("data-pid") ||
-      root.querySelector("[data-pid]")?.getAttribute("data-pid") ||
-      name;
-    const href = root.querySelector("a[href*='/products/']")?.href || "";
-    const category = (product?.category || href).toLowerCase();
+        product?.item_id ||
+        host.getAttribute("data-pid") ||
+        host.querySelector("[data-pid]")?.getAttribute("data-pid") ||
+        host.getAttribute("data-product-id") ||
+        generic.id ||
+        href ||
+        name
+    );
+    const category = (
+      product?.category ||
+      product?.item_category ||
+      generic.category ||
+      href ||
+      ""
+    ).toLowerCase();
     return {
-      root,
+      root: host,
       name,
       color,
-      price,
-      id: String(id),
+      price: Number.isFinite(price) ? price : 0,
+      id,
       href,
+      image: img.src,
+      alt: img.alt,
       category,
-      text: `${name} ${color} ${category}`,
+      text: `${name} ${color} ${category} ${img.alt}`,
     };
   }
 
   function pdpInfo() {
-    const name =
-      document.querySelector("h1")?.textContent?.trim() ||
-      document.querySelector('[data-product-component="name"]')?.textContent?.trim() ||
-      document.title.split("|")[0].trim();
-    const priceText =
-      document.querySelector('[itemprop="price"]')?.getAttribute("content") ||
-      document.querySelector(".price--formated")?.textContent ||
-      "";
-    const price = Number(String(priceText).replace(/[^0-9.]/g, "")) || 0;
+    const info = EXTRACT.pdpInfo();
+    const root = EXTRACT.pdpRoot?.() || document.querySelector("main") || document.body;
     const color =
-      document
-        .querySelector(".product-attribute--color .selected, .color-value, [data-attr-value]")
-        ?.textContent?.trim() || "";
-    return { name, price, color, text: `${name} ${color} ${location.pathname}` };
+      info.color ||
+      cleanProductName(
+        root.querySelector(
+          ".product-attribute--color .selected, .color-value.selected, [data-attr='color'] .selected, [aria-checked='true']"
+        )?.getAttribute("aria-label") ||
+          root.querySelector(
+            ".product-attribute--color .selected, .color-value.selected, [data-attr='color'] .selected"
+          )?.textContent ||
+          ""
+      );
+    return {
+      ...info,
+      color,
+      href: info.href || location.href,
+      alt: info.alt || info.name,
+      text: `${info.name} ${color} ${info.description || ""} ${location.pathname}`,
+    };
   }
 
   function isGreenProduct(info) {
@@ -215,7 +465,7 @@
     const ev = purposeMeta();
     if (ev) {
       return {
-        title: `shopping for ${ev.label}`,
+        title: `for ${ev.label}`,
         body:
           state.budget == null
             ? "no budget for now — I’ll mark what matters for this."
@@ -238,16 +488,70 @@
   }
 
   function mediaHost(tile) {
-    return (
-      tile.querySelector(".product-tile__media, .product-tile__media-container, .tile-image, picture") ||
-      tile
+    const media = tile.querySelector(
+      ".product-tile__media, .product-tile__media-container, .tile-image"
     );
+    if (media) return media;
+    const img = tile.querySelector("picture, img");
+    if (!img) return tile;
+    const host = img.closest("[class*='media'], [class*='image'], [class*='Image']") || img.parentElement;
+    return host || tile;
   }
 
   // ── shell ────────────────────────────────────────────────────
+  const host = document.createElement("div");
+  host.id = "yom-root";
+  host.setAttribute("data-yom-host", "1");
+  host.style.cssText =
+    "position:fixed;right:0;bottom:0;width:0;height:0;z-index:2147483647;pointer-events:none;overflow:visible;background:transparent;";
+
+  const shadow = host.attachShadow({ mode: "open" });
+  const shadowCss = document.createElement("style");
+  shadowCss.textContent = `
+    :host { display: block; position: fixed; right: 0; bottom: 0; width: 0; height: 0; overflow: visible; z-index: 2147483647; pointer-events: none; }
+    .yom-buddy {
+      position: fixed !important;
+      right: 20px !important;
+      bottom: 20px !important;
+      left: auto !important;
+      top: auto !important;
+      width: 64px !important;
+      height: 64px !important;
+      border: 2px solid #111 !important;
+      border-radius: 50% !important;
+      background: #c8f060 !important;
+      padding: 8px !important;
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      z-index: 2147483647 !important;
+      display: block !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      box-shadow: 2px 3px 0 #111 !important;
+    }
+    .yom-buddy img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+    .yom-ask, .yom-panel, .yom-whisper, .yom-mode-pill { pointer-events: auto; }
+  `;
+  shadow.appendChild(shadowCss);
+
+  fetch(chrome.runtime.getURL("content/overlay.css"))
+    .then((r) => r.text())
+    .then((css) => {
+      const extra = document.createElement("style");
+      extra.textContent = css;
+      shadow.appendChild(extra);
+    })
+    .catch(() => {});
+
   const root = document.createElement("div");
-  root.id = "yom-root";
-  document.documentElement.appendChild(root);
+  root.className = "yom-shell";
+  shadow.appendChild(root);
+
+  function mountHost() {
+    const parent = document.body || document.documentElement;
+    if (parent && host.parentElement !== parent) parent.appendChild(host);
+  }
+  mountHost();
 
   if (!document.getElementById("yom-fonts")) {
     const link = document.createElement("link");
@@ -255,7 +559,7 @@
     link.rel = "stylesheet";
     link.href =
       "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Caveat:wght@500;700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap";
-    document.head.appendChild(link);
+    (document.head || document.documentElement).appendChild(link);
   }
 
   const buddy = el("button", {
@@ -263,8 +567,32 @@
     type: "button",
     "aria-label": "yom",
   });
-  buddy.innerHTML = `<img src="${asset("yom-mark.png")}" alt="" />`;
+  buddy.style.cssText =
+    "position:fixed;right:20px;bottom:20px;width:64px;height:64px;border:2px solid #111;border-radius:50%;background:#c8f060;padding:8px;z-index:2147483647;pointer-events:auto;cursor:pointer;display:block;opacity:1;visibility:visible;box-shadow:2px 3px 0 #111";
+  const buddyImg = document.createElement("img");
+  buddyImg.alt = "";
+  buddy.appendChild(buddyImg);
   root.appendChild(buddy);
+
+  fetch(chrome.runtime.getURL("assets/yom-mark.png"))
+    .then((r) => r.blob())
+    .then(
+      (blob) =>
+        new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(blob);
+        })
+    )
+    .then((dataUrl) => {
+      buddyImg.src = dataUrl;
+    })
+    .catch(() => {
+      buddyImg.remove();
+      buddy.textContent = "yom";
+      buddy.style.font = "700 14px/64px Schibsted Grotesk, sans-serif";
+      buddy.style.color = "#111";
+    });
 
   const modePill = el("button", { class: "yom-mode-pill hidden", type: "button" });
   root.appendChild(modePill);
@@ -272,17 +600,22 @@
   const panel = el("div", { class: "yom-panel hidden" });
   root.appendChild(panel);
 
-  function dockPoint() {
-    return {
-      left: window.innerWidth - 72,
-      top: window.innerHeight - 80,
-    };
+  function ensureMounted() {
+    mountHost();
+    host.style.display = "block";
+    host.style.visibility = "visible";
+    host.style.opacity = "1";
+    buddy.style.display = "block";
+    buddy.style.visibility = "visible";
+    buddy.style.opacity = "1";
   }
 
   function dockBuddy(animatePop = false) {
-    const p = dockPoint();
-    buddy.style.left = `${p.left}px`;
-    buddy.style.top = `${p.top}px`;
+    ensureMounted();
+    buddy.style.left = "auto";
+    buddy.style.top = "auto";
+    buddy.style.right = "16px";
+    buddy.style.bottom = "16px";
     buddy.classList.add("docked");
     if (animatePop) {
       buddy.classList.remove("pop");
@@ -292,6 +625,8 @@
     positionCluster();
   }
 
+  dockBuddy(true);
+
   function pulseBuddy() {
     buddy.classList.remove("notice");
     void buddy.offsetWidth;
@@ -299,9 +634,8 @@
   }
 
   function positionCluster() {
-    const p = dockPoint();
-    const bLeft = parseFloat(buddy.style.left) || p.left;
-    const bTop = parseFloat(buddy.style.top) || p.top;
+    const gutter = 20;
+    const buddySize = 64;
 
     if (!state.mode) {
       modePill.classList.add("hidden");
@@ -315,29 +649,24 @@
             ? "browsing"
             : state.purpose || "something coming up";
       modePill.innerHTML = `<span class="dot"></span><span>${label}</span>`;
-      requestAnimationFrame(() => {
-        const pw = modePill.offsetWidth || 88;
-        modePill.style.left = `${Math.max(8, bLeft - pw - 10)}px`;
-        modePill.style.top = `${bTop + 12}px`;
-      });
+      modePill.style.left = "auto";
+      modePill.style.top = "auto";
+      modePill.style.right = `${gutter + buddySize + 8}px`;
+      modePill.style.bottom = `${gutter + 10}px`;
     }
 
     if (whisperEl) {
-      requestAnimationFrame(() => {
-        const w = whisperEl.offsetWidth;
-        const h = whisperEl.offsetHeight;
-        whisperEl.style.left = `${Math.max(8, bLeft + 52 - w)}px`;
-        whisperEl.style.top = `${Math.max(8, bTop - h - 8)}px`;
-      });
+      whisperEl.style.left = "auto";
+      whisperEl.style.top = "auto";
+      whisperEl.style.right = `${gutter}px`;
+      whisperEl.style.bottom = `${gutter + buddySize + 12}px`;
     }
 
     if (askEl) {
-      requestAnimationFrame(() => {
-        const w = askEl.offsetWidth;
-        const h = askEl.offsetHeight;
-        askEl.style.left = `${Math.max(8, window.innerWidth - w - 16)}px`;
-        askEl.style.top = `${Math.max(8, bTop - h - 14)}px`;
-      });
+      askEl.style.left = "auto";
+      askEl.style.top = "auto";
+      askEl.style.right = `${gutter}px`;
+      askEl.style.bottom = `${gutter + buddySize + 12}px`;
     }
   }
 
@@ -428,7 +757,7 @@
   function applyStamp(tile, mark) {
     const host = mediaHost(tile);
     if (getComputedStyle(host).position === "static") host.style.position = "relative";
-    const wrap = tile.closest(".product-tile-wrapper") || tile;
+    const wrap = tile.closest(".product-tile-wrapper, .yom-tile-host") || tile;
     wrap.classList.toggle("yom-tile-love", !!mark.love);
     tile.classList.toggle("yom-tile-love", !!mark.love);
     const existing = host.querySelector(".yom-stamp");
@@ -439,7 +768,7 @@
   }
 
   function restampTiles() {
-    document.querySelectorAll(".product-tile-wrapper, .product-tile").forEach((tile) => {
+    findTiles().forEach((tile) => {
       const info = tileInfo(tile);
       const mark = state.stamps[info.id];
       if (mark) applyStamp(info.root, mark);
@@ -522,13 +851,14 @@
   }
 
   function pdpInsertPoint() {
-    const price =
-      document.querySelector("[itemprop='price']") ||
-      document.querySelector(".price--formated, .prices, .product-price");
-    if (price && !isSticky(price)) return { el: sizable(price), where: "after" };
-
-    const h1 = document.querySelector("h1");
+    const root = EXTRACT.pdpRoot?.() || document.querySelector("main");
+    const h1 = root?.querySelector("h1") || document.querySelector("h1");
     if (h1 && !isSticky(h1)) return { el: sizable(h1), where: "after" };
+
+    const price = [...(root?.querySelectorAll("[itemprop='price'], .price--formated") || [])].find(
+      (n) => !EXTRACT.isRecNode?.(n) && !isSticky(n)
+    );
+    if (price) return { el: sizable(price), where: "after" };
 
     const addBtn = findAddButton();
     if (addBtn && !isSticky(addBtn) && !isSticky(addBtn.parentElement)) {
@@ -537,7 +867,7 @@
         addBtn.parentElement;
       return { el: sizable(block), where: "before" };
     }
-    return { el: document.querySelector("main") || document.body, where: "prepend" };
+    return { el: root || document.body, where: "prepend" };
   }
 
   function mountPdp(node) {
@@ -599,9 +929,9 @@
       return;
     }
     const rem = remainingBudget();
-    document.querySelectorAll(".product-tile-wrapper, .product-tile").forEach((tile) => {
+    findTiles().forEach((tile) => {
       const info = tileInfo(tile);
-      const wrap = info.root.closest(".product-tile-wrapper") || info.root;
+      const wrap = info.root.closest(".product-tile-wrapper, .yom-tile-host") || info.root;
       const host = mediaHost(info.root);
       const over = info.price && info.price > rem;
       wrap.classList.toggle("yom-tile-dim", over);
@@ -652,13 +982,11 @@
       return;
     }
     state.panelOpen = !state.panelOpen;
-    saveState();
     renderPanel();
   });
 
   modePill.addEventListener("click", () => {
-    state.panelOpen = true;
-    saveState();
+    state.panelOpen = !state.panelOpen;
     renderPanel();
   });
 
@@ -666,7 +994,7 @@
     saveState();
     ask({
       title: "what’s the vibe?",
-      body: "I’ll hang on the page. no chat unless I need a tap.",
+      body: "i’ll hang on the page. no chat unless i need a tap.",
       options: [
         { label: "just browsing", onPick: () => startBrowseMode() },
         { label: "something coming up", onPick: () => openPurposePicker() },
@@ -722,15 +1050,56 @@
   }
 
   function finishSession(mode, purpose, budget) {
-    closeAsk();
     state.mode = mode;
     state.purpose = purpose;
     state.budget = budget;
     state.panelOpen = false;
     saveState();
+    if (!isDemoSite() && !hasPersona()) {
+      askPersona();
+      return;
+    }
+    closeAsk();
     dockBuddy(true);
     render();
     whisper(welcomeTip());
+  }
+
+  function askPersona() {
+    ask({
+      title: "which is most you?",
+      body: "this is how yom reads you — it stays with this browser.",
+      options: DATA.persona.traits.map((t) => ({
+        label: t.label,
+        block: true,
+        onPick: () => askKeepLean(t.id),
+      })),
+      otherChoices: [
+        { label: "skip for now", onPick: () => applyHashedPersona() },
+      ],
+    });
+  }
+
+  function askKeepLean(trait) {
+    ask({
+      title: "you tend to keep…",
+      body: "the pieces that actually get worn.",
+      options: DATA.persona.keep.map((k) => ({
+        label: k.label,
+        onPick: () => {
+          const h = hashedPersona();
+          applyPersona(trait, h.preBuy, k.id);
+        },
+      })),
+      otherChoices: [
+        { label: "skip for now", onPick: () => applyHashedPersona(trait) },
+      ],
+    });
+  }
+
+  function applyHashedPersona(trait) {
+    const h = hashedPersona();
+    applyPersona(trait || h.trait, h.preBuy, h.keepLean);
   }
 
   function openPurposePicker() {
@@ -811,6 +1180,15 @@
       { label: "$400", value: "400", on: state.budget === 400 },
     ];
 
+    const persona = activePersona();
+    const readHtml = persona.read ? `<p class="yom-read">${persona.read}</p>` : "";
+    const spentHtml = state.spent
+      ? `bag so far · $${state.spent}${state.budget != null ? ` · $${remainingBudget()} left` : ""}`
+      : "";
+    const newYomHtml = isDemoSite()
+      ? ""
+      : `<button type="button" class="yom-new-yom" data-new-yom>new yom</button>`;
+
     panel.innerHTML = `
       <div class="yom-panel-head">
         <strong>context</strong>
@@ -824,17 +1202,27 @@
         <label>budget</label>
         <div class="yom-chips" data-budget></div>
       </div>
-      <div class="yom-meta">${
-        state.spent
-          ? `bag so far · $${state.spent}${state.budget != null ? ` · $${remainingBudget()} left` : ""}`
-          : "hanging with you on Reformation"
-      }</div>
+      ${readHtml}
+      ${spentHtml ? `<div class="yom-meta">${spentHtml}</div>` : ""}
+      ${newYomHtml}
     `;
 
     panel.querySelector("[data-close]").addEventListener("click", () => {
       state.panelOpen = false;
       saveState();
       renderPanel();
+    });
+
+    panel.querySelector("[data-new-yom]")?.addEventListener("click", () => {
+      state.userId = newUserId();
+      state.trait = null;
+      state.preBuy = null;
+      state.keepLean = null;
+      state.read = null;
+      saveState();
+      state.panelOpen = false;
+      renderPanel();
+      askPersona();
     });
 
     attachChips(
@@ -887,7 +1275,6 @@
       saveState();
       state.panelOpen = false;
       render();
-      whisper(welcomeTip());
       return;
     }
     if (next === "gift") {
@@ -896,7 +1283,6 @@
       saveState();
       state.panelOpen = false;
       render();
-      whisper(welcomeTip());
       return;
     }
     state.mode = "purpose";
@@ -908,7 +1294,6 @@
     }
     state.panelOpen = false;
     render();
-    whisper(welcomeTip());
   }
 
   function deliveryTip() {
@@ -957,14 +1342,27 @@
     state.checking = true;
     saveState();
     pdpNote(DATA.tips.checking, { checking: true, kicker: "yom · looking" });
-    setTimeout(() => {
+
+    const finish = (result) => {
       state.checking = false;
-      const result = checkResult(info);
       state.checked[pageKey] = result;
       saveState();
       if (location.pathname !== pageKey) return;
       pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
-    }, 1400);
+    };
+
+    advise("check", info).then((advice) => {
+      if (advice && !advice.quiet && advice.title) {
+        finish({
+          title: advice.title,
+          body: advice.body,
+          resolve: advice.resolve,
+          stamp: advice.stamp,
+        });
+        return;
+      }
+      finish(checkResult(info));
+    });
   }
 
   function afterAdded(info) {
@@ -1002,9 +1400,106 @@
     true
   );
 
-  // ── PLP pauses — driven by profile, not a script ─────────────
-  function onPause(tile) {
-    if (!state.mode) return;
+  function advise(surface, product) {
+    return new Promise((resolve) => {
+      const productUrl = product.href || (isPdp() ? location.href : "");
+      const payload = {
+        surface,
+        product: {
+          id: product.id || "",
+          name: product.name,
+          price: product.price,
+          color: product.color || "",
+          category: product.category || "",
+          alt: product.alt || "",
+          description: product.description || "",
+          image: product.image || "",
+          href: productUrl,
+          url: productUrl,
+          site: location.hostname,
+        },
+        profile: {
+          userId: activePersona().userId,
+          read: activePersona().read,
+          trait: activePersona().trait,
+          preBuy: activePersona().preBuy,
+          keepLean: activePersona().keepLean,
+          mode: state.mode,
+          purpose: state.purpose,
+          budget: state.budget,
+          spent: state.spent,
+          gift: isGift(),
+          memory: activePersona().memory || "",
+        },
+      };
+      chrome.runtime.sendMessage({ type: "YOM_ADVISE", payload }, (res) => {
+        if (chrome.runtime.lastError || !res?.ok) resolve(null);
+        else resolve(res.advice || null);
+      });
+    });
+  }
+
+  function applyAdviceToTile(tile, advice) {
+    if (!advice || advice.quiet || !advice.title) return false;
+    noteTile(
+      tile,
+      { title: advice.title, body: advice.body, stamp: advice.stamp || "yom" },
+      { love: advice.kind === "love", warn: advice.kind === "warn" }
+    );
+    return true;
+  }
+
+  async function liveOnPause(tile) {
+    const info = tileInfo(tile);
+    if (!info.name) return true;
+    if (state.stamps[info.id]) return true;
+
+    if (state.budget != null && info.price > remainingBudget()) {
+      noteTile(info.root, DATA.tips.overBudget, { warn: true });
+      return true;
+    }
+
+    const advice = await advise("tile", info);
+    if (applyAdviceToTile(info.root, advice)) return true;
+
+    const ev = purposeMeta();
+    if (ev?.plp && occasionMatch(info)) {
+      noteTile(info.root, ev.plp, { love: true });
+      return true;
+    }
+    return false;
+  }
+
+  async function livePdp() {
+    if (!isPdp() || !state.mode) return false;
+    const info = pdpInfo();
+    const pageKey = location.pathname;
+
+    if (state.checked[pageKey]) {
+      speakOnce(`checked:${pageKey}`, () => {
+        const result = state.checked[pageKey];
+        pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
+      });
+      return true;
+    }
+    if (state.checking) return true;
+    if (spokenKey === `live:${pageKey}` && document.getElementById("yom-pdp-note")) return true;
+
+    spokenKey = `live:${pageKey}`;
+    const advice = await advise("pdp", info);
+    if (location.pathname !== pageKey) return true;
+    if (advice && !advice.quiet && advice.title) {
+      const tip = { title: advice.title, body: advice.body, stamp: advice.stamp };
+      const extras = { resolve: advice.resolve, kicker: "yom" };
+      if (advice.checkable) pdpNote(tip, lookIntoChips(tip, extras));
+      else pdpNote(tip, extras);
+      return true;
+    }
+    spokenKey = null;
+    return false;
+  }
+
+  function demoOnPause(tile) {
     const info = tileInfo(tile);
     if (!info.name) return;
     if (state.stamps[info.id]) return;
@@ -1056,8 +1551,15 @@
     noteTile(info.root, lane === 0 ? DATA.tips.similar : DATA.tips.material, { warn: lane === 1 });
   }
 
+  async function onPause(tile) {
+    if (!state.mode) return;
+    const applied = await liveOnPause(tile);
+    if (applied) return;
+    if (isDemoSite()) demoOnPause(tile);
+  }
+
   function bindTiles() {
-    document.querySelectorAll(".product-tile, .product-tile-wrapper").forEach((tile) => {
+    findTiles().forEach((tile) => {
       if (tile.dataset.yomBound) return;
       tile.dataset.yomBound = "1";
       const target = tile.classList.contains("product-tile-wrapper")
@@ -1143,29 +1645,28 @@
     };
   }
 
-  function renderPdpPresence() {
+  async function renderPdpPresence() {
     if (!isPdp() || !state.mode) return;
+    const applied = await livePdp();
+    if (applied) return;
+    if (isDemoSite()) demoPdp();
+    else if (purposeMeta()) enterPurposeOnPdp();
+  }
+
+  function demoPdp() {
     const info = pdpInfo();
     const pageKey = location.pathname;
     const ev = purposeMeta();
 
-    if (state.checked[pageKey]) {
-      speakOnce(`checked:${pageKey}`, () => {
-        const result = state.checked[pageKey];
-        pdpNote(result, { resolve: result.resolve, kicker: "yom · checked" });
-      });
-      return;
-    }
-
-    if (state.checking) return;
+    if (state.checked[pageKey] || state.checking) return;
 
     if (isShoeProduct(info) && !isGift()) {
       speakOnce(`shoes:${pageKey}`, () => {
         pdpNote(DATA.tips.shoes, {
           alts: DATA.shoeAlts,
           chips: [
-            { label: "I don’t need shoes", onPick: () => skipShoes() },
-            { label: "I’ll look", onPick: () => pdpNote(DATA.tips.shoes, { alts: DATA.shoeAlts }) },
+            { label: "i don’t need shoes", onPick: () => skipShoes() },
+            { label: "i’ll look", onPick: () => pdpNote(DATA.tips.shoes, { alts: DATA.shoeAlts }) },
           ],
           otherChoices: [
             { label: "maybe later", onPick: () => skipShoes() },
@@ -1284,6 +1785,14 @@
     );
   }
 
+  function pagePath(href) {
+    try {
+      return new URL(href, location.origin).pathname;
+    } catch {
+      return href;
+    }
+  }
+
   function render() {
     dockBuddy();
     renderPanel();
@@ -1300,13 +1809,17 @@
 
   let lastHref = location.href;
   const mo = new MutationObserver((mutations) => {
+    ensureMounted();
     if (location.href !== lastHref) {
+      const samePath = pagePath(location.href) === pagePath(lastHref);
       lastHref = location.href;
-      spokenKey = null;
+      state.panelOpen = false;
       closeAsk();
       clearWhisper();
-      clearExpandedNotes();
-      dockBuddy();
+      if (!samePath) {
+        spokenKey = null;
+        clearExpandedNotes();
+      }
       render();
       return;
     }
@@ -1317,6 +1830,15 @@
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
 
-  dockBuddy(true);
-  render();
+  async function boot() {
+    try {
+      state = await loadState();
+    } catch {
+      state = defaultState();
+    }
+    dockBuddy(true);
+    render();
+  }
+
+  boot();
 })();

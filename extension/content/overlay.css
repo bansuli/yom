@@ -13,11 +13,19 @@
 }
 
 #yom-root {
-  all: initial;
+  position: fixed !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  top: auto !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  background: transparent !important;
+  z-index: 2147483647 !important;
   font-family: var(--yom-font-body);
   color: var(--yom-ink);
-  position: relative;
-  z-index: 2147483000;
   --yom-paper: #ffffff;
   --yom-ink: #111111;
   --yom-lime: #c8f060;
@@ -36,19 +44,29 @@
 
 /* ── floating character (quiet presence) ── */
 .yom-buddy {
-  position: fixed;
-  z-index: 2147483646;
-  width: 52px;
-  height: 52px;
-  border: none;
-  background: transparent;
-  padding: 0;
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  right: 20px !important;
+  bottom: 20px !important;
+  left: auto !important;
+  top: auto !important;
+  width: 64px !important;
+  height: 64px !important;
+  border: 2px solid #111111 !important;
+  border-radius: 50% !important;
+  background: #c8f060 !important;
+  padding: 8px !important;
+  pointer-events: auto !important;
   cursor: pointer;
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: 2px 3px 0 #111111;
   transition:
     left 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
     top 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
     transform 0.35s cubic-bezier(0.22, 1.4, 0.36, 1);
-  filter: drop-shadow(2px 3px 0 color-mix(in srgb, var(--yom-ink) 12%, transparent));
+  filter: none;
 }
 
 .yom-buddy img {
@@ -140,9 +158,15 @@
 .yom-mode-pill {
   position: fixed;
   z-index: 2147483644;
+  right: 92px;
+  bottom: 32px;
+  left: auto;
+  top: auto;
   display: inline-flex;
+  pointer-events: auto;
   align-items: center;
   gap: 0.32rem;
+  max-width: min(220px, calc(100vw - 108px));
   border: 1px solid color-mix(in srgb, var(--yom-ink) 22%, transparent);
   background: color-mix(in srgb, var(--yom-paper) 92%, transparent);
   backdrop-filter: blur(8px);
@@ -153,9 +177,13 @@
   font-weight: 600;
   cursor: pointer;
   box-shadow: none;
-  transition:
-    left 0.55s cubic-bezier(0.22, 1.2, 0.36, 1),
-    top 0.55s cubic-bezier(0.22, 1.2, 0.36, 1);
+}
+
+.yom-mode-pill span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .yom-mode-pill .dot {
@@ -177,13 +205,18 @@
 .yom-whisper {
   position: fixed;
   z-index: 2147483645;
-  max-width: 200px;
+  right: 20px;
+  bottom: 96px;
+  left: auto;
+  top: auto;
+  max-width: min(220px, calc(100vw - 40px));
   font-family: var(--yom-font-hand);
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1.2;
   color: var(--yom-ink);
   text-align: right;
+  overflow-wrap: anywhere;
   pointer-events: none;
   animation: yom-in 0.28s ease-out;
 }
@@ -196,6 +229,7 @@
 .yom-ask {
   position: fixed;
   z-index: 2147483645;
+  pointer-events: auto;
   width: min(268px, calc(100vw - 1.5rem));
   background: var(--yom-paper);
   border: 1px solid color-mix(in srgb, var(--yom-ink) 18%, transparent);
@@ -343,6 +377,7 @@
   right: 1rem;
   bottom: 5.2rem;
   z-index: 2147483645;
+  pointer-events: auto;
   width: min(280px, calc(100vw - 2rem));
   background: var(--yom-paper);
   border: 1px solid color-mix(in srgb, var(--yom-ink) 18%, transparent);
@@ -390,10 +425,25 @@
   margin-bottom: 0.35rem;
 }
 
-.yom-meta {
-  font-size: 0.76rem;
+.yom-read {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--yom-ink);
+  margin: 0.55rem 0 0;
+}
+
+.yom-new-yom {
+  display: block;
+  margin-top: 0.65rem;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 0.72rem;
   color: var(--yom-muted);
-  margin: 0.45rem 0 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* ══════════════════════════════════════════
@@ -425,14 +475,16 @@
 
 /* product grid: yom actually changes the catalog */
 .product-tile-wrapper.yom-tile-love,
-.product-tile.yom-tile-love {
+.product-tile.yom-tile-love,
+.yom-tile-host.yom-tile-love {
   outline: 2.5px solid #c8f060 !important;
   outline-offset: 3px;
   transition: outline 0.35s ease;
 }
 
 .product-tile-wrapper.yom-tile-dim,
-.product-tile.yom-tile-dim {
+.product-tile.yom-tile-dim,
+.yom-tile-host.yom-tile-dim {
   opacity: 0.42 !important;
   filter: grayscale(0.5) !important;
   transition:
@@ -441,7 +493,8 @@
 }
 
 .product-tile-wrapper.yom-tile-dim:hover,
-.product-tile.yom-tile-dim:hover {
+.product-tile.yom-tile-dim:hover,
+.yom-tile-host.yom-tile-dim:hover {
   opacity: 0.78 !important;
   filter: grayscale(0.15) !important;
 }

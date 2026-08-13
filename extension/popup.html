@@ -14,14 +14,35 @@
   </head>
   <body>
     <main class="popup">
-      <p class="eyebrow">companion on Reformation</p>
+      <p class="eyebrow">shopping companion</p>
       <h1 class="brand">yom</h1>
       <p class="tag">
-        tell yom what you’re shopping for. it marks Reformation from those answers — budget, occasion, gift vs you. one authored story if you pick Sofia’s wedding.
+        yom thinks for everyone through youryom.com. no one else pastes a key.
       </p>
       <button id="launch" type="button">open Reformation</button>
       <button id="launch-green" type="button" class="secondary">open green dresses</button>
-      <p class="hint">click yom, answer the chips, then shop</p>
+      <button id="launch-tab" type="button" class="secondary">use this tab</button>
+
+      <section class="key-block">
+        <label for="api-key">optional override</label>
+        <p class="key-status" id="key-status">shared brain is on. a personal key is only if you want to test against your own account.</p>
+        <div class="provider" id="provider">
+          <button type="button" data-provider="anthropic" class="on">Anthropic</button>
+          <button type="button" data-provider="openai">OpenAI</button>
+        </div>
+        <input
+          id="api-key"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="personal key — optional"
+        />
+        <div class="key-row">
+          <button id="save-key" type="button" class="secondary">save override</button>
+          <button id="clear-key" type="button" class="ghost">clear</button>
+        </div>
+      </section>
+      <p class="hint">the shared key lives on the server, not in the extension.</p>
     </main>
     <script src="popup.js"></script>
   </body>
