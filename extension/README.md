@@ -19,7 +19,7 @@ It lives as a Vercel env var. The extension calls `https://youryom.com/api/yom-a
 1. In the Vercel project for youryom.com, add **one** of:
    - `ANTHROPIC_API_KEY`
    - `OPENAI_API_KEY`
-2. Deploy (Anthropic is used if both are set)
+2. Deploy (OpenAI is used if both are set; Anthropic is fallback)
 3. Reload the extension
 
 ```bash

@@ -1,6 +1,6 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.25") return;
-  window.__YOM_BUILD__ = "1.1.25";
+  if (window.__YOM_BUILD__ === "1.1.31") return;
+  window.__YOM_BUILD__ = "1.1.31";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
@@ -74,6 +74,7 @@
   let lastAddAt = 0;
   let noteTimers = new Map();
   let sosKey = null;
+  let sosMin = false;
 
   function profileSlice(s) {
     const out = {};
@@ -391,6 +392,29 @@
     return node;
   }
 
+  const YOM_UI =
+    "#yom-root, .yom-pdp-note, .yom-cart-panel, .yom-ask, .yom-panel, .yom-fb, .yom-tile-note, .yom-chip, .yom-fb-chip, .yom-fb-btn, .yom-sos-toggle, .yom-buddy, .yom-mode-pill";
+
+  function onTap(node, fn) {
+    if (!node || typeof fn !== "function") return node;
+    const go = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      fn(e);
+    };
+    node.addEventListener("click", go, true);
+    node.addEventListener("pointerdown", (e) => e.stopPropagation(), true);
+    node.addEventListener("mousedown", (e) => e.stopPropagation(), true);
+    return node;
+  }
+
+  function formatRegretLabel(n) {
+    const tone = regretTone(n);
+    if (tone === "keep") return "keep";
+    if (tone === "ok") return "ok";
+    return "return";
+  }
+
   function parseTracking(node) {
     const anchor =
       (node.hasAttribute?.("data-aggregate") || node.hasAttribute?.("data-tracking")
@@ -694,6 +718,7 @@
     }
     .yom-buddy img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
     .yom-ask, .yom-panel, .yom-whisper, .yom-mode-pill { pointer-events: auto; }
+    .yom-mode-pill { cursor: pointer !important; }
     .yom-marks { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
     .yom-stamp {
       position: fixed !important;
@@ -727,7 +752,7 @@
       padding: 8px 10px;
       color: #111;
       font: 500 13px/1.3 Schibsted Grotesk, Helvetica Neue, sans-serif;
-      pointer-events: none;
+      pointer-events: auto !important;
       box-shadow: 2px 3px 0 #111;
     }
     .yom-tile-note strong { display: block; font-size: 13px; }
@@ -738,18 +763,19 @@
       flex-wrap: wrap;
       gap: 6px 8px;
       align-items: center;
-      pointer-events: auto;
+      pointer-events: auto !important;
     }
     .yom-tile-note .yom-fb { flex: 1 0 100%; margin-top: 2px; }
     .yom-fb-btn {
       appearance: none;
       border: 0;
       background: none;
-      padding: 0;
+      padding: 4px 2px;
       margin: 0;
       font: 600 11px/1.2 Schibsted Grotesk, Helvetica Neue, sans-serif;
       color: #5a5a5a;
       cursor: pointer;
+      pointer-events: auto !important;
     }
     .yom-fb-btn:hover { color: #111; }
     .yom-fb-ok { color: #3d5a00; }
@@ -767,6 +793,7 @@
       border-radius: 8px;
       padding: 4px 6px;
       font: 600 12px Schibsted Grotesk, Helvetica Neue, sans-serif;
+      pointer-events: auto !important;
     }
     .yom-fb-done { font: 600 11px/1.2 Schibsted Grotesk, Helvetica Neue, sans-serif; color: #5a5a5a; }
     .yom-fb-chip {
@@ -778,8 +805,13 @@
       font: 600 11px/1.2 Schibsted Grotesk, Helvetica Neue, sans-serif;
       cursor: pointer;
       color: #111;
+      pointer-events: auto !important;
     }
     .yom-fb-chip:hover { background: #c8f060; }
+    .yom-chip, .yom-sos-toggle, .yom-panel button, .yom-ask button {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
     .yom-dim {
       position: fixed;
       z-index: 2147483645;
@@ -791,6 +823,28 @@
       max-height: min(72vh, 560px);
       overflow: auto;
     }
+    .yom-sos-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .yom-sos-toggle {
+      appearance: none !important;
+      border: 1px solid #111 !important;
+      background: #fff !important;
+      border-radius: 999px !important;
+      font: 600 11px/1 Schibsted Grotesk, sans-serif !important;
+      padding: 3px 8px !important;
+      cursor: pointer !important;
+      pointer-events: auto !important;
+      color: #111 !important;
+    }
+    .yom-sos-sheet.min {
+      width: min(220px, calc(100vw - 1.5rem)) !important;
+      max-height: none !important;
+      overflow: hidden !important;
+      padding: 10px 12px !important;
+    }
+    .yom-sos-sheet.min .yom-sos-body,
+    .yom-sos-sheet.min .yom-chips,
+    .yom-sos-sheet.min .yom-fb { display: none !important; }
+    .yom-sos-sheet.min h3 { font-size: 12px !important; margin: 0 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .yom-facts { display: grid; gap: 6px; margin: 8px 0; }
     .yom-fact em {
       display: block;
@@ -1003,11 +1057,24 @@
     sosKey = null;
   }
 
+  function setSosMin(on) {
+    sosMin = Boolean(on);
+    if (!askEl?.classList.contains("yom-sos-sheet")) return;
+    askEl.classList.toggle("min", sosMin);
+    const btn = askEl.querySelector("[data-sos-toggle]");
+    if (btn) {
+      btn.textContent = sosMin ? "open" : "hide";
+      btn.setAttribute("aria-label", sosMin ? "maximise sos" : "minimise sos");
+    }
+    positionCluster();
+  }
+
   function attachChips(host, chips, otherChoices) {
     if (!host || !chips?.length) return;
     const paint = (list, extras) => {
       host.innerHTML = "";
-      list.forEach((c) => {
+      (list || []).forEach((c) => {
+        if (!c?.label || typeof c.onPick !== "function") return;
         const btn = el(
           "button",
           {
@@ -1017,12 +1084,12 @@
           c.label
         );
         if (c.sub) btn.appendChild(el("small", {}, c.sub));
-        btn.addEventListener("click", () => c.onPick());
+        onTap(btn, () => c.onPick());
         host.appendChild(btn);
       });
       if (extras && extras.length) {
         const other = el("button", { class: "yom-chip yom-chip-other", type: "button" }, "other");
-        other.addEventListener("click", () => paint(extras, null));
+        onTap(other, () => paint(extras, null));
         host.appendChild(other);
       }
     };
@@ -1162,8 +1229,8 @@
     }
     return [
       { id: "like-this", label: "i actually like this" },
-      { id: "not-my-style", label: "not my style" },
-      { id: "wrong-occasion", label: "wrong occasion" },
+      { id: "not-for-me", label: "not for me" },
+      { id: "wrong-reason", label: "that's not why" },
     ];
   }
 
@@ -1230,11 +1297,7 @@
 
   function fbButton(label, className, onPick) {
     const btn = el("button", { class: className, type: "button" }, label);
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onPick();
-    });
+    onTap(btn, onPick);
     return btn;
   }
 
@@ -1244,10 +1307,15 @@
     host.classList.toggle("yom-fb-open", on);
   }
 
-  function markStored(host) {
+  function ackCopy() {
+    const lines = ["got it.", "right, noted.", "ok, noted."];
+    return lines[Math.floor(Math.random() * lines.length)];
+  }
+
+  function markNoted(host) {
     setFbHold(host, false);
     host.innerHTML = "";
-    host.appendChild(el("span", { class: "yom-fb-done" }, "stored."));
+    host.appendChild(el("span", { class: "yom-fb-done" }, ackCopy()));
   }
 
   function paintSizeAsk(host, ctx) {
@@ -1261,7 +1329,7 @@
             size,
             note: `wears ${size} in ${brand}, not the size yom assumed for ${pieceName(ctx.info)}.`,
           });
-          markStored(host);
+          markNoted(host);
         })
       );
     });
@@ -1272,6 +1340,8 @@
       placeholder: "or type",
     });
     input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("pointerdown", (e) => e.stopPropagation());
+    input.addEventListener("mousedown", (e) => e.stopPropagation());
     input.addEventListener("keydown", (e) => {
       e.stopPropagation();
       if (e.key !== "Enter") return;
@@ -1281,7 +1351,7 @@
         size,
         note: `wears ${size} in ${brand}, not the size yom assumed for ${pieceName(ctx.info)}.`,
       });
-      markStored(host);
+      markNoted(host);
     });
     host.appendChild(input);
     setTimeout(() => input.focus(), 30);
@@ -1309,7 +1379,7 @@
       host.appendChild(
         fbButton(opt.label, "yom-fb-chip", () => {
           applyLearn(ctx, opt);
-          markStored(host);
+          markNoted(host);
         })
       );
     });
@@ -1318,10 +1388,9 @@
   function paintReasons(host, ctx) {
     const kind = interventionKind(ctx);
     host.innerHTML = "";
-    feedbackReasons(kind).forEach((reason, i) => {
-      if (i) host.appendChild(el("span", { class: "yom-fb-dot" }, "·"));
+    feedbackReasons(kind).forEach((reason) => {
       host.appendChild(
-        fbButton(reason.label, "yom-fb-btn", () => {
+        fbButton(reason.label, "yom-fb-chip", () => {
           if (reason.follow === "brand-size") {
             paintSizeAsk(host, ctx);
             return;
@@ -1333,8 +1402,8 @@
           const name = pieceName(ctx.info);
           const notes = {
             "like-this": `they actually like ${name}. do not treat it as a miss.`,
-            "not-my-style": `${name} is not their style. remember that.`,
-            "wrong-occasion": `${name} is the wrong occasion for them.`,
+            "not-for-me": `they don't want ${name}. do not push it.`,
+            "wrong-reason": `the reason yom gave on ${name} isn't the issue. don't repeat that framing.`,
             "still-want": `they still want ${name} even after the skip. do not block it.`,
             "doesnt-matter": `the reason yom gave on ${name} doesn't matter to them.`,
             "got-wrong": `yom got ${name} wrong. wait for a correction and do not repeat that take.`,
@@ -1343,7 +1412,7 @@
             note: notes[reason.id] || `corrected take on ${name}: ${reason.label}.`,
             like: reason.id === "like-this" || reason.id === "still-want",
           });
-          markStored(host);
+          markNoted(host);
         })
       );
     });
@@ -1505,7 +1574,7 @@
   }
 
   function isAddToBagTarget(node) {
-    if (!node || node.closest?.("#yom-root, .yom-pdp-note, .yom-cart-panel, .yom-ask, .yom-panel, .yom-fb, .yom-tile-note")) {
+    if (!node || node.closest?.(YOM_UI)) {
       return false;
     }
     const t = `${node.textContent || ""} ${node.value || ""} ${node.getAttribute?.("aria-label") || ""}`
@@ -1572,7 +1641,6 @@
       reviews,
       shipping,
       regret,
-      regretLabel: regretLabelText,
       sources = null,
       findings = null,
       researchLog = null,
@@ -1581,7 +1649,7 @@
     const regretN = Number(regret);
     const hasRegret = Number.isFinite(regretN);
     const tone = hasRegret ? regretTone(regretN) : "";
-    const label = hasRegret ? regretLabelText || regretLabel(regretN) : "";
+    const label = hasRegret ? extras.regretLabel || formatRegretLabel(regretN) : "";
     const facts = [
       size ? `<div class="yom-fact"><em>size</em><span>${size}</span></div>` : "",
       reviews ? `<div class="yom-fact"><em>reviews</em><span>${reviews}</span></div>` : "",
@@ -1604,15 +1672,7 @@
             .map((line) => `<li><em>${line.source}</em><span>${line.text}</span></li>`)
             .join("")}</ul>`
         : "";
-    const findingsRow =
-      findings?.length
-        ? `<div class="yom-findings">
-            <div class="yom-findings-label">from the dig</div>
-            ${findings
-              .map((f) => `<div class="yom-finding"><em>${f.source}</em><span>${f.text}</span></div>`)
-              .join("")}
-          </div>`
-        : "";
+    const findingsRow = "";
     const node = el("div", { class: `yom-ui yom-pdp-note${checking ? " checking" : ""}` });
     node.innerHTML = `
       <div class="yom-pdp-kicker">${kicker}</div>
@@ -1726,7 +1786,7 @@
   }
 
   // ── activation / questions ───────────────────────────────────
-  buddy.addEventListener("click", () => {
+  onTap(buddy, () => {
     clickCount += 1;
     clearTimeout(clickTimer);
     clickTimer = setTimeout(() => {
@@ -1746,7 +1806,7 @@
     renderPanel();
   });
 
-  modePill.addEventListener("click", () => {
+  onTap(modePill, () => {
     state.panelOpen = !state.panelOpen;
     renderPanel();
   });
@@ -1824,6 +1884,7 @@
       type: "YOM_SESSION",
       session: { mode, purpose, budget, spent: state.spent || 0 },
     });
+    if (mode !== "sos") sosMin = false;
     if (mode === "sos") runSos();
     else whisper(welcomeTip());
   }
@@ -1976,23 +2037,25 @@
       ${newYomHtml}
     `;
 
-    panel.querySelector("[data-close]")?.addEventListener("click", () => {
-      state.panelOpen = false;
-      saveState();
-      renderPanel();
-    });
+    panel.querySelector("[data-close]") &&
+      onTap(panel.querySelector("[data-close]"), () => {
+        state.panelOpen = false;
+        saveState();
+        renderPanel();
+      });
 
-    panel.querySelector("[data-new-yom]")?.addEventListener("click", () => {
-      state.userId = newUserId();
-      state.trait = null;
-      state.preBuy = null;
-      state.keepLean = null;
-      state.read = null;
-      saveState();
-      state.panelOpen = false;
-      renderPanel();
-      askPersona();
-    });
+    panel.querySelector("[data-new-yom]") &&
+      onTap(panel.querySelector("[data-new-yom]"), () => {
+        state.userId = newUserId();
+        state.trait = null;
+        state.preBuy = null;
+        state.keepLean = null;
+        state.read = null;
+        saveState();
+        state.panelOpen = false;
+        renderPanel();
+        askPersona();
+      });
 
     attachChips(
       panel.querySelector("[data-context]"),
@@ -2183,13 +2246,6 @@
     return "return";
   }
 
-  function regretLabel(n) {
-    const tone = regretTone(n);
-    if (tone === "keep") return "keep";
-    if (tone === "ok") return "ok";
-    return "return";
-  }
-
   function localBrief(info) {
     const prior = findPrior(info) || {
       title: "worth a closer look",
@@ -2209,7 +2265,7 @@
       reviews,
       shipping,
       regret,
-      regretLabel: regretLabel(regret),
+      regretLabel: formatRegretLabel(regret),
       resolve: extra || null,
     };
   }
@@ -2229,7 +2285,7 @@
       reviews: local.reviews,
       shipping: local.shipping,
       regret,
-      regretLabel: advice.regretLabel || regretLabel(regret),
+      regretLabel: advice.regretLabel || formatRegretLabel(regret),
       resolve: local.resolve || advice.resolve,
     };
   }
@@ -2311,9 +2367,6 @@
         info,
         briefExtras(brief, {
           kicker,
-          withRegret: true,
-          sources: brief.sources || null,
-          findings: brief.findings || null,
         })
       )
     );
@@ -2352,7 +2405,7 @@
     const regretN = Number(brief.regret);
     const hasRegret = Number.isFinite(regretN);
     const tone = hasRegret ? regretTone(regretN) : "";
-    const label = hasRegret ? brief.regretLabel || regretLabel(regretN) : "";
+    const label = hasRegret ? brief.regretLabel || formatRegretLabel(regretN) : "";
     const facts = [
       brief.size ? `<div class="yom-fact"><em>size</em><span>${brief.size}</span></div>` : "",
       brief.reviews ? `<div class="yom-fact"><em>reviews</em><span>${brief.reviews}</span></div>` : "",
@@ -2361,8 +2414,12 @@
       .filter(Boolean)
       .join("");
     const html = `
-      <div class="yom-ask-kicker">yom · sos</div>
+      <div class="yom-sos-head">
+        <div class="yom-ask-kicker">yom · sos</div>
+        <button type="button" class="yom-sos-toggle" data-sos-toggle>${sosMin ? "open" : "hide"}</button>
+      </div>
       <h3>${brief.title || "this piece"}</h3>
+      <div class="yom-sos-body">
       ${brief.body ? `<p>${brief.body}</p>` : ""}
       ${facts ? `<div class="yom-facts">${facts}</div>` : ""}
       ${
@@ -2380,24 +2437,48 @@
       ${brief.resolve ? `<p class="yom-sos-resolve">${brief.resolve}</p>` : ""}
       <div class="yom-chips" data-chips></div>
       <div class="yom-fb" data-fb></div>
+      </div>
     `;
     let card = askEl?.classList.contains("yom-sos-sheet") ? askEl : null;
     if (!card) {
       closeAsk();
       card = el("div", { class: "yom-ask yom-sos-sheet" });
+      card.addEventListener("click", (e) => {
+        if (e.target.closest("[data-sos-toggle]")) {
+          e.preventDefault();
+          e.stopPropagation();
+          setSosMin(!sosMin);
+          return;
+        }
+        if (e.target.closest("button, input, textarea, a, .yom-chip, .yom-fb, .yom-fb-btn, .yom-fb-chip")) {
+          return;
+        }
+        if (sosMin) {
+          e.preventDefault();
+          setSosMin(false);
+        }
+      });
       root.appendChild(card);
       askEl = card;
     }
     card.innerHTML = html;
+    card.classList.toggle("min", sosMin);
+    const toggle = card.querySelector("[data-sos-toggle]");
+    if (toggle) onTap(toggle, () => setSosMin(!sosMin));
     const extras = decideChips(info, briefExtras(brief, { withRegret: true }));
     attachChips(card.querySelector("[data-chips]"), extras.chips, extras.otherChoices);
-    mountFeedback(card.querySelector("[data-fb]"), { tip: brief, extras, info });
+    const fb = card.querySelector("[data-fb]");
+    if (fb) mountFeedback(fb, { tip: brief, extras, info });
     positionCluster();
-    pulseBuddy();
+    if (!sosMin) pulseBuddy();
     rememberTake(info, brief, "sos");
   }
 
   function paintSos(info) {
+    if (isPdp()) {
+      closeAsk();
+      return false;
+    }
     if (!info) return false;
     const name = info.name || info.alt || "";
     const key = String(info.id || info.href || name || (isPdp() ? location.pathname : ""));
@@ -2418,6 +2499,10 @@
 
   function runSos() {
     try {
+      if (isPdp()) {
+        closeAsk();
+        return;
+      }
       const info = sosProduct();
       if (!info?.name && !info?.alt && !info?.root) {
         if (!askEl) whisper(DATA.tips.sos);
@@ -2429,6 +2514,7 @@
       const shot = info;
       advise("check", shot).then((advice) => {
         if (!advice || advice.quiet || state.mode !== "sos") return;
+        if (isPdp()) return;
         if (location.pathname !== pageKey) return;
         if (askEl?.querySelector?.(".yom-fb-open")) return;
         sosKey = null;
@@ -2470,21 +2556,56 @@
     pdpNote(tip, lookIntoChips(tip, { shipping: shippingRead(), closetKey: prior?.closetKey }));
   }
 
+  function checkStages(info) {
+    const name = pieceName(info);
+    const facts = isDemoSite() ? { reviews: "", shipping: "", sizeNote: "" } : pageFacts();
+    const price = info.price ? `$${Number(info.price)}` : "";
+    const listing = [info.color, price, String(info.description || "").slice(0, 120)].filter(Boolean).join(" · ");
+    const size = sizeRead(info);
+    const reviews = facts.reviews || reviewsRead(info);
+    const ship = facts.shipping || shippingRead();
+    const check = checkResult(info);
+    const stages = [
+      {
+        source: "this piece",
+        title: name,
+        body: listing || "the listing in front of you.",
+      },
+    ];
+    if (size || facts.sizeNote) {
+      stages.push({
+        source: "fit",
+        title: "your size on this",
+        body: [size, facts.sizeNote].filter(Boolean).join(" "),
+      });
+    }
+    stages.push({
+      source: "reviews",
+      title: check.title,
+      body: reviews || check.body,
+    });
+    if (ship) {
+      stages.push({
+        source: "shipping",
+        title: "timing",
+        body: ship,
+      });
+    }
+    return stages.slice(0, 3);
+  }
+
   function runCheck() {
     const info = pdpInfo();
     const pageKey = location.pathname;
     state.checking = true;
     saveState();
 
-    const stages = DATA.research?.stages || [
-      { source: "reviews", title: "searching reviews…", body: "fit notes and keep/return patterns." },
-    ];
+    const stages = checkStages(info);
     const sourceStrip = stages.map((s, idx) => ({
       label: s.source,
       active: idx === 0,
       done: false,
     }));
-    const log = [];
 
     let i = 0;
     const showStage = () => {
@@ -2495,18 +2616,16 @@
           s.active = idx === i;
           s.done = idx < i;
         });
-        log.push({ source: stage.source, text: stage.body });
         pdpNote(
           { title: stage.title, body: stage.body },
           {
             checking: true,
-            kicker: "yom · deep dig",
+            kicker: "yom",
             sources: sourceStrip.map((s) => ({ ...s })),
-            researchLog: log.slice(-3),
           }
         );
         i += 1;
-        setTimeout(showStage, 780);
+        setTimeout(showStage, 520);
         return;
       }
       finishCheck(info, pageKey);
@@ -2514,36 +2633,22 @@
     showStage();
   }
 
-  function researchKind(info) {
-    const check = checkResult(info);
-    if (check === DATA.reviews.long || /long|hem/i.test(check.body || "")) return "long";
-    if (check === DATA.reviews.mixed || /thinner|mixed|pilling/i.test(check.body || "")) return "mixed";
-    return "strong";
-  }
-
   function researchBrief(info) {
     const check = checkResult(info);
     const prior = findPrior(info);
     const regret = regretScore(info, prior);
-    const kind = researchKind(info);
-    const findings = (DATA.research?.findings?.[kind] || DATA.research?.findings?.strong || []).slice(0, 5);
+    const name = pieceName(info);
     return {
       title: check.title,
-      body: check.body,
+      body: `${name}. ${check.body}`,
       stamp: prior?.stamp || "checked",
       closetKey: prior?.closetKey,
       size: sizeRead(info) || "no size on file yet — check the chart against how this brand runs.",
-      reviews: check.body,
+      reviews: reviewsRead(info),
       shipping: shippingRead(),
       regret,
-      regretLabel: regretLabel(regret),
+      regretLabel: formatRegretLabel(regret),
       resolve: check.resolve || null,
-      findings,
-      sources: (DATA.research?.stages || []).map((s) => ({
-        label: s.source,
-        done: true,
-        active: false,
-      })),
     };
   }
 
@@ -2595,7 +2700,7 @@
   document.addEventListener(
     "click",
     (e) => {
-      if (e.target.closest("#yom-root, .yom-pdp-note, .yom-cart-panel, .yom-ask, .yom-panel, .yom-fb")) return;
+      if (e.target.closest(YOM_UI)) return;
       const btn = e.target.closest("button, a, input");
       if (isAddToBagTarget(btn)) onNativeAdd();
     },
@@ -3021,6 +3126,7 @@
   function onPause(tile) {
     try {
       if (state.mode === "sos") {
+        if (isPdp()) return;
         if (askEl?.querySelector?.(".yom-fb-open")) return;
         paintSos(tileInfo(tile));
       } else demoOnPause(tile);
@@ -3044,6 +3150,7 @@
 
   function leaveCard() {
     if (liveNote?.dataset?.yomHold === "1") return;
+    if (liveNote?.matches?.(":hover")) return;
     if (!hoverTile && !liveNote) return;
     hoverTile = null;
     clearExpandedNotes();
@@ -3060,7 +3167,13 @@
             n?.classList?.contains?.("yom-tile-note") ||
             n?.classList?.contains?.("yom-fb") ||
             n?.classList?.contains?.("yom-ask") ||
-            n?.classList?.contains?.("yom-pdp-note")
+            n?.classList?.contains?.("yom-panel") ||
+            n?.classList?.contains?.("yom-pdp-note") ||
+            n?.classList?.contains?.("yom-cart-panel") ||
+            n?.classList?.contains?.("yom-chip") ||
+            n?.classList?.contains?.("yom-fb-chip") ||
+            n?.classList?.contains?.("yom-fb-btn") ||
+            n?.classList?.contains?.("yom-sos-toggle")
         )
       ) {
         return;
@@ -3080,7 +3193,7 @@
     hideStamps();
     seedOpinions();
     applyBudgetFlags();
-    if (state.mode === "sos" && !askEl && !state.panelOpen) runSos();
+    if (state.mode === "sos" && !askEl && !state.panelOpen && !isPdp()) runSos();
   }
 
   startHoverWatch();
@@ -3154,10 +3267,7 @@
 
   async function renderPdpPresence() {
     if (!isPdp() || !state.mode) return;
-    if (state.mode === "sos") {
-      runSos();
-      return;
-    }
+    if (state.mode === "sos") closeAsk();
     if (isDemoSite()) {
       demoPdp();
       return;
@@ -3247,13 +3357,13 @@
           name,
           score: Number(checked.regret),
           tone: regretTone(checked.regret),
-          label: regretLabel(Number(checked.regret)),
+          label: formatRegretLabel(Number(checked.regret)),
         };
       }
       const kind = /dress/i.test(name) ? "dress" : "pairing";
       const keep = DATA.keep[kind] || DATA.keep.other;
       const score = Math.max(8, 100 - keep.score);
-      return { name, score, tone: regretTone(score), label: regretLabel(score) };
+      return { name, score, tone: regretTone(score), label: formatRegretLabel(score) };
     });
 
     const contextLine = ev
@@ -3346,7 +3456,7 @@
         clearExpandedNotes();
       }
       render();
-      if (state.mode === "sos") runSos();
+      if (state.mode === "sos" && !isPdp()) runSos();
       return;
     }
     const foreign = mutations.some((m) =>

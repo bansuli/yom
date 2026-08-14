@@ -43,6 +43,29 @@
   box-sizing: border-box;
 }
 
+.yom-tile-note,
+.yom-pdp-note,
+.yom-cart-panel,
+.yom-ask,
+.yom-panel,
+.yom-fb,
+.yom-chips {
+  pointer-events: auto !important;
+}
+
+.yom-chip,
+.yom-fb-btn,
+.yom-fb-chip,
+.yom-fb-input,
+.yom-sos-toggle,
+.yom-panel-head button,
+.yom-new-yom,
+.yom-buddy,
+.yom-mode-pill {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
 /* ── floating character (quiet presence) ── */
 .yom-buddy {
   position: fixed !important;
@@ -271,6 +294,55 @@
   overflow-y: auto;
 }
 
+.yom-sos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-bottom: 0.1rem;
+}
+
+.yom-sos-head .yom-ask-kicker {
+  margin: 0;
+}
+
+.yom-sos-toggle {
+  appearance: none;
+  border: 1px solid var(--yom-ink);
+  background: #fff;
+  color: var(--yom-ink);
+  font-family: var(--yom-font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: 999px;
+  padding: 0.22rem 0.5rem;
+  cursor: pointer;
+  pointer-events: auto !important;
+}
+
+.yom-sos-sheet.min {
+  width: min(220px, calc(100vw - 1.5rem));
+  max-height: none;
+  overflow: hidden;
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+}
+
+.yom-sos-sheet.min .yom-sos-body,
+.yom-sos-sheet.min .yom-chips,
+.yom-sos-sheet.min .yom-fb {
+  display: none;
+}
+
+.yom-sos-sheet.min h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .yom-ask .yom-facts {
   margin-top: 0.35rem;
 }
@@ -306,6 +378,7 @@
   border-radius: 999px !important;
   padding: 0.42rem 0.7rem !important;
   cursor: pointer !important;
+  pointer-events: auto !important;
   width: auto !important;
   height: auto !important;
   min-height: 0 !important;
@@ -348,6 +421,7 @@
   gap: 0.35rem 0.55rem;
   align-items: center;
   margin-top: 0.65rem;
+  pointer-events: auto !important;
 }
 
 .yom-pdp-note .yom-fb,
@@ -360,7 +434,7 @@
   appearance: none !important;
   border: 0 !important;
   background: none !important;
-  padding: 0 !important;
+  padding: 0.22rem 0.2rem !important;
   margin: 0 !important;
   box-shadow: none !important;
   font-family: var(--yom-font-body) !important;
@@ -369,6 +443,7 @@
   line-height: 1.2 !important;
   color: var(--yom-muted) !important;
   cursor: pointer !important;
+  pointer-events: auto !important;
   width: auto !important;
   height: auto !important;
 }
@@ -428,6 +503,7 @@
   border-radius: 999px !important;
   padding: 0.28rem 0.55rem !important;
   cursor: pointer !important;
+  pointer-events: auto !important;
   width: auto !important;
   height: auto !important;
   box-shadow: none !important;
@@ -525,6 +601,7 @@
   background: transparent;
   font: inherit;
   cursor: pointer;
+  pointer-events: auto !important;
   color: var(--yom-muted);
 }
 
@@ -587,6 +664,22 @@
 .yom-cart-panel * {
   box-sizing: border-box;
   font-family: inherit;
+}
+
+.yom-ui button,
+.yom-tile-note button,
+.yom-pdp-note button,
+.yom-cart-panel button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+.yom-ui input,
+.yom-pdp-note input,
+.yom-cart-panel input,
+.yom-fb-input {
+  pointer-events: auto !important;
+  cursor: text !important;
 }
 
 /* product grid: yom actually changes the catalog */
@@ -677,7 +770,7 @@
   border: 1.5px solid #111 !important;
   border-radius: 12px;
   padding: 0.42rem 0.48rem;
-  pointer-events: none !important;
+  pointer-events: auto !important;
   box-shadow: 2px 3px 0 #111;
 }
 
@@ -726,6 +819,9 @@
   display: block !important;
   flex: 1 0 100% !important;
   grid-column: 1 / -1 !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 20 !important;
   margin: 0.9rem 0 1.05rem !important;
   padding: 0.85rem 0 0.95rem !important;
   border-top: 2px solid #c8f060 !important;
@@ -1046,6 +1142,9 @@
 .yom-cart-panel {
   margin: 1rem 0 1.25rem !important;
   padding: 0.95rem 0 !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 20 !important;
   border-top: 2px solid #c8f060 !important;
   border-bottom: 1px solid color-mix(in srgb, #111 10%, transparent) !important;
   background: linear-gradient(

@@ -257,7 +257,7 @@ async function callOpenAI(key, surface, user) {
     },
     body: JSON.stringify({
       model,
-      temperature: 0.8,
+      temperature: 0.3,
       max_tokens: surface === "tile" ? 280 : 700,
       response_format: { type: "json_object" },
       messages: [
@@ -266,7 +266,11 @@ async function callOpenAI(key, surface, user) {
       ],
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    const err = await res.text().catch(() => "");
+    console.warn("openai advise", res.status, err.slice(0, 300));
+    return null;
+  }
   const data = await res.json();
   return parseAdvice(data.choices?.[0]?.message?.content);
 }
@@ -278,9 +282,9 @@ export default async function handler(req, res) {
     return;
   }
 
-  const anthropic = process.env.ANTHROPIC_API_KEY;
   const openai = process.env.OPENAI_API_KEY;
-  if (!anthropic && !openai) {
+  const anthropic = process.env.ANTHROPIC_API_KEY;
+  if (!openai && !anthropic) {
     json(res, 503, { ok: false, error: "brain is not configured" });
     return;
   }
@@ -305,9 +309,17 @@ export default async function handler(req, res) {
 
   const user = userBlock(payload);
   const surface = payload.surface || "pdp";
-  const advice = anthropic
-    ? await callAnthropic(anthropic, surface, user)
-    : await callOpenAI(openai, surface, user);
 
-  json(res, 200, { ok: true, advice });
+  let advice = null;
+  let brain = null;
+  if (openai) {
+    advice = await callOpenAI(openai, surface, user);
+    if (advice) brain = "openai";
+  }
+  if (!advice && anthropic) {
+    advice = await callAnthropic(anthropic, surface, user);
+    if (advice) brain = "anthropic";
+  }
+
+  json(res, 200, { ok: true, advice, brain });
 }

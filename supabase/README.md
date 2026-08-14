@@ -31,6 +31,7 @@ Local `.env` (gitignored) and Vercel → Settings → Environment Variables:
 SUPABASE_URL=
 SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 ```
 
