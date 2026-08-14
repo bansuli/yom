@@ -52,6 +52,10 @@ Redeploy after saving.
 
 Until these env vars exist, `/beta` and the extension keep the hardcoded demo. Reformation still works.
 
+## Google Calendar + Gmail
+
+See [`GOOGLE.md`](./GOOGLE.md). Run `google.sql`, set `GOOGLE_CLIENT_*` on Vercel, then **connect google** on `/beta`.
+
 ## Add a beta person
 
 SQL editor:

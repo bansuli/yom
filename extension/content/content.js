@@ -1,6 +1,6 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.20") return;
-  window.__YOM_BUILD__ = "1.1.20";
+  if (window.__YOM_BUILD__ === "1.1.24") return;
+  window.__YOM_BUILD__ = "1.1.24";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
@@ -279,11 +279,17 @@
 
   async function shouldRun() {
     const host = location.hostname;
+    const Sites = window.YOM_SITES;
     const forced = await chrome.storage.local.get("yomForceHost");
-    if (forced.yomForceHost && host.endsWith(forced.yomForceHost)) return true;
-    if (isDemoSite()) return true;
-    if (EXTRACT.skipHost(host)) return false;
-    return EXTRACT.looksLikeShop();
+    const forceHost = forced.yomForceHost || "";
+    if (forceHost && Sites?.endsWithHost?.(host, forceHost)) {
+      // Still require it to look like clothing when force-enabled
+      return Sites.pageLooksLikeClothing() || EXTRACT.looksLikeShop();
+    }
+    if (Sites?.isSkippedHost?.(host) || EXTRACT.skipHost(host)) return false;
+    if (!Sites?.isAllowedHost?.(host)) return false;
+    // Allowed fashion retailer — run on shop pages
+    return true;
   }
 
   function asset(file) {
@@ -996,6 +1002,7 @@
   }
 
   function attachChips(host, chips, otherChoices) {
+    if (!host || !chips?.length) return;
     const paint = (list, extras) => {
       host.innerHTML = "";
       list.forEach((c) => {
@@ -1563,13 +1570,16 @@
       reviews,
       shipping,
       regret,
-      regretLabel,
+      regretLabel: regretLabelText,
+      sources = null,
+      findings = null,
+      researchLog = null,
     } = extras;
     const closet = closetKey ? DATA.closet[closetKey] : tip.closetKey ? DATA.closet[tip.closetKey] : null;
     const regretN = Number(regret);
     const hasRegret = Number.isFinite(regretN);
     const tone = hasRegret ? regretTone(regretN) : "";
-    const label = hasRegret ? regretLabel(regretN) : "";
+    const label = hasRegret ? regretLabelText || regretLabel(regretN) : "";
     const facts = [
       size ? `<div class="yom-fact"><em>size</em><span>${size}</span></div>` : "",
       reviews ? `<div class="yom-fact"><em>reviews</em><span>${reviews}</span></div>` : "",
@@ -1577,12 +1587,39 @@
     ]
       .filter(Boolean)
       .join("");
+    const sourceRow =
+      sources?.length
+        ? `<div class="yom-sources">${sources
+            .map(
+              (s) =>
+                `<span class="yom-source${s.active ? " active" : ""}${s.done ? " done" : ""}">${s.label}</span>`
+            )
+            .join("")}</div>`
+        : "";
+    const logRow =
+      researchLog?.length
+        ? `<ul class="yom-research-log">${researchLog
+            .map((line) => `<li><em>${line.source}</em><span>${line.text}</span></li>`)
+            .join("")}</ul>`
+        : "";
+    const findingsRow =
+      findings?.length
+        ? `<div class="yom-findings">
+            <div class="yom-findings-label">from the dig</div>
+            ${findings
+              .map((f) => `<div class="yom-finding"><em>${f.source}</em><span>${f.text}</span></div>`)
+              .join("")}
+          </div>`
+        : "";
     const node = el("div", { class: `yom-ui yom-pdp-note${checking ? " checking" : ""}` });
     node.innerHTML = `
       <div class="yom-pdp-kicker">${kicker}</div>
       <h3>${tip.title}</h3>
       ${tip.body ? `<p>${tip.body}</p>` : ""}
+      ${sourceRow}
+      ${logRow}
       ${facts ? `<div class="yom-facts">${facts}</div>` : ""}
+      ${findingsRow}
       ${
         hasRegret
           ? `<div class="yom-regret ${tone}">
@@ -1937,7 +1974,7 @@
       ${newYomHtml}
     `;
 
-    panel.querySelector("[data-close]").addEventListener("click", () => {
+    panel.querySelector("[data-close]")?.addEventListener("click", () => {
       state.panelOpen = false;
       saveState();
       renderPanel();
@@ -2153,7 +2190,7 @@
 
   function localBrief(info) {
     const prior = findPrior(info) || {
-      title: pieceLabel(info),
+      title: "worth a closer look",
       body: "let me look at it against what you actually wear.",
     };
     const reviews = reviewsRead(info);
@@ -2266,7 +2303,18 @@
     state.checked[pageKey] = brief;
     saveState();
     if (location.pathname !== pageKey) return;
-    pdpNote(brief, decideChips(info, briefExtras(brief, { kicker, withRegret: true })));
+    pdpNote(
+      brief,
+      decideChips(
+        info,
+        briefExtras(brief, {
+          kicker,
+          withRegret: true,
+          sources: brief.sources || null,
+          findings: brief.findings || null,
+        })
+      )
+    );
     rememberTake(info, brief, /check/i.test(kicker || "") ? "check" : "pdp");
   }
 
@@ -2423,11 +2471,97 @@
   function runCheck() {
     const info = pdpInfo();
     const pageKey = location.pathname;
-    paintChecked(info, localBrief(info), "yom · checked");
+    state.checking = true;
+    saveState();
+
+    const stages = DATA.research?.stages || [
+      { source: "reviews", title: "searching reviews…", body: "fit notes and keep/return patterns." },
+    ];
+    const sourceStrip = stages.map((s, idx) => ({
+      label: s.source,
+      active: idx === 0,
+      done: false,
+    }));
+    const log = [];
+
+    let i = 0;
+    const showStage = () => {
+      if (location.pathname !== pageKey) return;
+      if (i < stages.length) {
+        const stage = stages[i];
+        sourceStrip.forEach((s, idx) => {
+          s.active = idx === i;
+          s.done = idx < i;
+        });
+        log.push({ source: stage.source, text: stage.body });
+        pdpNote(
+          { title: stage.title, body: stage.body },
+          {
+            checking: true,
+            kicker: "yom · deep dig",
+            sources: sourceStrip.map((s) => ({ ...s })),
+            researchLog: log.slice(-3),
+          }
+        );
+        i += 1;
+        setTimeout(showStage, 780);
+        return;
+      }
+      finishCheck(info, pageKey);
+    };
+    showStage();
+  }
+
+  function researchKind(info) {
+    const check = checkResult(info);
+    if (check === DATA.reviews.long || /long|hem/i.test(check.body || "")) return "long";
+    if (check === DATA.reviews.mixed || /thinner|mixed|pilling/i.test(check.body || "")) return "mixed";
+    return "strong";
+  }
+
+  function researchBrief(info) {
+    const check = checkResult(info);
+    const prior = findPrior(info);
+    const regret = regretScore(info, prior);
+    const kind = researchKind(info);
+    const findings = (DATA.research?.findings?.[kind] || DATA.research?.findings?.strong || []).slice(0, 5);
+    return {
+      title: check.title,
+      body: check.body,
+      stamp: prior?.stamp || "checked",
+      closetKey: prior?.closetKey,
+      size: sizeRead(info) || "no size on file yet — check the chart against how this brand runs.",
+      reviews: check.body,
+      shipping: shippingRead(),
+      regret,
+      regretLabel: regretLabel(regret),
+      resolve: check.resolve || null,
+      findings,
+      sources: (DATA.research?.stages || []).map((s) => ({
+        label: s.source,
+        done: true,
+        active: false,
+      })),
+    };
+  }
+
+  function finishCheck(info, pageKey) {
+    if (location.pathname !== pageKey) return;
+    const brief = researchBrief(info);
+    paintChecked(info, brief, "yom · checked");
     if (isDemoSite()) return;
     advise("check", info).then((advice) => {
       if (!advice || advice.quiet || location.pathname !== pageKey) return;
-      paintChecked(info, mergeBrief(info, advice), "yom · checked");
+      paintChecked(
+        info,
+        mergeBrief(info, {
+          ...advice,
+          title: advice.title || brief.title,
+          body: advice.body || brief.body,
+          resolve: brief.resolve || advice.resolve,
+        }),
+        "yom · checked"
+      );
     });
   }
 
@@ -2642,11 +2776,10 @@
   }
 
   function specificTake(info) {
-    const label = pieceLabel(info);
-    const who = label.toLowerCase();
     const color = cleanProductName(info.color || "").trim().toLowerCase();
     const price = Number(info.price) || 0;
     const kind = kindOf(info);
+    const label = pieceLabel(info);
     const bits = fitBits(info);
     const fabric = bits.find((b) =>
       /silk|cashmere|poplin|linen|satin|leather|knit|denim/.test(b)
@@ -2659,8 +2792,8 @@
 
     if (state.budget != null && price > rem) {
       return takeOf(
-        `${who} is $${price}`,
-        rem > 0 ? `you have $${rem} left. this blows it.` : "you're already at the cap.",
+        "this would put you over",
+        rem > 0 ? `$${price} against $${rem} left.` : "you're already at the cap.",
         "over budget",
         { warn: true }
       );
@@ -2668,7 +2801,7 @@
 
     if (kind === "shoes") {
       return takeOf(
-        `${who} isn't your toe`,
+        "this shape isn’t really you",
         "the shoes you keep are rounder. this shape never makes it out.",
         "skip the toe",
         { warn: true }
@@ -2677,7 +2810,7 @@
 
     if (isGreenProduct(info)) {
       return takeOf(
-        color ? `${who} in ${color}` : who,
+        "green is your color",
         "you've kept every green piece. this one would too.",
         "your color",
         { love: true, closetKey: "green" }
@@ -2686,8 +2819,8 @@
 
     if (ev?.kind === "wedding" && kind === "dress") {
       return takeOf(
-        `${who} could do sofia's wedding`,
-        color ? `${color} reads right for the day.` : "silhouette and formality both fit.",
+        "right for the wedding",
+        color ? `${color} reads right for sofia’s day.` : "silhouette and formality both fit.",
         "for the wedding",
         { love: true }
       );
@@ -2695,7 +2828,7 @@
 
     if (kind === "set" || /maya/i.test(label)) {
       return takeOf(
-        `${who} is your maya set again`,
+        "you have something really similar",
         "same silhouette you already own. you don't need a second.",
         "in your closet",
         { closetKey: "similar" }
@@ -2704,8 +2837,8 @@
 
     if (!isGift() && state.spent > 0 && /top|tee|knit/.test(kind)) {
       return takeOf(
-        `${who} with the jaded shorts`,
-        color ? `${color} against those. already an outfit.` : "already an outfit with what's in the bag.",
+        "perfect with your jaded london shorts",
+        color ? `${color} against those — already an outfit.` : "already an outfit with what's in the bag.",
         "with your shorts",
         { love: true, closetKey: "shorts" }
       );
@@ -2713,32 +2846,32 @@
 
     if (fabric === "cashmere") {
       return takeOf(
-        `${who} is cashmere`,
-        price ? `$${price} for a fabric you actually keep.` : "this is the fabric you don't return.",
+        "you'd keep this",
+        price ? `cashmere at $${price} — a fabric you actually keep.` : "this is the fabric you don't return.",
         "you'd keep it",
         { love: true }
       );
     }
     if (fabric === "silk" || fabric === "satin") {
       return takeOf(
-        `${who} is ${fabric}`,
-        "beautiful, and high-maintenance. you research this and then don't wear it.",
+        "people aren’t loving the material",
+        `${fabric} looks beautiful, and high-maintenance. you research this and then don't wear it.`,
         "think twice",
         { warn: true }
       );
     }
     if (fabric === "poplin") {
       return takeOf(
-        `${who} is a poplin shirt`,
-        "crisp. you'll think you need it and it'll hang next to the ones you already have.",
+        "you already own this job",
+        "crisp poplin — you'll think you need it and it'll hang next to the ones you already have.",
         "you own this"
       );
     }
 
     if (kind === "jeans") {
       return takeOf(
-        cut ? `${who} is another ${cut}` : who,
-        "your closet already does this job. you're filling a hole that isn't there.",
+        "your closet already does this",
+        cut ? `another ${cut} jean. you're filling a hole that isn't there.` : "you're filling a hole that isn't there.",
         "you have this"
       );
     }
@@ -2746,14 +2879,14 @@
     if (kind === "skirt") {
       if (cut === "midi") {
         return takeOf(
-          color ? `${who} in ${color}` : who,
-          "midi length — you'd actually wear this, unlike the minis you skip.",
+          "you'd actually wear this",
+          color ? `midi in ${color} — unlike the minis you skip.` : "midi length — you'd actually wear this.",
           "you'd wear it",
           { love: true }
         );
       }
       return takeOf(
-        who,
+        "needs a reason",
         "a skirt you'll need a reason for. do you have one?",
         "needs a reason"
       );
@@ -2761,9 +2894,9 @@
 
     if (kind === "tee") {
       return takeOf(
-        price ? `${who} is a $${price} tee` : who,
+        "maybe skip",
         cut === "oversized"
-          ? "oversized. you'll live in it or never pick it up — no in between."
+          ? "oversized tee — you'll live in it or never pick it up."
           : "a tee. you already think you have nothing to wear with a drawer of these.",
         "maybe skip"
       );
@@ -2772,14 +2905,14 @@
     if (kind === "dress") {
       if (fabric === "knit") {
         return takeOf(
-          color ? `${who} · ${color}` : who,
+          "easy yes",
           "knit dress — easy, and you'd actually put it on a Tuesday.",
           "easy yes",
           { love: true }
         );
       }
       return takeOf(
-        who,
+        ev ? `only if it’s for ${ev.label}` : "needs a date",
         ev
           ? `this only earns a yes if it's for ${ev.label}.`
           : "a dress without a date on it tends to sit.",
@@ -2789,9 +2922,9 @@
 
     if (kind === "pants") {
       return takeOf(
-        who,
+        "compare first",
         cut === "cropped"
-          ? "cropped. check it against the trousers you already rotate."
+          ? "cropped — check it against the trousers you already rotate."
           : "another pant. map it against what you already wear.",
         "compare first"
       );
@@ -2799,7 +2932,7 @@
 
     if (kind === "knit" || kind === "top") {
       return takeOf(
-        color ? `${who} in ${color}` : who,
+        "closet check",
         kind === "top" && fabric === "knit"
           ? "a knit top. check it against the ones you already rotate."
           : "you'll reach for this or ignore it. you already own the one you reach for.",
@@ -2809,7 +2942,7 @@
 
     if (kind === "jacket") {
       return takeOf(
-        who,
+        "needs a job",
         "outerwear only pays off if it does a job the closet doesn't. does it?",
         "needs a job"
       );
@@ -2817,7 +2950,7 @@
 
     if (kind === "shorts" && !isGift()) {
       return takeOf(
-        who,
+        "you just bought this",
         "you just bought the jaded london pair. this is how duplicates happen.",
         "you just bought this",
         { warn: true, closetKey: "shorts" }
@@ -2826,18 +2959,18 @@
 
     const named = [
       takeOf(
-        `${who} is new, not different`,
+        "not a gap",
         color ? `${color} doesn't make it a gap in the closet.` : "same job as something you already own.",
         "not a gap"
       ),
       takeOf(
-        `pause on ${who}`,
+        "slow down",
         price ? `$${price}. would you still want it in three weeks?` : "would you still want it in three weeks?",
         "slow down",
         { warn: true }
       ),
       takeOf(
-        `${who} might be the one`,
+        "maybe yes",
         "this actually looks like you'd wear it, not just buy it.",
         "maybe yes",
         { love: true }
@@ -3240,6 +3373,11 @@
   });
 
   async function boot() {
+    try {
+      if (!(await shouldRun())) return;
+    } catch {
+      return;
+    }
     try {
       await loadLiveAccount();
       state = await loadState();

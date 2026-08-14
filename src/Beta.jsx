@@ -6,6 +6,11 @@ import {
   loadBetaSession,
   saveBetaSession,
   yomCloset,
+  yomGoogleDisconnect,
+  yomGoogleEvents,
+  yomGoogleStart,
+  yomGoogleStatus,
+  yomGoogleSync,
   yomLogin,
   yomMe,
   yomSignup,
@@ -52,10 +57,30 @@ export default function Beta() {
   const [busy, setBusy] = useState(false);
   const [signup, setSignup] = useState(false);
   const [authed, setAuthed] = useState(() => fromStored(loadBetaSession()));
+  const [google, setGoogle] = useState({ loading: true });
+  const [googleEvents, setGoogleEvents] = useState([]);
+  const [googleBusy, setGoogleBusy] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const g = params.get("google");
+    if (g === "connected") setErr("");
+    if (g === "denied") setErr("google connect was cancelled.");
+    if (g === "error") setErr(params.get("msg") || "google connect failed.");
+    if (g) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("google");
+      url.searchParams.delete("msg");
+      window.history.replaceState({}, "", url.pathname + url.search);
+    }
+  }, []);
 
   useEffect(() => {
     const stored = loadBetaSession();
-    if (!stored?.access_token) return;
+    if (!stored?.access_token) {
+      setGoogle({ loading: false, connected: false });
+      return;
+    }
     let cancelled = false;
     yomMe(stored.access_token).then((res) => {
       if (cancelled) return;
@@ -69,10 +94,80 @@ export default function Beta() {
         setAuthed(null);
       }
     });
+    yomGoogleStatus(stored.access_token).then((res) => {
+      if (cancelled) return;
+      if (res.fallback) {
+        setGoogle({ loading: false, ready: false, connected: false });
+        return;
+      }
+      setGoogle({
+        loading: false,
+        ready: res.googleOAuthReady !== false,
+        connected: Boolean(res.connected),
+        email: res.email,
+        calendar_synced_at: res.calendar_synced_at,
+        gmail_synced_at: res.gmail_synced_at,
+      });
+      if (res.connected) {
+        yomGoogleEvents(stored.access_token).then((ev) => {
+          if (!cancelled && ev.ok) setGoogleEvents(ev.events || []);
+        });
+      }
+    });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const connectGoogle = async () => {
+    const stored = loadBetaSession();
+    if (!stored?.access_token) {
+      setErr("log in first.");
+      return;
+    }
+    setGoogleBusy(true);
+    setErr("");
+    const res = await yomGoogleStart(stored.access_token, "/beta");
+    setGoogleBusy(false);
+    if (!res.ok || !res.url) {
+      setErr(res.error || "google oauth isn’t configured yet.");
+      return;
+    }
+    window.location.href = res.url;
+  };
+
+  const syncGoogle = async () => {
+    const stored = loadBetaSession();
+    if (!stored?.access_token) return;
+    setGoogleBusy(true);
+    setErr("");
+    const res = await yomGoogleSync(stored.access_token);
+    setGoogleBusy(false);
+    if (!res.ok) {
+      setErr(res.error || res.calendar?.error || res.gmail?.error || "sync failed.");
+      return;
+    }
+    setGoogle({
+      loading: false,
+      ready: true,
+      connected: true,
+      email: res.email,
+      calendar_synced_at: res.calendar_synced_at,
+      gmail_synced_at: res.gmail_synced_at,
+    });
+    const ev = await yomGoogleEvents(stored.access_token);
+    if (ev.ok) setGoogleEvents(ev.events || []);
+  };
+
+  const disconnectGoogle = async () => {
+    const stored = loadBetaSession();
+    if (!stored?.access_token) return;
+    setGoogleBusy(true);
+    await yomGoogleDisconnect(stored.access_token);
+    setGoogleBusy(false);
+    setGoogle({ loading: false, ready: true, connected: false });
+    setGoogleEvents([]);
+  };
 
   const enter = async (e) => {
     e.preventDefault();
@@ -217,17 +312,59 @@ export default function Beta() {
         ← yom
       </Link>
       <div className="beta-profile">
-        <p className="beta-from">
-          {/read from/i.test(profile?.from || "") || !profile?.from || profile.from === "beta"
-            ? "member from apr 2026"
-            : profile.from}
-        </p>
         <h1>{profile?.name || authed.user?.name || authed.user?.email?.split("@")[0]}</h1>
         <div className="beta-switch">
           <span className="beta-signed">{authed.user?.email || profile?.email}</span>
           <button type="button" className="beta-out" onClick={out}>
             log out
           </button>
+        </div>
+
+        <div className="beta-block beta-google">
+          <h2>google</h2>
+          <p className="beta-shop">
+            calendar for upcoming trips &amp; events. gmail for orders, returns, and sizing mail.
+          </p>
+          {google.loading ? (
+            <p className="beta-shop">checking…</p>
+          ) : !google.connected ? (
+            <button type="button" className="beta-go" onClick={connectGoogle} disabled={googleBusy}>
+              {googleBusy ? "opening google…" : "connect google"}
+            </button>
+          ) : (
+            <>
+              <p className="beta-shop">
+                connected as {google.email || "google"}
+                {google.calendar_synced_at
+                  ? ` · calendar synced ${new Date(google.calendar_synced_at).toLocaleString()}`
+                  : ""}
+              </p>
+              {googleEvents.length ? (
+                <ul className="beta-google-events">
+                  {googleEvents.slice(0, 6).map((ev) => (
+                    <li key={ev.id}>
+                      <strong>{ev.label}</strong>
+                      <span>
+                        {ev.kind}
+                        {ev.when ? ` · ${new Date(ev.when).toLocaleDateString()}` : ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="beta-shop">no upcoming events synced yet.</p>
+              )}
+              <div className="beta-google-actions">
+                <button type="button" className="beta-go" onClick={syncGoogle} disabled={googleBusy}>
+                  {googleBusy ? "syncing…" : "sync now"}
+                </button>
+                <button type="button" className="beta-out" onClick={disconnectGoogle} disabled={googleBusy}>
+                  disconnect
+                </button>
+              </div>
+            </>
+          )}
+          {err ? <p className="beta-err">{err}</p> : null}
         </div>
 
         {hasCloset ? (

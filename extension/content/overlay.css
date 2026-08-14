@@ -748,6 +748,99 @@
   animation: yom-check-pulse 1.1s ease-in-out infinite;
 }
 
+.yom-pdp-note.checking h3::after {
+  content: "";
+  display: inline-block;
+  width: 0.55em;
+  overflow: hidden;
+  animation: yom-ellipsis 1.2s steps(4, end) infinite;
+}
+
+@keyframes yom-ellipsis {
+  0% { width: 0; }
+  100% { width: 0.9em; }
+}
+
+.yom-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin: 0.55rem 0 0.35rem;
+}
+
+.yom-source {
+  border: 1px solid color-mix(in srgb, #111 18%, transparent);
+  border-radius: 999px;
+  padding: 0.18rem 0.48rem;
+  font-size: 0.68rem !important;
+  color: #5a5a5a !important;
+  background: #fff;
+}
+
+.yom-source.active {
+  border-color: #111;
+  background: #c8f060;
+  color: #111 !important;
+  font-weight: 700;
+}
+
+.yom-source.done {
+  border-color: #111;
+  color: #111 !important;
+  background: color-mix(in srgb, #c8f060 28%, #fff);
+}
+
+.yom-research-log {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.28rem;
+}
+
+.yom-research-log li {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 0.4rem;
+  font-size: 0.74rem !important;
+  line-height: 1.3;
+}
+
+.yom-research-log em,
+.yom-finding em {
+  font-style: normal;
+  font-weight: 700;
+  color: #111;
+  text-transform: lowercase;
+}
+
+.yom-research-log span,
+.yom-finding span {
+  color: #5a5a5a;
+}
+
+.yom-findings {
+  margin: 0.55rem 0 0.2rem;
+  border-top: 1px solid color-mix(in srgb, #111 10%, transparent);
+  padding-top: 0.5rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.yom-findings-label {
+  font-family: "Caveat", cursive;
+  font-size: 1rem;
+  color: #5a5a5a;
+}
+
+.yom-finding {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  gap: 0.4rem;
+  font-size: 0.76rem !important;
+  line-height: 1.35;
+}
+
 .yom-pdp-kicker {
   font-family: "Caveat", cursive !important;
   font-size: 1.05rem !important;

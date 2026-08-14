@@ -290,3 +290,31 @@
   font-size: 1.05rem;
   line-height: 1.55;
 }
+
+.beta-google-events {
+  list-style: none;
+  margin: 0.75rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.beta-google-events li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border: 1px solid #111;
+  padding: 0.55rem 0.7rem;
+}
+
+.beta-google-events span {
+  font-size: 0.85rem;
+  color: #5a5a5a;
+}
+
+.beta-google-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.65rem;
+}

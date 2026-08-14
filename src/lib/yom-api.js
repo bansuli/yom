@@ -76,3 +76,23 @@ export function yomCloset(token, body) {
 export function yomMe(token) {
   return get("/api/me", token);
 }
+
+export function yomGoogleStatus(token) {
+  return get("/api/google/status", token);
+}
+
+export function yomGoogleStart(token, returnTo = "/beta") {
+  return get(`/api/google/start?returnTo=${encodeURIComponent(returnTo)}`, token);
+}
+
+export function yomGoogleSync(token, body = { calendar: true, gmail: true }) {
+  return post("/api/google/sync", body, token);
+}
+
+export function yomGoogleEvents(token) {
+  return get("/api/google/events", token);
+}
+
+export function yomGoogleDisconnect(token) {
+  return post("/api/google/disconnect", {}, token);
+}

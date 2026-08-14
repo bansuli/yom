@@ -4,7 +4,7 @@ window.YOM_DEMO = {
     {
       id: "sofia-wedding",
       label: "sofia's wedding",
-      when: "Sat, Mar 16",
+      when: "sat, mar 16",
       source: "from your calendar",
       kind: "wedding",
       story: "wedding",
@@ -27,7 +27,7 @@ window.YOM_DEMO = {
     {
       id: "nyc-trip",
       label: "nyc weekend",
-      when: "Apr 4–6",
+      when: "sep 4–7",
       source: "from your calendar",
       kind: "trip",
       plp: {
@@ -36,7 +36,7 @@ window.YOM_DEMO = {
         stamp: "for nyc",
       },
       delivery: {
-        title: "lands before apr 4",
+        title: "arrives way before sep 4",
         body: "usual Reformation timing — you’ll have it before the weekend.",
       },
       check: {
@@ -110,6 +110,77 @@ window.YOM_DEMO = {
     mixed: {
       title: "mixed on the fabric",
       body: "a few people mention it feels thinner than expected. still loved overall.",
+    },
+  },
+  // Hardcoded multi-source dig for “look into this”
+  research: {
+    stages: [
+      {
+        id: "tabs",
+        source: "open tabs",
+        title: "checking your open tabs…",
+        body: "size charts, lookbooks, and comparison pages you’ve already got open.",
+      },
+      {
+        id: "reviews",
+        source: "reviews",
+        title: "searching reviews…",
+        body: "retailer reviews + verified fit notes — what people keep repeating.",
+      },
+      {
+        id: "reddit",
+        source: "reddit",
+        title: "pulling from reddit…",
+        body: "real-wear threads, not brand blurbs — length, fabric, and ‘would buy again’.",
+      },
+      {
+        id: "tiktok",
+        source: "tiktok",
+        title: "scanning tiktok try-ons…",
+        body: "fit checks and ‘day in the life’ wears — how it actually moves on people.",
+      },
+      {
+        id: "chatgpt",
+        source: "chatgpt",
+        title: "cross-checking past chats…",
+        body: "what you’ve already asked about similar pieces — sizing, occasions, keep vs return.",
+      },
+      {
+        id: "groupchats",
+        source: "group chats",
+        title: "checking group chats…",
+        body: "friends who’ve worn Reformation — the blunt ‘hem it’ / ‘skip’ takes.",
+      },
+      {
+        id: "returns",
+        source: "trial & return",
+        title: "your trial-and-return history…",
+        body: "what you’ve ordered, tried, kept, and sent back — for this silhouette and size.",
+      },
+    ],
+    findings: {
+      long: [
+        { source: "reviews", text: "“runs long” shows up constantly in fit notes." },
+        { source: "reddit", text: "r/Reformation threads: hem it or size with alterations in mind." },
+        { source: "tiktok", text: "try-ons pool at the ankle unless shortened." },
+        { source: "group chats", text: "two friends: ‘pretty but get it altered.’" },
+        { source: "trial & return", text: "you’ve kept long pieces after hemming before — never returned those." },
+        { source: "open tabs", text: "Reformation alterations page already in your tabs — timing still works." },
+      ],
+      strong: [
+        { source: "reviews", text: "fit notes are consistent — people keep this one." },
+        { source: "reddit", text: "mostly ‘would buy again,’ few fabric complaints." },
+        { source: "tiktok", text: "try-ons look true-to-size on people built like you." },
+        { source: "chatgpt", text: "matches what you’ve liked before for this occasion." },
+        { source: "trial & return", text: "similar pieces in your history: high keep rate." },
+        { source: "group chats", text: "no red flags from anyone who’s worn it." },
+      ],
+      mixed: [
+        { source: "reviews", text: "loved overall, but ‘thinner than expected’ keeps coming up." },
+        { source: "reddit", text: "split on fabric — some love it, some expected more weight." },
+        { source: "tiktok", text: "looks great on camera; a few call out sheerness." },
+        { source: "trial & return", text: "you’ve returned thin fabrics before when the occasion needed structure." },
+      ],
     },
   },
   tips: {
