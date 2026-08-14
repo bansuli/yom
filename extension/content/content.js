@@ -1,11 +1,20 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.24") return;
-  window.__YOM_BUILD__ = "1.1.24";
+  if (window.__YOM_BUILD__ === "1.1.25") return;
+  window.__YOM_BUILD__ = "1.1.25";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
   const DATA = window.YOM_DEMO;
   const EXTRACT = window.YOM_EXTRACT;
+  const Sites = window.YOM_SITES;
+  const pageHost = location.hostname;
+  if (
+    Sites?.isSkippedHost?.(pageHost) ||
+    EXTRACT?.skipHost?.(pageHost) ||
+    !Sites?.isAllowedHost?.(pageHost)
+  ) {
+    return;
+  }
   const USER_KEY = "yom-user";
   const STORAGE_KEY = "yom-companion-v4";
   const PROFILE_KEY = "yom-profile";
@@ -279,17 +288,9 @@
 
   async function shouldRun() {
     const host = location.hostname;
-    const Sites = window.YOM_SITES;
-    const forced = await chrome.storage.local.get("yomForceHost");
-    const forceHost = forced.yomForceHost || "";
-    if (forceHost && Sites?.endsWithHost?.(host, forceHost)) {
-      // Still require it to look like clothing when force-enabled
-      return Sites.pageLooksLikeClothing() || EXTRACT.looksLikeShop();
-    }
     if (Sites?.isSkippedHost?.(host) || EXTRACT.skipHost(host)) return false;
-    if (!Sites?.isAllowedHost?.(host)) return false;
-    // Allowed fashion retailer — run on shop pages
-    return true;
+    if (Sites?.isAllowedHost?.(host)) return true;
+    return false;
   }
 
   function asset(file) {
@@ -660,6 +661,7 @@
   }
 
   // ── shell ────────────────────────────────────────────────────
+  let armed = false;
   const host = document.createElement("div");
   host.id = "yom-root";
   host.setAttribute("data-yom-host", "1");
@@ -848,10 +850,10 @@
   let liveNote = null;
 
   function mountHost() {
+    if (!armed) return;
     const parent = document.body || document.documentElement;
     if (parent && host.parentElement !== parent) parent.appendChild(host);
   }
-  mountHost();
 
   if (!document.getElementById("yom-fonts")) {
     const link = document.createElement("link");
@@ -901,6 +903,7 @@
   root.appendChild(panel);
 
   function ensureMounted() {
+    if (!armed) return;
     mountHost();
     host.style.display = "block";
     host.style.visibility = "visible";
@@ -911,6 +914,7 @@
   }
 
   function dockBuddy(animatePop = false) {
+    if (!armed) return;
     ensureMounted();
     buddy.style.left = "auto";
     buddy.style.top = "auto";
@@ -924,8 +928,6 @@
     }
     positionCluster();
   }
-
-  dockBuddy(true);
 
   function pulseBuddy() {
     buddy.classList.remove("notice");
@@ -3374,10 +3376,15 @@
 
   async function boot() {
     try {
-      if (!(await shouldRun())) return;
+      if (!(await shouldRun())) {
+        host.remove();
+        return;
+      }
     } catch {
+      host.remove();
       return;
     }
+    armed = true;
     try {
       await loadLiveAccount();
       state = await loadState();

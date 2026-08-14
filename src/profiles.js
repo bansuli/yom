@@ -35,6 +35,7 @@ export const PROFILES = {
       { label: "denim", value: "28" },
       { label: "shoes", value: "EU 39" },
     ],
+    tags: ["black", "tailoring", "fitted", "clean line"],
     style: [
       "black and tailoring first",
       "shops gifts harder than clothes for herself",
@@ -42,9 +43,9 @@ export const PROFILES = {
       "returns pointed anything, keeps the clean line",
     ],
     purchases: [
-      { when: "apr 2026", item: "COS column pant in black", note: "kept · weekly rotation", brand: "COS", kind: "pants", color: "black", kept: true },
-      { when: "may 2026", item: "Reformation Gavin blazer", note: "kept · the jacket that actually gets worn", brand: "Reformation", kind: "jacket", color: "black", kept: true },
-      { when: "jun 2026", item: "Aeyde pointed mule", note: "returned · not her toe", brand: "Aeyde", kind: "shoes", kept: false, return_reason: "fit was wrong" },
+      { when: "apr 2026", item: "COS column pant in black", note: "kept · weekly rotation", brand: "COS", kind: "pants", color: "black", kept: true, image: "jeans" },
+      { when: "may 2026", item: "Reformation Gavin blazer", note: "kept · the jacket that actually gets worn", brand: "Reformation", kind: "jacket", color: "black", kept: true, image: "blazer" },
+      { when: "jun 2026", item: "Aeyde pointed mule", note: "returned · not her toe", brand: "Aeyde", kind: "shoes", kept: false, return_reason: "fit was wrong", image: "tote" },
     ],
     saved: [
       { item: "The Row Park tote", note: "saved apr 19 · still thinking" },
@@ -67,6 +68,7 @@ export const PROFILES = {
       { label: "denim", value: "26" },
       { label: "shoes", value: "EU 37 · rounder toe only" },
     ],
+    tags: ["green", "feminine", "fitted", "same silhouette"],
     style: [
       "green is the through-line, not a trend",
       "compares everything, still panics before trips and events",
@@ -74,9 +76,14 @@ export const PROFILES = {
       "pointed shoes never make it out of the box",
     ],
     purchases: [
-      { when: "apr 2026", item: "Reformation Maya Set", note: "kept · the silhouette she still shops", brand: "Reformation", kind: "set", kept: true },
-      { when: "may 2026", item: "three green pieces (Reformation + other)", note: "0 returns · her color", brand: "Reformation", kind: "dress", color: "green", kept: true },
-      { when: "jun 2026", item: "Jaded London shorts", note: "kept · still in rotation", brand: "Jaded London", kind: "shorts", kept: true },
+      { when: "jun 2026", item: "Marlene Dress", note: "kept", brand: "Reformation", kind: "dress", kept: true, image: "marlene" },
+      { when: "jun 2026", item: "Contour Top", note: "returned", brand: "Aritzia", kind: "top", kept: false, return_reason: "Too tight through chest", image: "contour" },
+      { when: "may 2026", item: "Wide Leg Trouser", note: "returned", brand: "Zara", kind: "pants", kept: false, return_reason: "Too long", image: "trousers" },
+      { when: "apr 2026", item: "Reformation Maya Set", note: "kept · the silhouette she still shops", brand: "Reformation", kind: "set", kept: true, image: "dress" },
+      { when: "may 2026", item: "black tailored blazer", note: "kept", brand: "COS", kind: "jacket", color: "black", kept: true, image: "blazer" },
+      { when: "may 2026", item: "straight-leg jean", note: "kept", brand: "Agolde", kind: "jeans", kept: true, image: "jeans" },
+      { when: "apr 2026", item: "leather tote", note: "kept", brand: "The Row", kind: "bag", color: "black", kept: true, image: "tote" },
+      { when: "jun 2026", item: "cream crewneck", note: "kept", brand: "Khaite", kind: "knit", kept: true, image: "sweater" },
     ],
     saved: [
       { item: "green midi for sofia's wedding", note: "saved jun 12 · not bought yet" },
