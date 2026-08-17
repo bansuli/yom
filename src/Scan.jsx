@@ -4,6 +4,7 @@ import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, trac
 import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail, loadJoinProfile, saveLastCheck } from "./lib/join-store.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
+import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import ShareChannels from "./components/ShareChannels.jsx";
 import "./Scan.css";
 
@@ -416,22 +417,62 @@ export default function Scan() {
   const shareWithFriends = async () => {
     if (!result?.product || shareBusy) return;
     track("share_clicked", { surface: getSurface() });
-    setShareBusy(true);
+
+    const existingId = shareUrl ? shareUrl.split("/").pop() : "";
+    const id = /^[0-9a-f-]{36}$/i.test(existingId) ? existingId : newShareId();
+    const url = `${window.location.origin}/s/${id}`;
+    setShareUrl(url);
+
+    if (preview) {
+      try {
+        const map = JSON.parse(sessionStorage.getItem("yom_share_images") || "{}");
+        map[id] = preview.length <= 900_000 ? preview : "";
+        sessionStorage.setItem("yom_share_images", JSON.stringify(map));
+      } catch {
+        /* ignore */
+      }
+    }
+
     const acq = loadAcquisition();
     const session = loadBetaSession();
-    const sheetThumb = preview ? await thumbForSheet(preview) : "";
-    const res = await yomShare({
-      action: "create",
-      sender_anon_id: getAnonId(),
-      sender_email: emailSaved ? email : undefined,
-      sender_user_id: session?.user?.id || session?.profile?.id,
-      product: result.product,
-      verdict: result.verdict,
-      decision: decision || undefined,
-      source: acq.source,
-      campaign: acq.campaign,
-      image: sheetThumb || undefined,
-    });
+    const create = () =>
+      yomShare({
+        action: "create",
+        id,
+        sender_anon_id: getAnonId(),
+        sender_email: emailSaved ? email : undefined,
+        sender_user_id: session?.user?.id || session?.profile?.id,
+        product: result.product,
+        verdict: result.verdict,
+        decision: decision || undefined,
+        source: acq.source,
+        campaign: acq.campaign,
+      });
+
+    if (canNativeShare()) {
+      create().then((res) => {
+        if (res?.ok && res.share_id) {
+          track("share_created", {
+            share_id: res.share_id,
+            sender_user_id: session?.user?.id,
+            surface: getSurface(),
+          });
+        }
+      });
+      const sheet = await openSystemShare({
+        product: result.product,
+        verdict: result.verdict,
+        url,
+        imageDataUrl: preview,
+      });
+      if (sheet.ok) {
+        track("share_channel_clicked", { channel: "native", share_id: id, surface: getSurface() });
+      }
+      return;
+    }
+
+    setShareBusy(true);
+    const res = await create();
     setShareBusy(false);
     if (!res.ok || !res.share_id) {
       setErr(res.error || "couldn’t create a share link.");
@@ -442,19 +483,6 @@ export default function Scan() {
       sender_user_id: session?.user?.id,
       surface: getSurface(),
     });
-    if (sheetThumb) {
-      try {
-        const map = JSON.parse(sessionStorage.getItem("yom_share_images") || "{}");
-        map[res.share_id] = sheetThumb;
-        sessionStorage.setItem("yom_share_images", JSON.stringify(map));
-      } catch {
-        /* ignore */
-      }
-    }
-    const url = `${window.location.origin}/s/${res.share_id}`;
-    setShareUrl(url);
-    // Native sheet after await often fails on iOS (lost tap gesture).
-    // Channel buttons below keep Messages / WhatsApp / copy reliable.
   };
 
   if (!allowed) {
@@ -601,7 +629,7 @@ export default function Scan() {
             onClick={shareWithFriends}
             disabled={shareBusy}
           >
-            {shareBusy ? "making link…" : shareUrl ? "new link →" : "ask friends"}
+            {shareBusy ? "making link…" : "ask friends"}
           </button>
           {shareUrl && (
             <ShareChannels
@@ -610,7 +638,7 @@ export default function Scan() {
               verdict={verdict}
               shareId={shareUrl.split("/").pop()}
               surface={getSurface()}
-              label="send via messages, whatsapp, or copy"
+              label="or send via"
             />
           )}
         </section>

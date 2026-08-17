@@ -77,27 +77,36 @@ export default function SharePage() {
 
     let cancelled = false;
     (async () => {
-      try {
-        const res = await fetch(
-          `/api/share?id=${encodeURIComponent(shareId)}&anon_id=${encodeURIComponent(getAnonId() || "")}`
-        );
-        const data = await res.json().catch(() => ({}));
+      const delays = [0, 400, 900, 1600];
+      for (let i = 0; i < delays.length; i += 1) {
+        if (delays[i]) await new Promise((r) => setTimeout(r, delays[i]));
         if (cancelled) return;
-        if (!res.ok || !data.ok) {
-          setErr(data.error || "this share link expired or isn’t ready.");
-          setLoading(false);
-          return;
-        }
-        setShare(data.share);
-        setVotes(data.votes || []);
-        if (data.share?.sender_user_id) {
-          saveAcquisition({ referrer_user_id: data.share.sender_user_id });
-        }
-        setLoading(false);
-      } catch {
-        if (!cancelled) {
-          setErr("couldn’t load this share.");
-          setLoading(false);
+        try {
+          const res = await fetch(
+            `/api/share?id=${encodeURIComponent(shareId)}&anon_id=${encodeURIComponent(getAnonId() || "")}`
+          );
+          const data = await res.json().catch(() => ({}));
+          if (cancelled) return;
+          if (res.ok && data.ok) {
+            setShare(data.share);
+            setVotes(data.votes || []);
+            if (data.share?.sender_user_id) {
+              saveAcquisition({ referrer_user_id: data.share.sender_user_id });
+            }
+            setErr("");
+            setLoading(false);
+            return;
+          }
+          if (i === delays.length - 1) {
+            setErr(data.error || "this share link expired or isn’t ready.");
+            setLoading(false);
+          }
+        } catch {
+          if (cancelled) return;
+          if (i === delays.length - 1) {
+            setErr("couldn’t load this share.");
+            setLoading(false);
+          }
         }
       }
     })();

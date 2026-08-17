@@ -78,7 +78,7 @@ export default function ShareChannels({
         </button>
         {canNative && (
           <button type="button" className="share-channel" onClick={onMore}>
-            more…
+            more apps
           </button>
         )}
       </div>
