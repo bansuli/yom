@@ -72,11 +72,11 @@ PWA: `public/manifest.webmanifest` + Add to Home Screen tip on the scan page. Sa
 
 Every email from waitlist / survey / scan:
 
-1. Upserts into `leads`
-2. Auto-upserts into `allowlist` → they can `/beta` signup immediately
-3. Scan opens also upsert `scan_visitors` by `anon_id` (email optional, attached when given)
+1. Upserts into `leads` (if Supabase) **and/or** Google Sheet via `SHEET_WEBHOOK_URL`
+2. Auto-upserts into `allowlist` when Supabase is connected
+3. Scan opens also upsert `scan_visitors`
 
-Run [`supabase/leads.sql`](../supabase/leads.sql). APIs: `POST /api/leads`, `POST /api/scan-visit`.
+**Fastest for tomorrow:** [SHEET_STORE.md](./SHEET_STORE.md) — Google Sheet + Apps Script, no Supabase.
 
 ## Sharing + create yom
 

@@ -1,16 +1,17 @@
 import { json, preflight, readJson } from "../lib/http.js";
+import { storeConfigured } from "../lib/leads.js";
 import { createShare, getShare, saveScanCheck, voteOnShare } from "../lib/shares.js";
-import { supabaseConfigured } from "../lib/supabase.js";
 
 /**
- * /api/share
- * GET  ?id= → fetch share (+ record open)
- * POST { action: "create"|"vote"|"save_check", ... }
+ * /api/share — Google Sheet and/or Supabase
  */
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
-  if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
+  if (!storeConfigured()) {
+    json(res, 503, {
+      ok: false,
+      error: "user store is not configured — set SHEET_WEBHOOK_URL or SUPABASE_*",
+    });
     return;
   }
 

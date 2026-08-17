@@ -1,11 +1,9 @@
 import { json, preflight, readJson } from "../lib/http.js";
-import { upsertLead } from "../lib/leads.js";
-import { supabaseConfigured } from "../lib/supabase.js";
+import { storeConfigured, upsertLead } from "../lib/leads.js";
 
 /**
  * POST /api/leads
- * Public email capture → leads table + auto allowlist.
- * Body: { email, name?, channel?, path?, anon_id?, source?, campaign?, utm_* }
+ * Public email capture → Google Sheet and/or Supabase + auto allowlist.
  */
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
@@ -13,13 +11,12 @@ export default async function handler(req, res) {
     json(res, 405, { ok: false, error: "POST only" });
     return;
   }
-  if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
+  if (!storeConfigured()) {
+    json(res, 503, { ok: false, error: "user store is not configured — set SHEET_WEBHOOK_URL or SUPABASE_*" });
     return;
   }
 
   const body = readJson(req);
-  // honeypot
   if (body.website || body.company) {
     json(res, 200, { ok: true, skipped: true });
     return;
@@ -50,5 +47,6 @@ export default async function handler(req, res) {
     ok: true,
     email: result.lead?.email || String(body.email || "").toLowerCase(),
     allowlisted: Boolean(result.allowlisted),
+    sheet: Boolean(result.sheet),
   });
 }

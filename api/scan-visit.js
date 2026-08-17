@@ -1,11 +1,9 @@
 import { json, preflight, readJson } from "../lib/http.js";
-import { touchScanVisitor } from "../lib/leads.js";
-import { supabaseConfigured } from "../lib/supabase.js";
+import { storeConfigured, touchScanVisitor } from "../lib/leads.js";
 
 /**
  * POST /api/scan-visit
- * Record every /scan visitor (anon_id required). Optional email → lead + allowlist.
- * Body: { anon_id, email?, name?, increment_check?, source?, campaign?, ... }
+ * Record every /scan visitor. Works with Google Sheet and/or Supabase.
  */
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
@@ -13,8 +11,8 @@ export default async function handler(req, res) {
     json(res, 405, { ok: false, error: "POST only" });
     return;
   }
-  if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
+  if (!storeConfigured()) {
+    json(res, 503, { ok: false, error: "user store is not configured — set SHEET_WEBHOOK_URL or SUPABASE_*" });
     return;
   }
 
@@ -50,5 +48,6 @@ export default async function handler(req, res) {
     ok: true,
     visitor_id: result.visitor?.id || null,
     allowlisted: Boolean(result.lead?.allowlisted),
+    sheet: Boolean(result.sheet),
   });
 }
