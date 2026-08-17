@@ -243,10 +243,19 @@ function doPost(e) {
   if (!authorize_(body.secret || "")) return ok({ ok: false, error: "unauthorized" });
 
   var table = body.table || "leads";
-  var row = body.row || {};
   var sh = ensureSheet_(table);
   if (!sh) return ok({ ok: false, error: "unknown table " + table });
 
+  var rows = Array.isArray(body.rows) && body.rows.length ? body.rows : [body.row || {}];
+  var lastImage = false;
+  for (var r = 0; r < rows.length; r++) {
+    var row = rows[r] || {};
+    lastImage = appendTableRow_(sh, table, row) || lastImage;
+  }
+  return ok({ ok: true, table: table, count: rows.length, image: lastImage });
+}
+
+function appendTableRow_(sh, table, row) {
   var headers = sheetHeaders_(sh);
   var imageUrl = "";
   if ((table === "scan_checks" || table === "shares") && (row.image_data || row.image)) {
@@ -284,5 +293,5 @@ function doPost(e) {
     }
   }
 
-  return ok({ ok: true, table: table, image: Boolean(imageUrl) });
+  return Boolean(imageUrl);
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { captureLead } from "./lib/capture-lead.js";
+import { queueLead, startLeadFlush } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
 import {
   ONBOARDING_VERSION,
@@ -61,6 +61,7 @@ export default function Join() {
     if (ref) saveAcquisition({ referrer_user_id: ref });
     track("landing_viewed", { path: "/join" });
     if (acq.qr) track("qr_scanned", { path: "/join" });
+    startLeadFlush();
     recordScanVisit({ email: loadJoinEmail() || undefined, path: "/join", metadata: { funnel: "join" } });
 
     // After create, QR/revisit → camera (or ?next= share unlock). “my yom” uses ?home=1.
@@ -102,7 +103,7 @@ export default function Join() {
     track("signup_started", { channel: "join", path: "/join" });
     track("signup_completed", { channel: "join" });
     setStep("create");
-    void captureLead({
+    queueLead({
       email: email.trim(),
       name: name || undefined,
       channel: "join",
@@ -125,7 +126,7 @@ export default function Join() {
 
     const savedEmail = (loadJoinEmail() || email).trim().toLowerCase();
     saveJoinProfile({ name: name.trim(), trait, email: savedEmail });
-    void captureLead({
+    queueLead({
       email: savedEmail,
       name: name.trim(),
       channel: "join_create",

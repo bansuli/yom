@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, track } from "./lib/analytics.js";
+import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail, loadJoinProfile, saveLastCheck } from "./lib/join-store.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
@@ -193,6 +194,7 @@ export default function Scan() {
       email: loadSavedEmail() || undefined,
       metadata: { entry: true },
     });
+    void flushLeadQueue();
     return () => {
       streamRef.current?.getTracks?.().forEach((t) => t.stop());
     };

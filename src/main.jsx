@@ -12,8 +12,10 @@ import SharePage from './Share.jsx'
 import Create from './Create.jsx'
 import Join from './Join.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
+import { startLeadFlush } from './lib/lead-queue.js'
 
 initAnalytics()
+startLeadFlush()
 
 function PageHits() {
   const location = useLocation()
