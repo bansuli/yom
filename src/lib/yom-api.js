@@ -9,7 +9,7 @@ async function parseRes(res) {
   }
 }
 
-async function post(path, body, token) {
+async function post(path, body, token, extra = {}) {
   try {
     const res = await fetch(path, {
       method: "POST",
@@ -18,6 +18,7 @@ async function post(path, body, token) {
         ...(token ? { authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body || {}),
+      keepalive: Boolean(extra.keepalive),
     });
     const parsed = await parseRes(res);
     if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
@@ -102,7 +103,7 @@ export function yomScan(body, token) {
 }
 
 export function yomCaptureLead(body) {
-  return post("/api/leads", body);
+  return post("/api/leads", body, undefined, { keepalive: true });
 }
 
 export function yomScanVisit(body) {

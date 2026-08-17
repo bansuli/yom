@@ -50,7 +50,6 @@ export default function Join() {
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
   const [trait, setTrait] = useState(() => loadJoinProfile().trait || "");
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const profile = loadJoinProfile();
   const traitLabel = TRAITS.find((t) => t.id === (trait || profile.trait))?.label;
@@ -92,32 +91,26 @@ export default function Join() {
     return s ? `?${s}` : "";
   };
 
-  const submitEmail = async (e) => {
+  const submitEmail = (e) => {
     e.preventDefault();
     if (!isValidEmail(email)) {
       setErr("need a real email.");
       return;
     }
-    setBusy(true);
     setErr("");
+    saveJoinEmail(email);
     track("signup_started", { channel: "join", path: "/join" });
-    const res = await captureLead({
+    track("signup_completed", { channel: "join" });
+    setStep("create");
+    void captureLead({
       email: email.trim(),
       name: name || undefined,
       channel: "join",
       path: "/join",
     });
-    setBusy(false);
-    if (!res.ok && !res.fallback) {
-      setErr(res.error || "could not save — try again.");
-      return;
-    }
-    saveJoinEmail(email);
-    track("signup_completed", { channel: "join", allowlisted: res.allowlisted });
-    setStep("create");
   };
 
-  const createYom = async () => {
+  const createYom = () => {
     if (!name.trim()) {
       setErr("what should yom call you?");
       return;
@@ -126,21 +119,19 @@ export default function Join() {
       setErr("pick the one that feels most you.");
       return;
     }
-    setBusy(true);
     setErr("");
     track("yom_creation_started", { path: "/join", onboarding_version: ONBOARDING_VERSION });
     track("onboarding_answered", { step: "join_trait", trait, onboarding_version: ONBOARDING_VERSION });
 
-    await captureLead({
-      email: loadJoinEmail() || email,
+    const savedEmail = (loadJoinEmail() || email).trim().toLowerCase();
+    saveJoinProfile({ name: name.trim(), trait, email: savedEmail });
+    void captureLead({
+      email: savedEmail,
       name: name.trim(),
       channel: "join_create",
       path: "/join",
       metadata: { trait, anon_id: getAnonId() },
     });
-
-    const savedEmail = (loadJoinEmail() || email).trim().toLowerCase();
-    saveJoinProfile({ name: name.trim(), trait, email: savedEmail });
     try {
       localStorage.setItem(
         "yom-survey",
@@ -162,7 +153,6 @@ export default function Join() {
 
     markYomReady();
     track("yom_created", { onboarding_version: ONBOARDING_VERSION, channel: "join" });
-    setBusy(false);
     navigate(safeNext() || `/scan${qs({ from: "join" })}`);
   };
 
@@ -202,12 +192,11 @@ export default function Join() {
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
-              disabled={busy}
               autoFocus
             />
             <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
-            <button type="submit" className="scan-shutter" disabled={busy}>
-              {busy ? "saving…" : "continue →"}
+            <button type="submit" className="scan-shutter">
+              continue →
             </button>
           </form>
         </section>
@@ -243,8 +232,8 @@ export default function Join() {
             ))}
           </div>
 
-          <button type="button" className="scan-shutter" style={{ marginTop: "1rem", width: "100%" }} onClick={createYom} disabled={busy}>
-            {busy ? "creating…" : "create my yom →"}
+          <button type="button" className="scan-shutter" style={{ marginTop: "1rem", width: "100%" }} onClick={createYom}>
+            create my yom →
           </button>
 
           <button
