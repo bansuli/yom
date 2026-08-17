@@ -213,6 +213,19 @@
   min-width: 0;
 }
 
+.scan-again {
+  width: 100%;
+  margin-top: 0.45rem;
+  min-width: 0;
+  padding: 0.85rem 1.25rem;
+}
+
+.scan-ask-self {
+  margin-top: 1.15rem;
+  font-weight: 600;
+  color: var(--scan-muted);
+}
+
 .scan-similar-inline {
   margin: 0.45rem 0 0;
   font-size: 0.8rem;

@@ -52,6 +52,56 @@
   gap: 0.55rem;
 }
 
+.share-fomo h1 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+}
+
+.share-split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.45rem 0.55rem;
+  margin-top: 0.85rem;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.35rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.share-split a,
+.share-split button {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0.2rem 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  cursor: pointer;
+  line-height: inherit;
+}
+
+.share-split a:active,
+.share-split button:active,
+.share-split a.on,
+.share-split button.on {
+  background: var(--scan-lime);
+  text-decoration: none;
+}
+
+.share-split-mark {
+  color: var(--scan-muted);
+  text-decoration: none;
+  pointer-events: none;
+}
+
 .share-cta {
   text-align: center;
   text-decoration: none;
@@ -80,6 +130,11 @@
   aspect-ratio: 3 / 4;
   max-height: 58dvh;
   background: #1a1a1a;
+}
+
+.share-photo-frame-simple {
+  max-height: 36dvh;
+  aspect-ratio: 3 / 4;
 }
 
 .share-photo {

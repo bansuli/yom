@@ -437,19 +437,29 @@ export default function Scan() {
 
     const acq = loadAcquisition();
     const session = loadBetaSession();
-    const create = () =>
-      yomShare({
+    const senderName = (loadJoinProfile().name || "").trim();
+    const senderFirst = senderName.split(/\s+/)[0] || "";
+    const create = async () => {
+      const thumb = preview ? await thumbForSheet(preview) : "";
+      return yomShare({
         action: "create",
         id,
         sender_anon_id: getAnonId(),
         sender_email: emailSaved ? email : undefined,
         sender_user_id: session?.user?.id || session?.profile?.id,
-        product: result.product,
+        preview_note: senderFirst || undefined,
+        image: thumb || undefined,
+        product: {
+          ...result.product,
+          sender_name: senderFirst || undefined,
+          share_thumb: thumb && thumb.length < 220_000 ? thumb : undefined,
+        },
         verdict: result.verdict,
         decision: decision || undefined,
         source: acq.source,
         campaign: acq.campaign,
       });
+    };
 
     if (canNativeShare()) {
       create().then((res) => {
@@ -465,7 +475,7 @@ export default function Scan() {
         product: result.product,
         verdict: result.verdict,
         url,
-        imageDataUrl: preview,
+        name: senderName,
       });
       if (sheet.ok) {
         track("share_channel_clicked", { channel: "native", share_id: id, surface: getSurface() });
@@ -504,6 +514,7 @@ export default function Scan() {
   const verdict = result?.verdict || {};
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
+  const senderName = (loadJoinProfile().name || "").trim();
 
   return (
     <div className={`scan-page${landed ? " is-landed" : ""}`}>
@@ -610,7 +621,30 @@ export default function Scan() {
               or {cousins.map((item) => item.name).join(" · ")}
             </p>
           )}
-          <p className="scan-ask">would you get it?</p>
+          <p className="scan-ask">send this to friends — or keep scanning.</p>
+          <button
+            type="button"
+            className="scan-shutter scan-ask-friends"
+            onClick={shareWithFriends}
+            disabled={shareBusy}
+          >
+            {shareBusy ? "making link…" : "ask friends"}
+          </button>
+          <button type="button" className="scan-secondary scan-again" onClick={() => startScan(mode)}>
+            scan another
+          </button>
+          {shareUrl && (
+            <ShareChannels
+              url={shareUrl}
+              product={product}
+              verdict={verdict}
+              name={senderName || loadJoinProfile().name}
+              shareId={shareUrl.split("/").pop()}
+              surface={getSurface()}
+              label="or send via"
+            />
+          )}
+          <p className="scan-ask scan-ask-self">your call</p>
           <div className="scan-decisions">
             {["buy", "skip", "save"].map((action) => (
               <button
@@ -625,24 +659,6 @@ export default function Scan() {
             ))}
           </div>
           {decision && <p className="scan-done">logged · {decision}</p>}
-          <button
-            type="button"
-            className="scan-shutter scan-ask-friends"
-            onClick={shareWithFriends}
-            disabled={shareBusy}
-          >
-            {shareBusy ? "making link…" : "ask friends"}
-          </button>
-          {shareUrl && (
-            <ShareChannels
-              url={shareUrl}
-              product={product}
-              verdict={verdict}
-              shareId={shareUrl.split("/").pop()}
-              surface={getSurface()}
-              label="or send via"
-            />
-          )}
         </section>
       )}
 
@@ -666,11 +682,6 @@ export default function Scan() {
               retake
             </button>
           </>
-        )}
-        {landed && (
-          <button type="button" className="scan-secondary" onClick={() => startScan(mode)}>
-            scan another
-          </button>
         )}
         <input
           ref={fileRef}

@@ -2,10 +2,16 @@
  * Outbound share helpers — iMessage / SMS, WhatsApp, native sheet, clipboard.
  */
 
-export function shareMessage({ product, verdict, url } = {}) {
-  const piece = [product?.brand, product?.name].filter(Boolean).join(" ") || "this piece";
-  const take = verdict?.title ? ` — ${verdict.title}` : "";
-  return `help me decide on ${piece}${take}\n${url || ""}`.trim();
+function firstName(name) {
+  const n = String(name || "").trim().split(/\s+/)[0];
+  return n || "";
+}
+
+export function shareMessage({ product, verdict, url, name } = {}) {
+  void product;
+  void verdict;
+  const who = firstName(name) || "i";
+  return `${who} wants your opinion\n${url || ""}`.trim();
 }
 
 export function newShareId() {
@@ -62,8 +68,8 @@ export async function nativeShare({ title = "yom", text, url, files } = {}) {
 }
 
 /** Open the system share sheet in the same tap. Must not await network first. */
-export async function openSystemShare({ product, verdict, url } = {}) {
-  const text = shareMessage({ product, verdict });
+export async function openSystemShare({ product, verdict, url, name } = {}) {
+  const text = shareMessage({ product, verdict, url, name });
   return nativeShare({
     title: "yom",
     text,

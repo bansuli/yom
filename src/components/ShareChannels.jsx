@@ -16,6 +16,7 @@ export default function ShareChannels({
   url,
   product,
   verdict,
+  name,
   shareId,
   surface = "web",
   label = "send via",
@@ -23,7 +24,7 @@ export default function ShareChannels({
   const [copied, setCopied] = useState(false);
   if (!url) return null;
 
-  const text = shareMessage({ product, verdict, url });
+  const text = shareMessage({ product, verdict, url, name });
   const smsHref = smsShareHref(text);
   const waHref = whatsappShareHref(text);
   const canNative = typeof navigator !== "undefined" && Boolean(navigator.share);
