@@ -11,6 +11,7 @@
     #fff;
   color: var(--scan-ink);
   font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
+  text-transform: lowercase;
 }
 
 .share-card {
@@ -184,4 +185,44 @@
 
 .join-traits button.on {
   background: #c8f060;
+}
+
+.join-last {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1.5px solid #111;
+}
+
+.join-last-photo {
+  width: 56px;
+  height: 74px;
+  flex-shrink: 0;
+  margin: 0;
+  border: 1.5px solid #111;
+  overflow: hidden;
+  aspect-ratio: auto;
+  background: #f6f6f6;
+}
+
+.join-last-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.join-last-title {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.2;
+  margin: 0.1rem 0 0;
+}
+
+.join-profile-tag {
+  margin: 0.15rem 0 0;
+  font-size: 0.88rem;
+  color: #5a5a5a;
 }

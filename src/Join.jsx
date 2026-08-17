@@ -13,6 +13,7 @@ import {
   isYomReady,
   loadJoinEmail,
   loadJoinProfile,
+  loadLastCheck,
   markYomReady,
   saveJoinEmail,
   saveJoinProfile,
@@ -53,6 +54,7 @@ export default function Join() {
   const [err, setErr] = useState("");
   const profile = loadJoinProfile();
   const traitLabel = TRAITS.find((t) => t.id === (trait || profile.trait))?.label;
+  const last = step === "home" ? loadLastCheck() : null;
 
   useEffect(() => {
     const acq = captureAcquisitionFromUrl(search);
@@ -173,7 +175,7 @@ export default function Join() {
         <p className="scan-sub">
           {step === "email" && "step 1 · your email"}
           {step === "create" && "step 2 · create your yom"}
-          {step === "home" && "your yom"}
+          {step === "home" && "your profile"}
         </p>
       </header>
 
@@ -257,18 +259,31 @@ export default function Join() {
       )}
 
       {step === "home" && (
-        <section className="share-card">
-          <h1>{(profile.name || name || "you").split(" ")[0]}’s yom.</h1>
-          <p className="scan-body">
-            {traitLabel || "your shopping companion is ready."}
-          </p>
-          <p className="scan-meta" style={{ marginTop: "0.75rem" }}>
-            {profile.email || email || loadJoinEmail()}
-          </p>
+        <section className="share-card join-profile">
+          <h1>{(profile.name || name || "you").split(" ")[0]}’s yom</h1>
+          {traitLabel && <p className="join-profile-tag">{traitLabel}</p>}
+          {last?.verdict?.title && (
+            <div className="join-last">
+              {last.preview && (
+                <div className="join-last-photo">
+                  <img src={last.preview} alt="" />
+                </div>
+              )}
+              <div>
+                <p className="scan-meta">
+                  last scan
+                  {last.product?.name
+                    ? ` · ${[last.product.brand, last.product.name].filter(Boolean).join(" ")}`
+                    : ""}
+                </p>
+                <p className="join-last-title">{last.verdict.title}</p>
+              </div>
+            </div>
+          )}
           <button
             type="button"
             className="scan-shutter"
-            style={{ marginTop: "1.25rem", width: "100%" }}
+            style={{ marginTop: "1.1rem", width: "100%" }}
             onClick={() => navigate(`/scan${qs({ from: "home" })}`)}
           >
             open camera →

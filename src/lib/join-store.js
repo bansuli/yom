@@ -76,3 +76,39 @@ export function loadJoinProfile() {
   }
   return { name: "", trait: "", email: loadJoinEmail() };
 }
+
+export const LAST_CHECK_KEY = "yom_last_check";
+
+export function saveLastCheck(check = {}) {
+  try {
+    const preview = typeof check.preview === "string" && check.preview.startsWith("data:image/")
+      ? check.preview.length <= 900_000
+        ? check.preview
+        : ""
+      : "";
+    localStorage.setItem(
+      LAST_CHECK_KEY,
+      JSON.stringify({
+        product: check.product || {},
+        verdict: check.verdict || {},
+        similar: Array.isArray(check.similar) ? check.similar.slice(0, 4) : [],
+        preview,
+        mode: check.mode === "tag" ? "tag" : "photo",
+        at: check.at || Date.now(),
+      })
+    );
+  } catch {
+    /* ignore quota */
+  }
+}
+
+export function loadLastCheck() {
+  try {
+    const raw = localStorage.getItem(LAST_CHECK_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}

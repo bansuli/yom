@@ -2,12 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, track } from "./lib/analytics.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
-import { isYomReady, loadJoinEmail } from "./lib/join-store.js";
+import { isYomReady, loadJoinEmail, loadJoinProfile, saveLastCheck } from "./lib/join-store.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
 import ShareChannels from "./components/ShareChannels.jsx";
 import "./Scan.css";
 
-function compressImage(fileOrBlob, maxEdge = 1280, quality = 0.72) {
+function compressImage(fileOrBlob, maxEdge = 1400, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(fileOrBlob);
     const img = new Image();
@@ -19,6 +19,10 @@ function compressImage(fileOrBlob, maxEdge = 1280, quality = 0.72) {
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext("2d");
+      // Product PNGs often have transparent "light" backgrounds; JPEG has no alpha
+      // and would otherwise flatten to black.
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
       URL.revokeObjectURL(url);
       resolve(canvas.toDataURL("image/jpeg", quality));
@@ -62,12 +66,96 @@ function productProps(product, extra = {}) {
     price: product?.price ?? 0,
     category: product?.category || "",
     retailer: product?.retailer || "in_store",
+    identified: Boolean(product?.identified),
     ...extra,
   };
 }
 
+function similarPieces(result) {
+  const list = result?.similar || result?.product?.similar || [];
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((item) => (typeof item === "string" ? { name: item, why: null } : item))
+    .filter((item) => item?.name);
+}
+
+const GENERIC_TAKE =
+  /versatile|weigh it against|style needs|budget and style|great option|timeless|must-have|without brand|without price|summer option|wardrobe staple|worth considering|could work|strong match|very you|good for your style|consider your|depends on your|a great addition|elevate your/i;
+
+function scrubTake(data) {
+  if (!data || typeof data !== "object") return data;
+  const product = data.product || {};
+  const verdict = data.verdict || {};
+  const similar = similarPieces(data);
+  const blob = `${verdict.title || ""} ${verdict.body || ""}`;
+  const generic = GENERIC_TAKE.test(blob) || /option$/i.test(String(verdict.title || "").trim());
+  if (!generic) return data;
+  const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
+  const cousins = similar.map((s) => s.name).filter(Boolean).slice(0, 3);
+  const next = product.brand
+    ? {
+        title: label,
+        body: cousins.length
+          ? `if it's not this exact style, it's close to ${cousins.join(", ")}.`
+          : "named from what we can see. scan the tag to lock the style.",
+        resolve: "scan the tag if you want the exact sku.",
+        decision_hint: verdict.decision_hint || "save",
+        kind: verdict.kind || "neutral",
+        stamp: "id",
+        quiet: false,
+      }
+    : {
+        title: `looks like ${label}`,
+        body: cousins.length
+          ? `no brand readable on this shot. closest: ${cousins.join(", ")}. scan the hangtag or insole.`
+          : "no brand readable on this shot. scan the hangtag or insole — that's the read.",
+        resolve: "scan the price tag next.",
+        decision_hint: "save",
+        kind: "neutral",
+        stamp: "id",
+        quiet: false,
+      };
+  return { ...data, verdict: next };
+}
+
+function scanFailMessage(res, data) {
+  if (data?.error) return data.error;
+  if (res.status === 413) return "photo is too heavy — crop closer and try again.";
+  if (res.status === 503) return "yom’s brain is warming up — try again in a moment.";
+  if (res.status === 404 || res.status === 405) return "couldn’t reach yom — check your connection.";
+  if (res.status === 504 || res.status === 502) return "couldn’t read that photo — try again.";
+  return "couldn’t read that photo — try a clearer shot of the piece.";
+}
+
 function loadSavedEmail() {
   return loadJoinEmail();
+}
+
+function IosShareIcon() {
+  return (
+    <svg
+      className="scan-a2hs-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M12 15.5V3.8M8.2 7.2 12 3.5l3.8 3.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 11.5v7.2A2.3 2.3 0 0 0 7.3 21h9.4A2.3 2.3 0 0 0 19 18.7v-7.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.1"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 export default function Scan() {
@@ -75,6 +163,7 @@ export default function Scan() {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileRef = useRef(null);
+  const checkGen = useRef(0);
   const [mode, setMode] = useState("photo");
   const [phase, setPhase] = useState("live");
   const [preview, setPreview] = useState(null);
@@ -142,9 +231,9 @@ export default function Scan() {
   );
 
   useEffect(() => {
-    if (!allowed) return;
+    if (!allowed || phase !== "live") return;
     startCam(facing);
-  }, [allowed]); // eslint-disable-line react-hooks/exhaustive-deps -- start once when unlocked
+  }, [allowed, phase]); // eslint-disable-line react-hooks/exhaustive-deps -- recapture when returning to camera
 
   const flipCam = async () => {
     const next = facing === "environment" ? "user" : "environment";
@@ -174,8 +263,8 @@ export default function Scan() {
     if (!blob) return;
     const dataUrl = await compressImage(blob);
     setPreview(dataUrl);
-    setPhase("preview");
     stopCam();
+    await runCheck(dataUrl);
   };
 
   const onFile = async (ev) => {
@@ -185,24 +274,34 @@ export default function Scan() {
     try {
       const dataUrl = await compressImage(file);
       setPreview(dataUrl);
-      setPhase("preview");
       stopCam();
+      await runCheck(dataUrl);
     } catch {
       setErr("could not open that photo.");
     }
   };
 
   const resetLive = async () => {
+    checkGen.current += 1;
     setPreview(null);
     setResult(null);
     setDecision(null);
     setErr("");
+    setShareUrl("");
     setPhase("live");
-    await startCam();
   };
 
-  const runCheck = async () => {
-    if (!preview) return;
+  const startScan = async (nextMode) => {
+    setMode(nextMode);
+    if (phase === "live") return;
+    await resetLive();
+  };
+
+  const runCheck = async (image) => {
+    const shot = image || preview;
+    if (!shot) return;
+    const gen = ++checkGen.current;
+    setPreview(shot);
     setPhase("checking");
     setErr("");
     setResult(null);
@@ -226,40 +325,52 @@ export default function Scan() {
           ...(session?.access_token ? { authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          image: preview,
+          image: shot,
           input_method: mode,
           surface: getSurface(),
+          campaign: loadAcquisition().campaign,
+          source: loadAcquisition().source,
+          trait: loadJoinProfile().trait || "",
         }),
       });
       const data = await res.json().catch(() => ({}));
+      if (gen !== checkGen.current) return;
       if (!res.ok || !data.ok) {
-        setErr(data.error || "scan failed — try better light.");
+        setErr(scanFailMessage(res, data));
         setPhase("error");
         return;
       }
-      setResult(data);
+      const cleaned = scrubTake(data);
+      setResult(cleaned);
       setPhase("result");
-      const props = productProps(data.product, {
+      const sheetThumb = await thumbForSheet(shot);
+      saveLastCheck({
+        product: cleaned.product,
+        verdict: cleaned.verdict,
+        similar: cleaned.similar || cleaned.product?.similar,
+        preview: sheetThumb || shot,
+        mode,
+      });
+      const props = productProps(cleaned.product, {
         input_method: mode,
         surface: getSurface(),
-        verdict: data.verdict?.title || "",
-        confidence: data.product?.confidence,
+        verdict: cleaned.verdict?.title || "",
+        confidence: cleaned.product?.confidence,
       });
       track("product_check_completed", props);
       track("product_identified", props);
       track("yom_verdict_viewed", {
         ...props,
-        verdict: data.verdict?.title || "",
-        kind: data.verdict?.kind,
+        verdict: cleaned.verdict?.title || "",
+        kind: cleaned.verdict?.kind,
       });
       const acq = loadAcquisition();
-      const sheetThumb = await thumbForSheet(preview);
       yomShare({
         action: "save_check",
         anon_id: getAnonId(),
         email: emailSaved ? email : undefined,
-        product: data.product,
-        verdict: data.verdict,
+        product: cleaned.product,
+        verdict: cleaned.verdict,
         input_method: mode,
         surface: getSurface(),
         source: acq.source,
@@ -267,6 +378,7 @@ export default function Scan() {
         image: sheetThumb || undefined,
       });
     } catch {
+      if (gen !== checkGen.current) return;
       setErr("network hiccup — try again.");
       setPhase("error");
     }
@@ -358,62 +470,117 @@ export default function Scan() {
     );
   }
 
+  const product = result?.product || {};
+  const verdict = result?.verdict || {};
+  const cousins = similarPieces(result);
+  const landed = phase === "result" && result;
+
   return (
-    <div className="scan-page">
+    <div className={`scan-page${landed ? " is-landed" : ""}`}>
       <header className="scan-top">
+        <Link
+          to={loadBetaSession()?.access_token ? "/beta" : "/join?home=1"}
+          className="scan-profile-link"
+        >
+          my yom
+        </Link>
         <Link to="/" className="scan-brand">
           yom
         </Link>
-        <p className="scan-sub">point at a piece. get a read.</p>
+        <p className="scan-sub">
+          {landed
+            ? "your read"
+            : phase === "live"
+              ? mode === "tag"
+                ? "point at the price tag."
+                : "point at the piece."
+              : "scan a piece or a price tag."}
+        </p>
       </header>
 
-      <div className="scan-modes" role="tablist" aria-label="scan mode">
-        <button type="button" className={mode === "photo" ? "on" : ""} onClick={() => setMode("photo")}>
+      {!landed && (
+      <div
+        className={`scan-modes${phase === "error" ? " is-restart" : ""}`}
+        role="tablist"
+        aria-label="what you’re scanning"
+      >
+        <button
+          type="button"
+          className={mode === "photo" ? "on" : ""}
+          aria-pressed={mode === "photo"}
+          aria-label="scan a piece"
+          onClick={() => startScan("photo")}
+        >
           piece
         </button>
-        <button type="button" className={mode === "tag" ? "on" : ""} onClick={() => setMode("tag")}>
+        <button
+          type="button"
+          className={mode === "tag" ? "on" : ""}
+          aria-pressed={mode === "tag"}
+          aria-label="scan a price tag"
+          onClick={() => startScan("tag")}
+        >
           price tag
         </button>
       </div>
+      )}
 
-      <div className="scan-stage">
-        {phase === "live" && (
-          <>
-            <video
-              ref={videoRef}
-              className={`scan-video${facing === "user" ? " is-front" : ""}`}
-              playsInline
-              muted
-              autoPlay
-            />
-            {!camReady && <div className="scan-fallback">waiting on camera…</div>}
-            <div className="scan-frame" aria-hidden="true" />
-            <button type="button" className="scan-flip" onClick={flipCam} aria-label="Flip camera">
-              flip
-            </button>
-          </>
-        )}
-        {(phase === "preview" || phase === "checking" || phase === "result" || phase === "error") && preview && (
-          <img className="scan-preview" src={preview} alt="" />
-        )}
-        {phase === "checking" && (
-          <div className="scan-overlay">
-            <p>looking into this…</p>
-          </div>
-        )}
-      </div>
+      {!landed && (
+        <div className={`scan-stage${mode === "tag" ? " is-tag" : ""}`}>
+          {phase === "live" && (
+            <>
+              <video
+                ref={videoRef}
+                className={`scan-video${facing === "user" ? " is-front" : ""}`}
+                playsInline
+                muted
+                autoPlay
+              />
+              {!camReady && <div className="scan-fallback">waiting on camera…</div>}
+              <div className="scan-frame" aria-hidden="true" />
+              <button type="button" className="scan-flip" onClick={flipCam} aria-label="Flip camera">
+                flip
+              </button>
+            </>
+          )}
+          {(phase === "checking" || phase === "error") && preview && (
+            <img className="scan-preview" src={preview} alt="" />
+          )}
+          {phase === "checking" && (
+            <div className="scan-overlay">
+              <p>looking into this…</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {err && <p className="scan-err">{err}</p>}
 
-      {phase === "result" && result && (
-        <section className="scan-verdict" aria-live="polite">
+      {landed && (
+        <section className="scan-landing" aria-live="polite">
+          {preview && (
+            <div className="scan-landing-photo">
+              <img src={preview} alt={product.name || "scanned piece"} />
+            </div>
+          )}
           <p className="scan-meta">
-            {[result.product.brand, result.product.name].filter(Boolean).join(" · ")}
-            {result.product.price != null ? ` · $${result.product.price}` : ""}
+            {[product.brand, product.name].filter(Boolean).join(" · ") || "this piece"}
+            {product.price != null ? ` · $${product.price}` : ""}
+            {!product.identified && product.name && product.name !== "this piece" ? " · best guess" : ""}
           </p>
-          <h2>{result.verdict.title}</h2>
-          <p className="scan-body">{result.verdict.body}</p>
-          {result.verdict.resolve && <p className="scan-resolve">{result.verdict.resolve}</p>}
+          {product.guess &&
+            product.guess.toLowerCase() !== String(product.name || "").toLowerCase() && (
+              <p className="scan-guess">looks like {product.guess}</p>
+            )}
+          <h2>{verdict.title || "checked"}</h2>
+          {verdict.body && <p className="scan-body">{verdict.body}</p>}
+          {verdict.resolve && <p className="scan-resolve">{verdict.resolve}</p>}
+          {cousins.length > 0 && !verdict.quiet && (
+            <p className="scan-similar-inline">
+              or {cousins.map((item) => item.name).join(" · ")}
+            </p>
+          )}
+          <p className="scan-ask">would you get it?</p>
           <div className="scan-decisions">
             {["buy", "skip", "save"].map((action) => (
               <button
@@ -428,28 +595,19 @@ export default function Scan() {
             ))}
           </div>
           {decision && <p className="scan-done">logged · {decision}</p>}
-          {emailSaved && (
-            <p className="scan-done">
-              saved as {email}
-            </p>
-          )}
-          <div className="scan-share-row">
-            <button type="button" className="scan-shutter" onClick={shareWithFriends} disabled={shareBusy}>
-              {shareBusy ? "making link…" : shareUrl ? "new link →" : "ask friends →"}
-            </button>
-            <Link
-              className="scan-secondary"
-              to="/join?home=1"
-              style={{ padding: "0.75rem 1rem", textDecoration: "none" }}
-            >
-              my yom
-            </Link>
-          </div>
+          <button
+            type="button"
+            className="scan-shutter scan-ask-friends"
+            onClick={shareWithFriends}
+            disabled={shareBusy}
+          >
+            {shareBusy ? "making link…" : shareUrl ? "new link →" : "ask friends"}
+          </button>
           {shareUrl && (
             <ShareChannels
               url={shareUrl}
-              product={result.product}
-              verdict={result.verdict}
+              product={product}
+              verdict={verdict}
               shareId={shareUrl.split("/").pop()}
               surface={getSurface()}
               label="send via messages, whatsapp, or copy"
@@ -469,18 +627,18 @@ export default function Scan() {
             </button>
           </>
         )}
-        {phase === "preview" && (
+        {phase === "error" && (
           <>
-            <button type="button" className="scan-shutter" onClick={runCheck}>
-              check with yom
+            <button type="button" className="scan-shutter" onClick={() => runCheck(preview)}>
+              try again
             </button>
-            <button type="button" className="scan-secondary" onClick={resetLive}>
+            <button type="button" className="scan-secondary" onClick={() => startScan(mode)}>
               retake
             </button>
           </>
         )}
-        {(phase === "result" || phase === "error") && (
-          <button type="button" className="scan-shutter" onClick={resetLive}>
+        {landed && (
+          <button type="button" className="scan-secondary" onClick={() => startScan(mode)}>
             scan another
           </button>
         )}
@@ -494,7 +652,16 @@ export default function Scan() {
         />
       </footer>
 
-      <p className="scan-a2hs">on iphone: share → add to home screen. yom stays in your pocket.</p>
+      {!landed && (
+      <p className="scan-a2hs">
+        on iphone:{" "}
+        <span className="scan-a2hs-share" aria-label="share">
+          <IosShareIcon />
+          share
+        </span>{" "}
+        → add to home screen. yom stays in your pocket.
+      </p>
+      )}
     </div>
   );
 }

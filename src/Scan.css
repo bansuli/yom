@@ -3,6 +3,7 @@
   --scan-paper: #ffffff;
   --scan-lime: #c8f060;
   --scan-muted: #5a5a5a;
+  position: relative;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
@@ -11,12 +12,25 @@
     linear-gradient(180deg, #fafafa 0%, var(--scan-paper) 45%, #f0f0f0 100%);
   color: var(--scan-ink);
   font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
+  text-transform: lowercase;
   padding: max(0.75rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
 }
 
 .scan-top {
+  position: relative;
   text-align: center;
   margin-bottom: 0.65rem;
+}
+
+.scan-profile-link {
+  position: absolute;
+  top: 0.15rem;
+  right: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--scan-ink);
+  text-decoration: none;
+  padding: 0.2rem 0;
 }
 
 .scan-brand {
@@ -55,6 +69,15 @@
 
 .scan-modes button.on {
   background: var(--scan-lime);
+}
+
+.scan-modes.is-restart button {
+  min-width: 7.5rem;
+  padding: 0.55rem 1rem;
+}
+
+.scan-stage.is-tag .scan-frame {
+  inset: 22% 16%;
 }
 
 .scan-stage {
@@ -138,10 +161,63 @@
   text-align: center;
 }
 
-.scan-verdict {
-  margin-top: 0.85rem;
-  padding: 0.85rem 0 0.25rem;
-  border-top: 1.5px solid var(--scan-ink);
+.scan-page.is-landed {
+  overflow: auto;
+}
+
+.scan-page.is-landed .scan-stage {
+  display: none;
+}
+
+.scan-landing {
+  flex: 1;
+  margin-top: 0.25rem;
+  padding-bottom: 0.5rem;
+}
+
+.scan-landing-photo {
+  width: min(100%, 168px);
+  margin: 0 auto 0.65rem;
+  border: 1.5px solid var(--scan-ink);
+  overflow: hidden;
+  background: #fff;
+  aspect-ratio: 3 / 4;
+  max-height: 22vh;
+}
+
+.scan-landing-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #f6f6f6;
+}
+
+.scan-landing h2 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 0.15rem 0 0.3rem;
+}
+
+.scan-ask {
+  margin: 0.75rem 0 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.scan-ask-friends {
+  width: 100%;
+  margin-top: 0.7rem;
+  min-width: 0;
+}
+
+.scan-similar-inline {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  color: var(--scan-muted);
+  line-height: 1.35;
 }
 
 .scan-meta {
@@ -158,16 +234,53 @@
   margin-bottom: 0.35rem;
 }
 
-.scan-body {
-  font-size: 0.98rem;
-  line-height: 1.45;
-  color: #222;
+.scan-landing .scan-body {
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .scan-resolve {
   margin-top: 0.45rem;
   font-size: 0.92rem;
   color: var(--scan-muted);
+}
+
+.scan-guess {
+  margin: 0.1rem 0 0.4rem;
+  font-size: 0.92rem;
+  color: var(--scan-muted);
+}
+
+.scan-similar {
+  margin-top: 0.7rem;
+}
+
+.scan-similar-label {
+  font-size: 0.78rem;
+  color: var(--scan-muted);
+  margin-bottom: 0.3rem;
+}
+
+.scan-similar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.scan-similar li {
+  border: 1.5px solid var(--scan-ink);
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
+  background: #fff;
+  line-height: 1.3;
+}
+
+.scan-similar li span {
+  color: var(--scan-muted);
+  font-size: 0.82rem;
 }
 
 .scan-decisions {
@@ -181,8 +294,8 @@
   border: 1.5px solid var(--scan-ink);
   background: #fff;
   font: inherit;
-  font-weight: 600;
-  padding: 0.65rem 0.4rem;
+  font-weight: 700;
+  padding: 0.85rem 0.4rem;
   cursor: pointer;
 }
 
@@ -231,11 +344,28 @@
 }
 
 .scan-a2hs {
+  flex-shrink: 0;
   margin-top: 0.85rem;
   text-align: center;
   font-size: 0.78rem;
-  color: var(--scan-muted);
-  line-height: 1.35;
+  color: var(--scan-ink);
+  line-height: 1.45;
+}
+
+.scan-a2hs-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  vertical-align: middle;
+  font-weight: 700;
+}
+
+.scan-a2hs-icon {
+  display: inline-block;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--scan-ink);
+  flex-shrink: 0;
 }
 
 .scan-email-gate {
@@ -333,5 +463,12 @@
   .scan-page {
     max-width: 420px;
     margin: 0 auto;
+  }
+}
+
+@media (max-height: 760px) {
+  .scan-stage {
+    min-height: 38vh;
+    max-height: 50vh;
   }
 }

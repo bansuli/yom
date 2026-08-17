@@ -1,5 +1,9 @@
 {
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "api/yom-scan.js": { "maxDuration": 60 },
+    "api/yom-advise.js": { "maxDuration": 30 }
+  }
 }

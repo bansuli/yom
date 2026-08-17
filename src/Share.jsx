@@ -212,6 +212,21 @@ export default function SharePage() {
                 <h1>{verdict.title || "what do you think?"}</h1>
                 {verdict.body && <p className="scan-body">{verdict.body}</p>}
                 {share.decision && <p className="share-muted">they’re leaning: {share.decision}</p>}
+                {Array.isArray(product.similar) && product.similar.length > 0 && (
+                  <div className="scan-similar">
+                    <p className="scan-similar-label">
+                      {product.identified ? "close cousins" : "or something like"}
+                    </p>
+                    <ul>
+                      {product.similar.map((item) => (
+                        <li key={item.name || item}>
+                          {item.name || item}
+                          {item.why ? <span> — {item.why}</span> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </>
             ) : (
               <>
