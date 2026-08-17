@@ -75,6 +75,33 @@
   display: block;
 }
 
+.scan-video.is-front {
+  transform: scaleX(-1);
+}
+
+.scan-flip {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 2;
+  border: 1.5px solid #fff;
+  background: rgba(17, 17, 17, 0.55);
+  color: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  padding: 0.45rem 0.7rem;
+  cursor: pointer;
+}
+
+.scan-flip:active {
+  background: rgba(200, 240, 96, 0.85);
+  color: #111;
+  border-color: #111;
+}
+
 .scan-fallback {
   position: absolute;
   inset: 0;
@@ -256,6 +283,41 @@
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-top: 0.85rem;
+}
+
+.share-channels {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.share-channels-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+  color: var(--scan-muted, #5a5a5a);
+}
+
+.share-channels-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.share-channel {
+  appearance: none;
+  border: 1.5px solid var(--scan-ink, #111);
+  background: #fff;
+  color: var(--scan-ink, #111);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.55rem 0.75rem;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1.1;
+}
+
+.share-channel:active {
+  background: var(--scan-lime, #c8f060);
 }
 
 .yom-hp {

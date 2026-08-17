@@ -9,7 +9,14 @@ import {
   saveAcquisition,
   track,
 } from "./lib/analytics.js";
-import { isYomReady, loadJoinEmail, markYomReady, saveJoinEmail } from "./lib/join-store.js";
+import {
+  isYomReady,
+  loadJoinEmail,
+  loadJoinProfile,
+  markYomReady,
+  saveJoinEmail,
+  saveJoinProfile,
+} from "./lib/join-store.js";
 import "./Scan.css";
 import "./Share.css";
 
@@ -26,22 +33,26 @@ const TRAITS = [
 
 /**
  * Cohort 1 funnel: open link → email → create my yom → camera (/scan)
+ * Already joined + ?home=1 → your yom home (from scan “my yom”)
  */
 export default function Join() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const search = window.location.search || "";
+  const wantHome = params.get("home") === "1";
 
   const [step, setStep] = useState(() => {
-    if (isYomReady()) return "done";
+    if (isYomReady()) return "home";
     if (loadJoinEmail()) return "create";
     return "email";
   });
   const [email, setEmail] = useState(() => loadJoinEmail());
-  const [name, setName] = useState("");
-  const [trait, setTrait] = useState("");
+  const [name, setName] = useState(() => loadJoinProfile().name || "");
+  const [trait, setTrait] = useState(() => loadJoinProfile().trait || "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const profile = loadJoinProfile();
+  const traitLabel = TRAITS.find((t) => t.id === (trait || profile.trait))?.label;
 
   useEffect(() => {
     const acq = captureAcquisitionFromUrl(search);
@@ -51,10 +62,24 @@ export default function Join() {
     if (acq.qr) track("qr_scanned", { path: "/join" });
     recordScanVisit({ email: loadJoinEmail() || undefined, path: "/join", metadata: { funnel: "join" } });
 
-    if (isYomReady()) {
-      navigate(`/scan${search}`, { replace: true });
+    // After create, QR/revisit → camera (or ?next= share unlock). “my yom” uses ?home=1.
+    if (isYomReady() && !wantHome) {
+      const next = params.get("next");
+      if (next && /^\/s\/[0-9a-f-]{36}$/i.test(next)) {
+        navigate(next, { replace: true });
+      } else {
+        navigate(`/scan${search}`, { replace: true });
+      }
+    } else if (isYomReady() && wantHome) {
+      setStep("home");
     }
-  }, [params, navigate, search]);
+  }, [params, navigate, search, wantHome]);
+
+  const safeNext = () => {
+    const next = params.get("next");
+    if (next && /^\/s\/[0-9a-f-]{36}$/i.test(next)) return next;
+    return null;
+  };
 
   const qs = (extra = {}) => {
     const q = new URLSearchParams(search);
@@ -112,12 +137,14 @@ export default function Join() {
       metadata: { trait, anon_id: getAnonId() },
     });
 
+    const savedEmail = (loadJoinEmail() || email).trim().toLowerCase();
+    saveJoinProfile({ name: name.trim(), trait, email: savedEmail });
     try {
       localStorage.setItem(
         "yom-survey",
         JSON.stringify({
           name: name.trim(),
-          email: (loadJoinEmail() || email).trim().toLowerCase(),
+          email: savedEmail,
           trait,
           preBuy: "",
           read: "",
@@ -134,7 +161,7 @@ export default function Join() {
     markYomReady();
     track("yom_created", { onboarding_version: ONBOARDING_VERSION, channel: "join" });
     setBusy(false);
-    navigate(`/scan${qs({ from: "join" })}`);
+    navigate(safeNext() || `/scan${qs({ from: "join" })}`);
   };
 
   return (
@@ -146,15 +173,17 @@ export default function Join() {
         <p className="scan-sub">
           {step === "email" && "step 1 · your email"}
           {step === "create" && "step 2 · create your yom"}
-          {step === "done" && "you’re in"}
+          {step === "home" && "your yom"}
         </p>
       </header>
 
-      <div className="join-steps" aria-hidden="true">
-        <span className={step === "email" ? "on" : "done"}>email</span>
-        <span className={step === "create" ? "on" : step === "done" ? "done" : ""}>create</span>
-        <span>scan</span>
-      </div>
+      {step !== "home" && (
+        <div className="join-steps" aria-hidden="true">
+          <span className={step === "email" ? "on" : "done"}>email</span>
+          <span className={step === "create" ? "on" : ""}>create</span>
+          <span>scan</span>
+        </div>
+      )}
 
       {err && <p className="scan-err">{err}</p>}
 
@@ -223,6 +252,34 @@ export default function Join() {
             onClick={() => navigate(`/survey${qs({ next: "/scan", email: loadJoinEmail() || email })}`)}
           >
             take the longer quiz instead
+          </button>
+        </section>
+      )}
+
+      {step === "home" && (
+        <section className="share-card">
+          <h1>{(profile.name || name || "you").split(" ")[0]}’s yom.</h1>
+          <p className="scan-body">
+            {traitLabel || "your shopping companion is ready."}
+          </p>
+          <p className="scan-meta" style={{ marginTop: "0.75rem" }}>
+            {profile.email || email || loadJoinEmail()}
+          </p>
+          <button
+            type="button"
+            className="scan-shutter"
+            style={{ marginTop: "1.25rem", width: "100%" }}
+            onClick={() => navigate(`/scan${qs({ from: "home" })}`)}
+          >
+            open camera →
+          </button>
+          <button
+            type="button"
+            className="scan-secondary"
+            style={{ marginTop: "0.5rem", width: "100%" }}
+            onClick={() => navigate(`/survey${qs({ next: "/scan", email: loadJoinEmail() })}`)}
+          >
+            deepen your profile
           </button>
         </section>
       )}

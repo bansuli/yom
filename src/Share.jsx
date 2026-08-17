@@ -8,11 +8,27 @@ import {
   track,
 } from "./lib/analytics.js";
 import { captureLead } from "./lib/capture-lead.js";
+import { isYomReady, loadJoinEmail } from "./lib/join-store.js";
+import { loadBetaSession } from "./lib/yom-api.js";
+import ShareChannels from "./components/ShareChannels.jsx";
 import "./Scan.css";
 import "./Share.css";
 
 function isValidEmail(v) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || "").trim());
+}
+
+function hasAccount() {
+  return isYomReady() || Boolean(loadBetaSession()?.access_token);
+}
+
+function readCachedShareImage(shareId) {
+  try {
+    const map = JSON.parse(sessionStorage.getItem("yom_share_images") || "{}");
+    return map[shareId] || "";
+  } catch {
+    return "";
+  }
 }
 
 export default function SharePage() {
@@ -24,17 +40,30 @@ export default function SharePage() {
   const [err, setErr] = useState("");
   const [vote, setVote] = useState(null);
   const [reason, setReason] = useState("");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => loadJoinEmail());
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [unlocked, setUnlocked] = useState(() => hasAccount());
 
   const createHref = useMemo(() => {
     const q = new URLSearchParams();
     q.set("ref", share?.sender_user_id || share?.sender_anon_id || "");
     if (shareId) q.set("share_id", shareId);
     q.set("campaign", share?.campaign || "reformation_monday");
+    q.set("next", `/s/${shareId}`);
     return `/join?${q.toString()}`;
   }, [share, shareId]);
+
+  const loginHref = useMemo(() => {
+    const q = new URLSearchParams();
+    q.set("next", `/s/${shareId}`);
+    return `/beta?${q.toString()}`;
+  }, [shareId]);
+
+  const sharePageUrl = useMemo(() => {
+    if (typeof window === "undefined") return `https://www.youryom.com/s/${shareId}`;
+    return `${window.location.origin}/s/${shareId}`;
+  }, [shareId]);
 
   useEffect(() => {
     captureAcquisitionFromUrl();
@@ -44,6 +73,7 @@ export default function SharePage() {
       });
     }
     track("share_opened", { share_id: shareId, surface: getSurface() });
+    setUnlocked(hasAccount());
 
     let cancelled = false;
     (async () => {
@@ -77,7 +107,7 @@ export default function SharePage() {
   }, [shareId, params]);
 
   const submitVote = async (choice) => {
-    if (done || busy) return;
+    if (!unlocked || done || busy) return;
     setVote(choice);
     setBusy(true);
     setErr("");
@@ -91,9 +121,10 @@ export default function SharePage() {
       track("vote_reason_submitted", { share_id: shareId, vote: choice, reason: reason.trim() });
     }
 
-    if (isValidEmail(email)) {
+    const voteEmail = isValidEmail(email) ? email.trim() : loadJoinEmail();
+    if (isValidEmail(voteEmail)) {
       await captureLead({
-        email,
+        email: voteEmail,
         channel: "share_vote",
         path: `/s/${shareId}`,
         referrer_user_id: share?.sender_user_id || undefined,
@@ -111,7 +142,7 @@ export default function SharePage() {
         vote: choice,
         reason: reason.trim() || undefined,
         voter_anon_id: getAnonId(),
-        voter_email: isValidEmail(email) ? email.trim() : undefined,
+        voter_email: isValidEmail(voteEmail) ? voteEmail : undefined,
       }),
     }).then((r) => r.json().catch(() => ({})));
 
@@ -126,6 +157,7 @@ export default function SharePage() {
 
   const product = share?.product || {};
   const verdict = share?.verdict || {};
+  const imageSrc = share?.image_url || readCachedShareImage(shareId) || "";
 
   return (
     <div className="share-page">
@@ -141,17 +173,55 @@ export default function SharePage() {
 
       {!loading && share && (
         <>
+          <section className={`share-photo-gate ${unlocked ? "is-open" : "is-locked"}`}>
+            <div className="share-photo-frame">
+              {imageSrc ? (
+                <img src={imageSrc} alt="" className="share-photo" draggable={false} />
+              ) : (
+                <div className="share-photo share-photo-fallback" aria-hidden="true" />
+              )}
+              {!unlocked && (
+                <div className="share-photo-veil">
+                  <p className="share-photo-lock-copy">photo + opinion unlock after you join</p>
+                  <Link
+                    className="scan-shutter share-cta"
+                    to={createHref}
+                    onClick={() => track("share_gate_clicked", { share_id: shareId, channel: "join" })}
+                  >
+                    create account to see →
+                  </Link>
+                  <Link
+                    className="scan-secondary share-cta-secondary"
+                    to={loginHref}
+                    onClick={() => track("share_gate_clicked", { share_id: shareId, channel: "login" })}
+                  >
+                    already have yom? log in
+                  </Link>
+                </div>
+              )}
+            </div>
+          </section>
+
           <section className="share-card">
             <p className="scan-meta">
               {[product.brand, product.name].filter(Boolean).join(" · ") || "a piece"}
               {product.price != null ? ` · $${product.price}` : ""}
             </p>
-            <h1>{verdict.title || "what do you think?"}</h1>
-            {verdict.body && <p className="scan-body">{verdict.body}</p>}
-            {share.decision && <p className="share-muted">they’re leaning: {share.decision}</p>}
+            {unlocked ? (
+              <>
+                <h1>{verdict.title || "what do you think?"}</h1>
+                {verdict.body && <p className="scan-body">{verdict.body}</p>}
+                {share.decision && <p className="share-muted">they’re leaning: {share.decision}</p>}
+              </>
+            ) : (
+              <>
+                <h1>help them decide.</h1>
+                <p className="scan-body">create your yom to unblur the photo and leave your take.</p>
+              </>
+            )}
           </section>
 
-          {!done ? (
+          {unlocked && !done && (
             <section className="share-vote">
               <p className="share-ask">would you get it?</p>
               <div className="scan-decisions">
@@ -173,32 +243,35 @@ export default function SharePage() {
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               />
-              <input
-                type="email"
-                className="scan-email-input yom-mask"
-                placeholder="your email (so we save this)"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
             </section>
-          ) : (
+          )}
+
+          {unlocked && done && (
             <section className="share-done">
               <p>got it{vote ? ` — ${vote}` : ""}.</p>
-              <Link className="scan-shutter share-cta" to={createHref}>
-                create your yom →
-              </Link>
-              <Link className="scan-secondary share-cta-secondary" to="/scan">
-                scan something yourself
+              <Link className="scan-shutter share-cta" to="/scan">
+                scan something yourself →
               </Link>
             </section>
           )}
 
-          {votes.length > 0 && (
+          {unlocked && votes.length > 0 && (
             <section className="share-tally">
               <p className="share-muted">
                 {share.opens_count || 0} opens · {Math.max(share.votes_count || 0, votes.length)} votes
               </p>
             </section>
+          )}
+
+          {unlocked && (
+            <ShareChannels
+              url={sharePageUrl}
+              product={product}
+              verdict={verdict}
+              shareId={shareId}
+              surface={getSurface()}
+              label="forward to another friend"
+            />
           )}
         </>
       )}

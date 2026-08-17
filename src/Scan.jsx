@@ -4,6 +4,7 @@ import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, trac
 import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail } from "./lib/join-store.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
+import ShareChannels from "./components/ShareChannels.jsx";
 import "./Scan.css";
 
 function compressImage(fileOrBlob, maxEdge = 1280, quality = 0.72) {
@@ -27,6 +28,29 @@ function compressImage(fileOrBlob, maxEdge = 1280, quality = 0.72) {
       reject(new Error("could not read image"));
     };
     img.src = url;
+  });
+}
+
+/** Smaller JPEG for Google Sheet / Drive (keeps webhook under size limits). */
+function thumbForSheet(dataUrl, maxEdge = 720, quality = 0.55) {
+  return new Promise((resolve) => {
+    if (!dataUrl) {
+      resolve("");
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => resolve("");
+    img.src = dataUrl;
   });
 }
 
@@ -62,8 +86,8 @@ export default function Scan() {
   const [emailSaved, setEmailSaved] = useState(() => Boolean(loadSavedEmail()));
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
-  const [shareCopied, setShareCopied] = useState(false);
   const [allowed, setAllowed] = useState(() => isYomReady() || Boolean(loadBetaSession()?.access_token));
+  const [facing, setFacing] = useState("environment"); // environment = rear, user = front
 
   useEffect(() => {
     const search = window.location.search || "";
@@ -84,38 +108,50 @@ export default function Scan() {
     };
   }, [navigate]);
 
-  const startCam = useCallback(async () => {
-    setErr("");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: "environment" },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
-      setCamReady(true);
-    } catch {
-      setCamReady(false);
-      setErr("camera blocked — use the upload button instead.");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!allowed) return;
-    startCam();
-  }, [startCam, allowed]);
-
-  const stopCam = () => {
+  const stopCam = useCallback(() => {
     streamRef.current?.getTracks?.().forEach((t) => t.stop());
     streamRef.current = null;
     setCamReady(false);
+  }, []);
+
+  const startCam = useCallback(
+    async (face = facing) => {
+      setErr("");
+      try {
+        streamRef.current?.getTracks?.().forEach((t) => t.stop());
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: face },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        setCamReady(true);
+      } catch {
+        setCamReady(false);
+        setErr("camera blocked — use the upload button instead.");
+      }
+    },
+    [facing]
+  );
+
+  useEffect(() => {
+    if (!allowed) return;
+    startCam(facing);
+  }, [allowed]); // eslint-disable-line react-hooks/exhaustive-deps -- start once when unlocked
+
+  const flipCam = async () => {
+    const next = facing === "environment" ? "user" : "environment";
+    setFacing(next);
+    setErr("");
+    await startCam(next);
+    track("camera_flipped", { facing: next, surface: getSurface() });
   };
 
   const snapFromVideo = async () => {
@@ -127,7 +163,13 @@ export default function Scan() {
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    canvas.getContext("2d").drawImage(video, 0, 0);
+    const ctx = canvas.getContext("2d");
+    // Match mirrored front-camera preview so the saved shot matches what they saw
+    if (facing === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0);
     const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.85));
     if (!blob) return;
     const dataUrl = await compressImage(blob);
@@ -211,6 +253,7 @@ export default function Scan() {
         kind: data.verdict?.kind,
       });
       const acq = loadAcquisition();
+      const sheetThumb = await thumbForSheet(preview);
       yomShare({
         action: "save_check",
         anon_id: getAnonId(),
@@ -221,6 +264,7 @@ export default function Scan() {
         surface: getSurface(),
         source: acq.source,
         campaign: acq.campaign,
+        image: sheetThumb || undefined,
       });
     } catch {
       setErr("network hiccup — try again.");
@@ -261,9 +305,9 @@ export default function Scan() {
     if (!result?.product || shareBusy) return;
     track("share_clicked", { surface: getSurface() });
     setShareBusy(true);
-    setShareCopied(false);
     const acq = loadAcquisition();
     const session = loadBetaSession();
+    const sheetThumb = preview ? await thumbForSheet(preview) : "";
     const res = await yomShare({
       action: "create",
       sender_anon_id: getAnonId(),
@@ -274,10 +318,11 @@ export default function Scan() {
       decision: decision || undefined,
       source: acq.source,
       campaign: acq.campaign,
+      image: sheetThumb || undefined,
     });
     setShareBusy(false);
     if (!res.ok || !res.share_id) {
-      setErr(res.error || "couldn’t create a share link — is supabase connected?");
+      setErr(res.error || "couldn’t create a share link.");
       return;
     }
     track("share_created", {
@@ -285,22 +330,19 @@ export default function Scan() {
       sender_user_id: session?.user?.id,
       surface: getSurface(),
     });
+    if (sheetThumb) {
+      try {
+        const map = JSON.parse(sessionStorage.getItem("yom_share_images") || "{}");
+        map[res.share_id] = sheetThumb;
+        sessionStorage.setItem("yom_share_images", JSON.stringify(map));
+      } catch {
+        /* ignore */
+      }
+    }
     const url = `${window.location.origin}/s/${res.share_id}`;
     setShareUrl(url);
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "yom",
-          text: result.verdict?.title || "help me decide on this",
-          url,
-        });
-      } else if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        setShareCopied(true);
-      }
-    } catch {
-      /* user cancelled share sheet */
-    }
+    // Native sheet after await often fails on iOS (lost tap gesture).
+    // Channel buttons below keep Messages / WhatsApp / copy reliable.
   };
 
   if (!allowed) {
@@ -337,9 +379,18 @@ export default function Scan() {
       <div className="scan-stage">
         {phase === "live" && (
           <>
-            <video ref={videoRef} className="scan-video" playsInline muted autoPlay />
+            <video
+              ref={videoRef}
+              className={`scan-video${facing === "user" ? " is-front" : ""}`}
+              playsInline
+              muted
+              autoPlay
+            />
             {!camReady && <div className="scan-fallback">waiting on camera…</div>}
             <div className="scan-frame" aria-hidden="true" />
+            <button type="button" className="scan-flip" onClick={flipCam} aria-label="Flip camera">
+              flip
+            </button>
           </>
         )}
         {(phase === "preview" || phase === "checking" || phase === "result" || phase === "error") && preview && (
@@ -384,17 +435,25 @@ export default function Scan() {
           )}
           <div className="scan-share-row">
             <button type="button" className="scan-shutter" onClick={shareWithFriends} disabled={shareBusy}>
-              {shareBusy ? "making link…" : "ask friends →"}
+              {shareBusy ? "making link…" : shareUrl ? "new link →" : "ask friends →"}
             </button>
-            <Link className="scan-secondary" to="/join" style={{ padding: "0.75rem 1rem", textDecoration: "none" }}>
+            <Link
+              className="scan-secondary"
+              to="/join?home=1"
+              style={{ padding: "0.75rem 1rem", textDecoration: "none" }}
+            >
               my yom
             </Link>
           </div>
           {shareUrl && (
-            <p className="scan-done">
-              {shareCopied ? "link copied · " : "share link · "}
-              <a href={shareUrl}>{shareUrl.replace(/^https?:\/\//, "")}</a>
-            </p>
+            <ShareChannels
+              url={shareUrl}
+              product={result.product}
+              verdict={result.verdict}
+              shareId={shareUrl.split("/").pop()}
+              surface={getSurface()}
+              label="send via messages, whatsapp, or copy"
+            />
           )}
         </section>
       )}

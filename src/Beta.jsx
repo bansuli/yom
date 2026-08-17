@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BETA_USERS, PROFILES, findBetaUser } from "./profiles.js";
 import {
   clearBetaSession,
@@ -159,6 +159,8 @@ function fromStored(stored) {
 }
 
 export default function Beta() {
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
@@ -169,8 +171,12 @@ export default function Beta() {
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleBusy, setGoogleBusy] = useState(false);
 
+  const finishAuthRedirect = () => {
+    const next = params.get("next");
+    if (next && /^\/s\/[0-9a-f-]{36}$/i.test(next)) navigate(next);
+  };
+
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
     const g = params.get("google");
     if (g === "connected") setErr("");
     if (g === "denied") setErr("google connect was cancelled.");
@@ -181,6 +187,12 @@ export default function Beta() {
       url.searchParams.delete("msg");
       window.history.replaceState({}, "", url.pathname + url.search);
     }
+  }, [params]);
+
+  useEffect(() => {
+    if (authed) finishAuthRedirect();
+    // only when landing already logged in with ?next=
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -330,6 +342,7 @@ export default function Beta() {
       });
       setPassword("");
       setBusy(false);
+      finishAuthRedirect();
       return;
     }
     if (!res.ok) {
@@ -366,6 +379,7 @@ export default function Beta() {
     }
     setPassword("");
     setBusy(false);
+    finishAuthRedirect();
   };
 
   const out = () => {
