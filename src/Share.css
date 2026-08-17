@@ -67,3 +67,57 @@
 .share-tally {
   margin-top: 1.1rem;
 }
+
+.join-steps {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: center;
+  margin: 0.35rem 0 0.9rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.join-steps span {
+  border: 1px solid #bbb;
+  padding: 0.2rem 0.55rem;
+  color: #888;
+}
+
+.join-steps span.on {
+  border-color: #111;
+  background: #c8f060;
+  color: #111;
+  font-weight: 700;
+}
+
+.join-steps span.done {
+  border-color: #111;
+  color: #111;
+}
+
+.join-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.35rem;
+}
+
+.join-traits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.join-traits button {
+  text-align: left;
+  border: 1.5px solid #111;
+  background: #fff;
+  font: inherit;
+  padding: 0.7rem 0.8rem;
+  cursor: pointer;
+}
+
+.join-traits button.on {
+  background: #c8f060;
+}

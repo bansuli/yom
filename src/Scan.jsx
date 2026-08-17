@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, track } from "./lib/analytics.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
+import { isYomReady, loadJoinEmail } from "./lib/join-store.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
 import "./Scan.css";
-
-const SCAN_EMAIL_KEY = "yom_scan_email";
 
 function compressImage(fileOrBlob, maxEdge = 1280, quality = 0.72) {
   return new Promise((resolve, reject) => {
@@ -43,27 +42,12 @@ function productProps(product, extra = {}) {
   };
 }
 
-function isValidEmail(v) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || "").trim());
-}
-
 function loadSavedEmail() {
-  try {
-    return localStorage.getItem(SCAN_EMAIL_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-function saveSavedEmail(email) {
-  try {
-    localStorage.setItem(SCAN_EMAIL_KEY, email);
-  } catch {
-    /* ignore */
-  }
+  return loadJoinEmail();
 }
 
 export default function Scan() {
+  const navigate = useNavigate();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileRef = useRef(null);
@@ -76,16 +60,21 @@ export default function Scan() {
   const [decision, setDecision] = useState(null);
   const [email, setEmail] = useState(() => loadSavedEmail());
   const [emailSaved, setEmailSaved] = useState(() => Boolean(loadSavedEmail()));
-  const [emailBusy, setEmailBusy] = useState(false);
-  const [showEmailGate, setShowEmailGate] = useState(() => !loadSavedEmail() && !loadBetaSession()?.access_token);
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [allowed, setAllowed] = useState(() => isYomReady() || Boolean(loadBetaSession()?.access_token));
 
   useEffect(() => {
-    const acq = captureAcquisitionFromUrl();
+    const search = window.location.search || "";
+    captureAcquisitionFromUrl(search);
+    // Pipeline: link → email → create yom → camera
+    if (!isYomReady() && !loadBetaSession()?.access_token) {
+      navigate(`/join${search}`, { replace: true });
+      return;
+    }
+    setAllowed(true);
     track("shopping_session_started", { mode: "scan", purpose: "in_store" });
-    if (acq.qr) track("qr_scanned", { path: "/scan" });
     recordScanVisit({
       email: loadSavedEmail() || undefined,
       metadata: { entry: true },
@@ -93,7 +82,7 @@ export default function Scan() {
     return () => {
       streamRef.current?.getTracks?.().forEach((t) => t.stop());
     };
-  }, []);
+  }, [navigate]);
 
   const startCam = useCallback(async () => {
     setErr("");
@@ -119,39 +108,14 @@ export default function Scan() {
   }, []);
 
   useEffect(() => {
+    if (!allowed) return;
     startCam();
-  }, [startCam]);
+  }, [startCam, allowed]);
 
   const stopCam = () => {
     streamRef.current?.getTracks?.().forEach((t) => t.stop());
     streamRef.current = null;
     setCamReady(false);
-  };
-
-  const submitEmail = async (e) => {
-    e?.preventDefault?.();
-    if (!isValidEmail(email)) {
-      setErr("need a real email.");
-      return;
-    }
-    setEmailBusy(true);
-    setErr("");
-    track("signup_started", { channel: "scan" });
-    const res = await recordScanVisit({ email: email.trim(), channel: "scan" });
-    setEmailBusy(false);
-    if (!res.ok && !res.fallback) {
-      setErr(res.error || "could not save email — try again.");
-      return;
-    }
-    saveSavedEmail(email.trim().toLowerCase());
-    setEmailSaved(true);
-    setShowEmailGate(false);
-    track("signup_completed", { channel: "scan", allowlisted: res.allowlisted });
-  };
-
-  const skipEmail = () => {
-    setShowEmailGate(false);
-    recordScanVisit({ metadata: { email_skipped: true } });
   };
 
   const snapFromVideo = async () => {
@@ -258,7 +222,6 @@ export default function Scan() {
         source: acq.source,
         campaign: acq.campaign,
       });
-      if (!emailSaved) setShowEmailGate(true);
     } catch {
       setErr("network hiccup — try again.");
       setPhase("error");
@@ -292,7 +255,6 @@ export default function Scan() {
       source: acq.source,
       campaign: acq.campaign,
     });
-    if (!emailSaved) setShowEmailGate(true);
   };
 
   const shareWithFriends = async () => {
@@ -341,6 +303,19 @@ export default function Scan() {
     }
   };
 
+  if (!allowed) {
+    return (
+      <div className="scan-page">
+        <header className="scan-top">
+          <Link to="/" className="scan-brand">
+            yom
+          </Link>
+          <p className="scan-sub">one sec…</p>
+        </header>
+      </div>
+    );
+  }
+
   return (
     <div className="scan-page">
       <header className="scan-top">
@@ -349,32 +324,6 @@ export default function Scan() {
         </Link>
         <p className="scan-sub">point at a piece. get a read.</p>
       </header>
-
-      {showEmailGate && (
-        <div className="scan-email-gate">
-          <p className="scan-email-title">save this to your yom</p>
-          <p className="scan-email-body">drop your email — we auto-add you to beta so nothing gets lost.</p>
-          <form className="scan-email-form" onSubmit={submitEmail}>
-            <input
-              type="email"
-              className="scan-email-input yom-mask"
-              placeholder="you@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              required
-              disabled={emailBusy}
-            />
-            <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
-            <button type="submit" className="scan-shutter" disabled={emailBusy}>
-              {emailBusy ? "saving…" : "save →"}
-            </button>
-          </form>
-          <button type="button" className="scan-secondary scan-email-skip" onClick={skipEmail}>
-            skip for now
-          </button>
-        </div>
-      )}
 
       <div className="scan-modes" role="tablist" aria-label="scan mode">
         <button type="button" className={mode === "photo" ? "on" : ""} onClick={() => setMode("photo")}>
@@ -430,15 +379,15 @@ export default function Scan() {
           {decision && <p className="scan-done">logged · {decision}</p>}
           {emailSaved && (
             <p className="scan-done">
-              saved as {email} · <Link to="/create">create your yom</Link>
+              saved as {email}
             </p>
           )}
           <div className="scan-share-row">
             <button type="button" className="scan-shutter" onClick={shareWithFriends} disabled={shareBusy}>
               {shareBusy ? "making link…" : "ask friends →"}
             </button>
-            <Link className="scan-secondary" to="/create" style={{ padding: "0.75rem 1rem", textDecoration: "none" }}>
-              create yom
+            <Link className="scan-secondary" to="/join" style={{ padding: "0.75rem 1rem", textDecoration: "none" }}>
+              my yom
             </Link>
           </div>
           {shareUrl && (

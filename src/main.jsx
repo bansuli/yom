@@ -10,6 +10,7 @@ import Beta from './Beta.jsx'
 import Scan from './Scan.jsx'
 import SharePage from './Share.jsx'
 import Create from './Create.jsx'
+import Join from './Join.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 
 initAnalytics()
@@ -33,6 +34,7 @@ function BetaCorner() {
     pathname === '/beta' ||
     pathname === '/scan' ||
     pathname === '/create' ||
+    pathname === '/join' ||
     pathname.startsWith('/survey') ||
     pathname.startsWith('/s/')
   ) {
@@ -57,6 +59,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/beta" element={<Beta />} />
         <Route path="/scan" element={<Scan />} />
+        <Route path="/join" element={<Join />} />
         <Route path="/create" element={<Create />} />
         <Route path="/s/:shareId" element={<SharePage />} />
       </Routes>

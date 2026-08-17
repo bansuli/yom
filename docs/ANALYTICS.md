@@ -64,7 +64,9 @@ Shares / votes / referrals (beyond storing `referrer_user_id`), Stripe ladder (`
 
 Mobile camera / upload → `POST /api/yom-scan` (OpenAI vision, Anthropic fallback) → verdict + buy/skip/save.
 
-QR for in-store: `https://www.youryom.com/scan?qr=1&campaign=reformation_monday`
+QR for in-store: `https://www.youryom.com/join?qr=1&campaign=reformation_monday`
+
+Funnel: **email → create my yom → camera** (`/join` then `/scan`). Visiting `/scan` without completing join redirects back to `/join`.
 
 PWA: `public/manifest.webmanifest` + Add to Home Screen tip on the scan page. Same PostHog/Supabase identity as the site.
 

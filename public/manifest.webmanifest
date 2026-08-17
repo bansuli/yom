@@ -2,7 +2,7 @@
   "name": "yom",
   "short_name": "yom",
   "description": "your shopping companion",
-  "start_url": "/scan?source=pwa",
+  "start_url": "/join?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#111111",

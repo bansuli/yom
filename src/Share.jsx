@@ -33,7 +33,7 @@ export default function SharePage() {
     q.set("ref", share?.sender_user_id || share?.sender_anon_id || "");
     if (shareId) q.set("share_id", shareId);
     q.set("campaign", share?.campaign || "reformation_monday");
-    return `/create?${q.toString()}`;
+    return `/join?${q.toString()}`;
   }, [share, shareId]);
 
   useEffect(() => {

@@ -869,11 +869,23 @@ export default function Survey() {
             </div>
 
             <div className="results-signoff">
-              <p className="results-signoff-main">see you when we launch.</p>
-              <p className="results-signoff-sub">we'll remember all of this — create your account so it lives on your yom.</p>
-              <a href="/create" className="results-home-link">keep this on your yom →</a>
-              <a href="/scan" className="results-home-link" style={{ display: 'block', marginTop: '0.65rem' }}>
-                or scan a piece on your phone →
+              <p className="results-signoff-main">your yom is ready.</p>
+              <p className="results-signoff-sub">we'll remember all of this — next, point the camera at a piece.</p>
+              <a
+                href={new URLSearchParams(window.location.search).get('next') || '/scan'}
+                className="results-home-link"
+                onClick={() => {
+                  try {
+                    localStorage.setItem('yom_ready', '1')
+                    const em = email || ''
+                    if (em) localStorage.setItem('yom_scan_email', em.trim().toLowerCase())
+                  } catch { /* ignore */ }
+                }}
+              >
+                open camera →
+              </a>
+              <a href="/join" className="results-home-link" style={{ display: 'block', marginTop: '0.65rem' }}>
+                or finish creating your yom →
               </a>
             </div>
 
