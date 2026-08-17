@@ -16,6 +16,13 @@ import {
   yomSignup,
 } from "./lib/yom-api.js";
 import { clearSurvey, loadSurvey } from "./lib/survey-store.js";
+import {
+  ONBOARDING_VERSION,
+  identifyUser,
+  resetAnalytics,
+  signupAcquisitionPayload,
+  track,
+} from "./lib/analytics.js";
 import closetBlazer from "./assets/closet-blazer.jpg";
 import closetJeans from "./assets/closet-jeans.jpg";
 import closetTote from "./assets/closet-tote.jpg";
@@ -188,6 +195,9 @@ export default function Beta() {
       if (res.ok && res.profile) {
         saveBetaSession({ ...stored, user: res.user, profile: res.profile });
         setAuthed({ user: res.user, profile: res.profile });
+        if (res.user?.id) {
+          identifyUser(res.user.id, { email: res.user.email, name: res.user.name || res.profile?.name });
+        }
         return;
       }
       if (res.status === 401) {
@@ -275,6 +285,7 @@ export default function Beta() {
     setBusy(true);
     setErr("");
     const survey = loadSurvey();
+    const acquisition = signupAcquisitionPayload();
     const extra = survey
       ? {
           name: survey.name || email.split("@")[0],
@@ -283,8 +294,19 @@ export default function Beta() {
           read: survey.read,
           headline: survey.headline,
           closet: survey.closet || [],
+          ...acquisition,
+          acquisition_source: survey.acquisition_source || acquisition.acquisition_source,
+          acquisition_campaign: survey.acquisition_campaign || acquisition.acquisition_campaign,
+          activation_date: survey.activation_date || acquisition.activation_date,
+          utm_source: survey.utm_source || acquisition.utm_source,
+          utm_medium: survey.utm_medium || acquisition.utm_medium,
+          utm_campaign: survey.utm_campaign || acquisition.utm_campaign,
+          referrer_user_id: survey.referrer_user_id || acquisition.referrer_user_id,
+          first_surface: survey.first_surface || acquisition.first_surface,
+          onboarding_version: survey.onboarding_version || acquisition.onboarding_version,
         }
-      : {};
+      : { ...acquisition };
+    if (signup) track("signup_started");
     const res = signup
       ? await yomSignup(email, password, extra.name || email.split("@")[0], extra)
       : await yomLogin(email, password);
@@ -302,6 +324,10 @@ export default function Beta() {
       }
       saveBetaSession({ email: result.user.email });
       setAuthed(localAccount(result.user.email));
+      identifyUser(result.user.profileId || result.user.email, {
+        email: result.user.email,
+        name: result.user.name,
+      });
       setPassword("");
       setBusy(false);
       return;
@@ -331,12 +357,20 @@ export default function Beta() {
       profile,
     });
     setAuthed({ user: res.user, profile });
+    if (res.user?.id) {
+      identifyUser(res.user.id, { email: res.user.email, name: res.user.name || profile?.name });
+    }
+    if (signup) {
+      track("signup_completed");
+      track("yom_created", { onboarding_version: ONBOARDING_VERSION });
+    }
     setPassword("");
     setBusy(false);
   };
 
   const out = () => {
     clearBetaSession();
+    resetAnalytics();
     setAuthed(null);
     setEmail("");
     setPassword("");

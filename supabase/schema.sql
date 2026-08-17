@@ -207,3 +207,60 @@ insert into public.allowlist (email, name) values
   ('mal@youryom.com', 'mal'),
   ('ban@youryom.com', 'ban')
 on conflict (email) do nothing;
+
+-- Cohort 1 acquisition fields (also in analytics.sql for existing projects)
+alter table public.profiles
+  add column if not exists acquisition_source text,
+  add column if not exists acquisition_campaign text,
+  add column if not exists activation_date text,
+  add column if not exists referrer_user_id uuid,
+  add column if not exists utm_source text,
+  add column if not exists utm_medium text,
+  add column if not exists utm_campaign text,
+  add column if not exists first_surface text,
+  add column if not exists onboarding_version text;
+
+-- Leads + scan visitors (also in leads.sql)
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  name text,
+  source text,
+  campaign text,
+  surface text,
+  path text,
+  anon_id text,
+  referrer_user_id uuid,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  channel text,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create unique index if not exists leads_email_idx on public.leads (email);
+
+create table if not exists public.scan_visitors (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text not null,
+  email text,
+  source text,
+  campaign text,
+  surface text,
+  path text default '/scan',
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  referrer_user_id uuid,
+  checks_count integer default 0,
+  last_seen_at timestamptz default now(),
+  created_at timestamptz default now(),
+  metadata jsonb default '{}'::jsonb
+);
+
+create unique index if not exists scan_visitors_anon_id_idx on public.scan_visitors (anon_id);
+
+alter table public.leads enable row level security;
+alter table public.scan_visitors enable row level security;

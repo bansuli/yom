@@ -1,3 +1,5 @@
+import { extAnalytics } from "./lib/analytics.js";
+
 const FORCE_HOST = "yomForceHost";
 const SESSION_KEY = "yom-session";
 const API_BASES = ["https://youryom.com", "https://www.youryom.com"];
@@ -7,8 +9,13 @@ const cache = new Map();
 
 chrome.storage.local.remove("yom-api");
 
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
   chrome.storage.local.remove("yom-api");
+  if (details.reason === "install") {
+    extAnalytics.capture("extension_installed", {
+      extension_version: chrome.runtime.getManifest()?.version,
+    });
+  }
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -23,6 +30,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === "YOM_TRACK") {
+    loadSession()
+      .then((session) =>
+        extAnalytics.capture(msg.event, msg.properties || {}, {
+          userId: session?.user?.id || session?.profile?.id || null,
+        })
+      )
+      .then((data) => sendResponse(data || { ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg?.type === "YOM_IDENTIFY") {
+    const id = msg.userId;
+    extAnalytics
+      .identify(id, msg.traits || {})
+      .then((data) => sendResponse(data || { ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
   if (msg?.type === "YOM_ADVISE") {
     advise(msg.payload)
       .then((advice) => sendResponse({ ok: true, advice }))
@@ -32,14 +60,40 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   if (msg?.type === "YOM_LOGIN") {
     auth("/api/login", msg.body)
-      .then((data) => sendResponse(data))
+      .then(async (data) => {
+        if (data.ok && data.user?.id) {
+          await extAnalytics.identify(data.user.id, {
+            email: data.user.email,
+            name: data.user.name || data.profile?.name,
+          });
+        }
+        sendResponse(data);
+      })
       .catch(() => sendResponse({ ok: false, error: "could not log in." }));
     return true;
   }
 
   if (msg?.type === "YOM_SIGNUP") {
     auth("/api/signup", msg.body)
-      .then((data) => sendResponse(data))
+      .then(async (data) => {
+        if (data.ok && data.user?.id) {
+          await extAnalytics.identify(data.user.id, {
+            email: data.user.email,
+            name: data.user.name || data.profile?.name,
+          });
+          await extAnalytics.capture(
+            "signup_completed",
+            { surface: "extension" },
+            { userId: data.user.id }
+          );
+          await extAnalytics.capture(
+            "yom_created",
+            { surface: "extension", onboarding_version: extAnalytics.ONBOARDING_VERSION },
+            { userId: data.user.id }
+          );
+        }
+        sendResponse(data);
+      })
       .catch(() => sendResponse({ ok: false, error: "could not create the account." }));
     return true;
   }

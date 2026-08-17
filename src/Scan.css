@@ -1,0 +1,275 @@
+.scan-page {
+  --scan-ink: #111;
+  --scan-paper: #ffffff;
+  --scan-lime: #c8f060;
+  --scan-muted: #5a5a5a;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(90% 60% at 80% 0%, rgba(200, 240, 96, 0.35) 0%, transparent 55%),
+    linear-gradient(180deg, #fafafa 0%, var(--scan-paper) 45%, #f0f0f0 100%);
+  color: var(--scan-ink);
+  font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
+  padding: max(0.75rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+}
+
+.scan-top {
+  text-align: center;
+  margin-bottom: 0.65rem;
+}
+
+.scan-brand {
+  display: inline-block;
+  font-family: "080203", "Archivo Black", sans-serif;
+  font-size: clamp(2.6rem, 12vw, 3.4rem);
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  color: var(--scan-ink);
+  text-decoration: none;
+}
+
+.scan-sub {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  color: var(--scan-muted);
+}
+
+.scan-modes {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.scan-modes button {
+  border: 1.5px solid var(--scan-ink);
+  background: transparent;
+  color: var(--scan-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+}
+
+.scan-modes button.on {
+  background: var(--scan-lime);
+}
+
+.scan-stage {
+  position: relative;
+  flex: 1;
+  min-height: 48vh;
+  max-height: 62vh;
+  border: 2px solid var(--scan-ink);
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+.scan-video,
+.scan-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.scan-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #ddd;
+  font-size: 0.95rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.scan-frame {
+  pointer-events: none;
+  position: absolute;
+  inset: 12%;
+  border: 1.5px solid rgba(200, 240, 96, 0.85);
+}
+
+.scan-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(17, 17, 17, 0.45);
+  color: #fff;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.4rem;
+}
+
+.scan-err {
+  margin: 0.6rem 0 0;
+  color: #8b1e1e;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.scan-verdict {
+  margin-top: 0.85rem;
+  padding: 0.85rem 0 0.25rem;
+  border-top: 1.5px solid var(--scan-ink);
+}
+
+.scan-meta {
+  font-size: 0.8rem;
+  color: var(--scan-muted);
+  margin-bottom: 0.35rem;
+}
+
+.scan-verdict h2 {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 400;
+  line-height: 1.15;
+  margin-bottom: 0.35rem;
+}
+
+.scan-body {
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: #222;
+}
+
+.scan-resolve {
+  margin-top: 0.45rem;
+  font-size: 0.92rem;
+  color: var(--scan-muted);
+}
+
+.scan-decisions {
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.scan-decisions button {
+  flex: 1;
+  border: 1.5px solid var(--scan-ink);
+  background: #fff;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.65rem 0.4rem;
+  cursor: pointer;
+}
+
+.scan-decisions button.picked {
+  background: var(--scan-lime);
+}
+
+.scan-decisions button:disabled:not(.picked) {
+  opacity: 0.45;
+}
+
+.scan-done {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--scan-muted);
+}
+
+.scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.9rem;
+}
+
+.scan-shutter,
+.scan-secondary {
+  font: inherit;
+  font-weight: 700;
+  border: 1.5px solid var(--scan-ink);
+  cursor: pointer;
+  padding: 0.75rem 1.25rem;
+}
+
+.scan-shutter {
+  background: var(--scan-lime);
+  min-width: 10rem;
+}
+
+.scan-secondary {
+  background: transparent;
+}
+
+.scan-file {
+  display: none;
+}
+
+.scan-a2hs {
+  margin-top: 0.85rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--scan-muted);
+  line-height: 1.35;
+}
+
+.scan-email-gate {
+  border: 1.5px solid var(--scan-ink);
+  background: #fff;
+  padding: 0.85rem 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.scan-email-title {
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.25rem;
+  margin-bottom: 0.2rem;
+}
+
+.scan-email-body {
+  font-size: 0.88rem;
+  color: var(--scan-muted);
+  margin-bottom: 0.65rem;
+  line-height: 1.35;
+}
+
+.scan-email-form {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.scan-email-input {
+  flex: 1;
+  min-width: 10rem;
+  border: 1.5px solid var(--scan-ink);
+  font: inherit;
+  padding: 0.65rem 0.7rem;
+  background: #fff;
+}
+
+.scan-email-skip {
+  margin-top: 0.45rem;
+  width: 100%;
+}
+
+.scan-share-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+.yom-hp {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (min-width: 720px) {
+  .scan-page {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}

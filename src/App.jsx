@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import sneakerImg from './assets/product-sneaker.webp'
 import shirtImg from './assets/product-shirt.webp'
 import cardiganImg from './assets/product-cardigan.webp'
@@ -8,6 +8,8 @@ import tankImg from './assets/product-tank.jpg'
 import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE.webp'
 import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Authentic.jpg'
 import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8.jpg'
+import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
+import { captureLead } from './lib/capture-lead.js'
 import './App.css'
 
 const NAV = [
@@ -20,16 +22,37 @@ function App() {
   const [waitlistOpen, setWaitlistOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [waitlistBusy, setWaitlistBusy] = useState(false)
+  const [waitlistErr, setWaitlistErr] = useState('')
+
+  useEffect(() => {
+    const acq = captureAcquisitionFromUrl()
+    track('landing_viewed', { path: '/' })
+    if (acq.qr) track('qr_scanned', { path: '/' })
+  }, [])
 
   const closeModal = () => {
     setWaitlistOpen(false)
     setEmail('')
     setSubmitted(false)
+    setWaitlistErr('')
+    setWaitlistBusy(false)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (email) setSubmitted(true)
+    if (!email) return
+    setWaitlistBusy(true)
+    setWaitlistErr('')
+    track('signup_started', { channel: 'waitlist' })
+    const res = await captureLead({ email, channel: 'waitlist', path: '/' })
+    setWaitlistBusy(false)
+    if (!res.ok && !res.fallback) {
+      setWaitlistErr(res.error || 'could not save — try again.')
+      return
+    }
+    track('signup_completed', { channel: 'waitlist', allowlisted: res.allowlisted })
+    setSubmitted(true)
   }
 
   return (
@@ -121,13 +144,19 @@ function App() {
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
+                    disabled={waitlistBusy}
                   />
-                  <button type="submit" className="waitlist-cta">join →</button>
+                  <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
+                  <button type="submit" className="waitlist-cta" disabled={waitlistBusy}>
+                    {waitlistBusy ? 'saving…' : 'join →'}
+                  </button>
                 </form>
+                {waitlistErr && <p className="waitlist-body" style={{ color: '#8b1e1e' }}>{waitlistErr}</p>}
                 <div className="waitlist-nudge">
                   <p>don&rsquo;t forget — take yom on a shopping trip too. that&rsquo;s how yom actually learns about you.</p>
                   <Link to="/survey" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
                   <Link to="/beta" className="waitlist-trip-link" onClick={closeModal}>already in beta? log in →</Link>
+                  <Link to="/scan" className="waitlist-trip-link" onClick={closeModal}>scan a piece on your phone →</Link>
                 </div>
               </>
             ) : (

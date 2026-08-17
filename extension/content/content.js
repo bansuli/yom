@@ -1,6 +1,6 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.31") return;
-  window.__YOM_BUILD__ = "1.1.31";
+  if (window.__YOM_BUILD__ === "1.1.32") return;
+  window.__YOM_BUILD__ = "1.1.32";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
@@ -172,6 +172,20 @@
     if (live.preBuy) state.preBuy = live.preBuy;
     if (live.keepLean) state.keepLean = live.keepLean;
     if (live.read) state.read = live.read;
+    if (live.userId && live.userId !== "yom-ban") {
+      try {
+        chrome.runtime.sendMessage({
+          type: "YOM_IDENTIFY",
+          userId: live.userId,
+          traits: {
+            email: liveAccount?.user?.email || liveAccount?.profile?.email,
+            name: live.name || liveAccount?.profile?.name,
+          },
+        });
+      } catch {
+        /* ignore */
+      }
+    }
     const remote = liveAccount?.profile?.saved;
     if (Array.isArray(remote)) {
       state.saved = state.saved || [];
@@ -1177,6 +1191,28 @@
     }
   }
 
+  function trackEvent(event, properties = {}) {
+    try {
+      chrome.runtime.sendMessage({ type: "YOM_TRACK", event, properties });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function productAnalyticsProps(info = {}, extra = {}) {
+    const rec = productRecord(info);
+    return {
+      product_id: rec.product_key || info.href || info.name || "",
+      brand: rec.brand || shopBrand(info) || "",
+      sku: info.sku || info.id || "",
+      price: Number(info.price) || Number(rec.price) || 0,
+      category: kindOf(info) || rec.kind || "",
+      retailer: location.hostname,
+      input_method: extra.input_method || "link",
+      ...extra,
+    };
+  }
+
   function rememberOutcome(action, info, extra = {}) {
     try {
       chrome.runtime.sendMessage({
@@ -1185,6 +1221,18 @@
       });
     } catch {
       /* ignore */
+    }
+    if (action === "buy" || action === "skip" || action === "save") {
+      trackEvent("user_decision_recorded", productAnalyticsProps(info, { decision: action, ...extra }));
+    }
+    if (action === "buy") {
+      trackEvent("purchase_recorded", productAnalyticsProps(info, { decision: action }));
+    }
+    if (action === "returned") {
+      trackEvent("return_recorded", productAnalyticsProps(info, { decision: action }));
+    }
+    if (action === "kept") {
+      trackEvent("kept_recorded", productAnalyticsProps(info, { decision: action }));
     }
   }
 
@@ -1884,6 +1932,11 @@
       type: "YOM_SESSION",
       session: { mode, purpose, budget, spent: state.spent || 0 },
     });
+    trackEvent("shopping_session_started", {
+      mode: mode || "",
+      purpose: purpose || "",
+      budget: budget == null ? null : Number(budget),
+    });
     if (mode !== "sos") sosMin = false;
     if (mode === "sos") runSos();
     else whisper(welcomeTip());
@@ -2371,6 +2424,14 @@
       )
     );
     rememberTake(info, brief, /check/i.test(kicker || "") ? "check" : "pdp");
+    trackEvent(
+      "yom_verdict_viewed",
+      productAnalyticsProps(info, {
+        verdict: brief?.resolve || brief?.title || "",
+        regret: brief?.regret,
+        input_method: /check/i.test(kicker || "") ? "check" : "pdp",
+      })
+    );
   }
 
   function firstVisibleProduct() {
@@ -2599,6 +2660,10 @@
     const pageKey = location.pathname;
     state.checking = true;
     saveState();
+    trackEvent(
+      "product_check_started",
+      productAnalyticsProps(info, { input_method: "check" })
+    );
 
     const stages = checkStages(info);
     const sourceStrip = stages.map((s, idx) => ({
@@ -2656,6 +2721,14 @@
     if (location.pathname !== pageKey) return;
     const brief = researchBrief(info);
     paintChecked(info, brief, "yom · checked");
+    trackEvent(
+      "product_check_completed",
+      productAnalyticsProps(info, {
+        input_method: "check",
+        verdict: brief?.resolve || brief?.title || "",
+        regret: brief?.regret,
+      })
+    );
     if (isDemoSite()) return;
     advise("check", info).then((advice) => {
       if (!advice || advice.quiet || location.pathname !== pageKey) return;

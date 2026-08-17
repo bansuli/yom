@@ -2,6 +2,13 @@ import { useState, useRef, useEffect } from 'react'
 import './App.css'
 import './Survey.css'
 import { saveSurvey, surveyPayload } from './lib/survey-store.js'
+import {
+  ONBOARDING_VERSION,
+  captureAcquisitionFromUrl,
+  signupAcquisitionPayload,
+  track,
+} from './lib/analytics.js'
+import { captureLead } from './lib/capture-lead.js'
 const modules = import.meta.glob('./assets/outfit-*.{jpg,webp,png}', { eager: true })
 const OUTFITS = Object.values(modules).map(m => m.default).slice(0, 6)
 
@@ -410,6 +417,24 @@ export default function Survey() {
   const link6DebounceRef = useRef(null)
   const suggTimerRef = useRef(null)
   const sugg6TimerRef = useRef(null)
+  const creationStarted = useRef(false)
+  const lastOnboardingStep = useRef(null)
+
+  useEffect(() => {
+    const acq = captureAcquisitionFromUrl()
+    track('landing_viewed', { path: '/survey' })
+    if (acq.qr) track('qr_scanned', { path: '/survey' })
+    if (!creationStarted.current) {
+      creationStarted.current = true
+      track('yom_creation_started', { onboarding_version: ONBOARDING_VERSION })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!step || step === lastOnboardingStep.current) return
+    lastOnboardingStep.current = step
+    track('onboarding_answered', { step, onboarding_version: ONBOARDING_VERSION })
+  }, [step])
 
   useEffect(() => {
     if (step !== 'analyzing') return
@@ -434,6 +459,7 @@ export default function Survey() {
       q6whySelected,
       read: getPersonalRead(selectedTrait, selectedPreBuy),
       headline: TRAIT_INSIGHTS[selectedTrait]?.badge || '',
+      ...signupAcquisitionPayload(),
     }))
   }, [step, userName, email, selectedTrait, selectedPreBuy, q4item, q4whySelected, q6item, q6whySelected])
 
@@ -755,11 +781,42 @@ export default function Survey() {
                 placeholder="your email..."
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && isValidEmail(email)) setStep('teaser') }}
+                onKeyDown={async e => {
+                  if (e.key === 'Enter' && isValidEmail(email)) {
+                    track('signup_started', { channel: 'survey' })
+                    const res = await captureLead({
+                      email,
+                      name: userName,
+                      channel: 'survey',
+                      path: '/survey',
+                    })
+                    if (res.ok || res.fallback) {
+                      track('signup_completed', { channel: 'survey', allowlisted: res.allowlisted })
+                    }
+                    setStep('teaser')
+                  }
+                }}
                 autoFocus
               />
               {isValidEmail(email) && (
-                <button className="trait-card q4-done" onClick={() => setStep('teaser')}>join the waitlist →</button>
+                <button
+                  className="trait-card q4-done"
+                  onClick={async () => {
+                    track('signup_started', { channel: 'survey' })
+                    const res = await captureLead({
+                      email,
+                      name: userName,
+                      channel: 'survey',
+                      path: '/survey',
+                    })
+                    if (res.ok || res.fallback) {
+                      track('signup_completed', { channel: 'survey', allowlisted: res.allowlisted })
+                    }
+                    setStep('teaser')
+                  }}
+                >
+                  join the waitlist →
+                </button>
               )}
             </div>
             <p className="email-beta-note">we're still in beta. join the list and you'll be the first to know when yom is ready for you.</p>
@@ -814,7 +871,10 @@ export default function Survey() {
             <div className="results-signoff">
               <p className="results-signoff-main">see you when we launch.</p>
               <p className="results-signoff-sub">we'll remember all of this — create your account so it lives on your yom.</p>
-              <a href="/beta" className="results-home-link">keep this on your yom →</a>
+              <a href="/create" className="results-home-link">keep this on your yom →</a>
+              <a href="/scan" className="results-home-link" style={{ display: 'block', marginTop: '0.65rem' }}>
+                or scan a piece on your phone →
+              </a>
             </div>
 
           </div>

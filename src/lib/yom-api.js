@@ -96,3 +96,25 @@ export function yomGoogleEvents(token) {
 export function yomGoogleDisconnect(token) {
   return post("/api/google/disconnect", {}, token);
 }
+
+export function yomScan(body, token) {
+  return post("/api/yom-scan", body, token);
+}
+
+export function yomCaptureLead(body) {
+  return post("/api/leads", body);
+}
+
+export function yomScanVisit(body) {
+  return post("/api/scan-visit", body);
+}
+
+export function yomShare(body) {
+  return post("/api/share", body);
+}
+
+export function yomGetShare(id, anonId) {
+  const q = new URLSearchParams({ id });
+  if (anonId) q.set("anon_id", anonId);
+  return get(`/api/share?${q}`);
+}

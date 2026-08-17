@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "yom",
-  "version": "1.1.31",
+  "version": "1.1.32",
   "description": "yom shopping companion \u2014 only on clothing / fashion shops.",
   "action": {
     "default_title": "yom",
@@ -18,7 +18,8 @@
     "128": "icons/icon128.png"
   },
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "permissions": [
     "tabs",
@@ -28,6 +29,9 @@
   "host_permissions": [
     "https://youryom.com/*",
     "https://www.youryom.com/*",
+    "https://*.posthog.com/*",
+    "https://us.i.posthog.com/*",
+    "https://eu.i.posthog.com/*",
     "*://*.thereformation.com/*",
     "*://*.aritzia.com/*",
     "*://*.zara.com/*",

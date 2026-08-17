@@ -53,6 +53,22 @@ Redeploy after saving.
 
 Until these env vars exist, `/beta` and the extension keep the hardcoded demo. Reformation still works.
 
+## Analytics (PostHog + acquisition)
+
+See [`../docs/ANALYTICS.md`](../docs/ANALYTICS.md). Run `analytics.sql`, set `VITE_PUBLIC_POSTHOG_*` on Vercel, paste the same key into `extension/analytics-config.js`.
+
+## Leads + scan visitors (auto allowlist)
+
+See [`leads.sql`](./leads.sql). Run it in Supabase.
+
+- Homepage waitlist, survey email, and `/scan` email → `leads` **and** `allowlist` automatically
+- Every `/scan` open → `scan_visitors` (by `anon_id`), even without email
+- They can create an account on `/beta` immediately — no manual allowlist for Cohort 1
+
+## Shares + scan checks
+
+See [`shares.sql`](./shares.sql). Enables `/s/:id` friend votes and persists every scan check.
+
 ## Google Calendar + Gmail
 
 See [`GOOGLE.md`](./GOOGLE.md). Run `google.sql`, set `GOOGLE_CLIENT_*` on Vercel, then **connect google** on `/beta`.

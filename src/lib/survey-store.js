@@ -43,6 +43,15 @@ export function surveyPayload({
   q6whySelected,
   read,
   headline,
+  acquisition_source,
+  acquisition_campaign,
+  activation_date,
+  utm_source,
+  utm_medium,
+  utm_campaign,
+  referrer_user_id,
+  first_surface,
+  onboarding_version,
 }) {
   const closet = [];
   const loved = itemName(q4item);
@@ -74,6 +83,15 @@ export function surveyPayload({
     read: read || "",
     headline: headline || "",
     closet,
+    acquisition_source: acquisition_source || undefined,
+    acquisition_campaign: acquisition_campaign || undefined,
+    activation_date: activation_date || undefined,
+    utm_source: utm_source || undefined,
+    utm_medium: utm_medium || undefined,
+    utm_campaign: utm_campaign || undefined,
+    referrer_user_id: referrer_user_id || undefined,
+    first_surface: first_surface || undefined,
+    onboarding_version: onboarding_version || undefined,
   };
 }
 

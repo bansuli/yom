@@ -38,6 +38,14 @@ Profiles, closet, saves, takes, outcomes, and the beta allowlist live in Postgre
 3. Popup → log in (or create account if you're on the allowlist)
 4. If you're not logged in, Reformation still uses Ban's hardcoded demo
 
+## Analytics (PostHog)
+
+See [`../docs/ANALYTICS.md`](../docs/ANALYTICS.md).
+
+1. Put the same public PostHog project key in [`analytics-config.js`](./analytics-config.js)
+2. Reload the unpacked extension
+3. Cohort 1 events (`product_check_*`, `user_decision_recorded`, `shopping_session_started`, `extension_installed`) go through the background service worker
+
 Do not put `SUPABASE_SERVICE_ROLE_KEY` in the extension.
 
 ## Test another website
