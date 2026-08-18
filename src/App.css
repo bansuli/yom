@@ -1344,25 +1344,27 @@ a {
     display: none;
   }
 
-  /* Symmetric padding keeps the cluster optically centred instead of
-     sitting low on the screen. */
+  /* The nav and the two top stickers weight the upper half, so the cluster
+     is pushed just below the geometric centre to even the page out. */
   .hero-center {
-    padding: 7rem 1.25rem;
+    padding: 8.5rem 1.25rem 6.5rem;
   }
 
   .brand {
-    font-size: clamp(4rem, 21vw, 5.5rem);
+    font-size: clamp(4.2rem, 23vw, 6rem);
   }
 
+  /* Two balanced lines — one long line runs into the side collage. */
   .hero-line {
-    font-size: 1.15rem;
-    max-width: 17rem;
-    margin-top: 1.35rem;
-    margin-bottom: 1.6rem;
+    font-size: 1.12rem;
+    max-width: 16.5rem;
+    text-wrap: balance;
+    margin-top: 1.25rem;
+    margin-bottom: 1.5rem;
   }
 
   .cta {
-    padding: 0.9rem 2.25rem;
+    padding: 0.85rem 2.15rem;
     font-size: 1.05rem;
   }
 
@@ -1397,40 +1399,42 @@ a {
     display: none;
   }
 
-  /* Four stickers, one per corner, each clear of the nav, the centre
-     column and the beta pill. */
+  /* Four stickers, one per corner. On a phone the frame is narrow enough
+     that a big bleed reads as a mistake rather than a crop, so each piece
+     stays mostly on-screen; the bottom pair sits high enough to close the
+     gap under the CTA and to leave the beta pill its own corner. */
   .prod-cardigan {
-    left: -8%;
-    top: 17%;
-    width: 33vw;
-    max-width: 130px;
+    left: -4%;
+    top: 16%;
+    width: 32vw;
+    max-width: 142px;
     transform: rotate(-7deg);
   }
 
   .prod-sneaker {
     left: auto;
-    right: -4%;
+    right: -2%;
     top: 8%;
-    width: 34vw;
-    max-width: 140px;
+    width: 33vw;
+    max-width: 148px;
     transform: rotate(9deg);
   }
 
   .prod-pants {
-    left: -6%;
-    bottom: -2%;
-    width: 44vw;
-    max-width: 180px;
+    left: -3%;
+    bottom: 3%;
+    width: 40vw;
+    max-width: 175px;
     transform: rotate(8deg);
   }
 
   .prod-tabi {
     display: block;
     left: auto;
-    right: -4%;
-    bottom: 2%;
-    width: 39vw;
-    max-width: 160px;
+    right: -1%;
+    bottom: 10%;
+    width: 35vw;
+    max-width: 155px;
     transform: rotate(13deg);
   }
 
@@ -1438,9 +1442,9 @@ a {
      doesn't get a dense clump in one corner. */
   .hero::before {
     background-size: 11px 11px;
-    -webkit-mask-image: radial-gradient(ellipse 85% 55% at 50% 42%, black 5%, transparent 78%);
-    mask-image: radial-gradient(ellipse 85% 55% at 50% 42%, black 5%, transparent 78%);
-    opacity: 0.4;
+    -webkit-mask-image: radial-gradient(ellipse 88% 64% at 50% 40%, black 6%, transparent 82%);
+    mask-image: radial-gradient(ellipse 88% 64% at 50% 40%, black 6%, transparent 82%);
+    opacity: 0.34;
   }
 
   .url-bar {
@@ -1452,25 +1456,25 @@ a {
 /* Narrow phones — pull the collage further out of the way */
 @media (max-width: 380px) {
   .hero-center {
-    padding: 6rem 1rem;
+    padding: 7.5rem 1rem 5.5rem;
   }
 
   .hero-line {
     font-size: 1.05rem;
-    max-width: 15rem;
+    max-width: 17rem;
   }
 
   .prod-cardigan,
   .prod-sneaker {
-    max-width: 112px;
+    max-width: 108px;
   }
 
   .prod-pants {
-    max-width: 140px;
+    max-width: 132px;
   }
 
   .prod-tabi {
-    max-width: 128px;
+    max-width: 118px;
   }
 }
 
@@ -1479,7 +1483,7 @@ a {
    Scale it — and the cluster — down against the height instead. */
 @media (max-width: 640px) and (max-height: 700px) and (orientation: portrait) {
   .hero-center {
-    padding: 5.5rem 1.25rem;
+    padding: 6.5rem 1.25rem 5rem;
   }
 
   .brand {
@@ -1507,12 +1511,13 @@ a {
   }
 
   .prod-pants {
+    bottom: 2%;
     width: 32vw;
     max-width: 125px;
   }
 
   .prod-tabi {
-    bottom: 4%;
+    bottom: 11%;
     width: 28vw;
     max-width: 112px;
   }

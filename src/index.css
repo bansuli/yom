@@ -29,3 +29,14 @@ body,
   background: #fff;
   transform: rotate(4deg) scale(1.04);
 }
+
+/* On a phone the pill shares the bottom-right corner with the collage, so
+   keep it small and tuck it into the safe area. */
+@media (max-width: 640px) {
+  .beta-corner {
+    right: max(0.85rem, env(safe-area-inset-right, 0px));
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+    padding: 0.36rem 0.78rem;
+    font-size: 0.72rem;
+  }
+}
