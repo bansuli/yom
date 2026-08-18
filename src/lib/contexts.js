@@ -3,16 +3,16 @@ export const BERKELEY_FPR_CONTEXT_ID = "berkeley_fpr_2026";
 
 export const SHOPPING_CONTEXTS = [
   {
-    id: BERKELEY_FPR_CONTEXT_ID,
-    label: "uc berkeley sorority recruitment",
-    source: "berkeley_flyer",
-    campaign: "berkeley_fpr_2026",
-  },
-  {
     id: "general_shopping",
     label: "everyday shopping",
     source: "organic",
     campaign: "general_2026",
+  },
+  {
+    id: BERKELEY_FPR_CONTEXT_ID,
+    label: "uc berkeley sorority recruitment",
+    source: "berkeley_flyer",
+    campaign: "berkeley_fpr_2026",
   },
 ];
 

@@ -1,4 +1,5 @@
 import { bearer, json, preflight, readJson } from "../lib/http.js";
+import { mergeDetailsIntoVerdict } from "../lib/scan-details.js";
 import { accountFromToken } from "../lib/profile.js";
 import { supabaseConfigured } from "../lib/supabase.js";
 
@@ -23,6 +24,13 @@ identification (be specific, then guess):
 verdict — this is the product, not a caption:
 every take must change a buy decision and be anchored in something IN THE PHOTO (brand, style name, price, leather vs cork, strap, heel, lining, hangtag) or a close cousin they can compare.
 if brand/price are missing, say what it looks like and tell them to scan the tag. do not narrate the missing info.
+
+every clothing verdict MUST include style_notes with three concrete beats:
+- color: the color that reads in the photo + one styling note (e.g. "black — reads sharp, shows lint")
+- silhouette: the cut/silhouette in plain words (column slip, straight jean, ankle-strap wedge)
+- wear_with: one outfit combo or occasion ("with strappy sandals and a small bag for dinner")
+
+body should weave color + silhouette + how to wear it. never leave body empty or generic.
 
 NEVER write:
 - "versatile summer option"
@@ -71,7 +79,8 @@ return ONLY compact json:
     "title": string,
     "body": string,
     "resolve": string | null,
-    "decision_hint": "buy" | "skip" | "save" | null
+    "decision_hint": "buy" | "skip" | "save" | null,
+    "style_notes": { "color": string, "silhouette": string, "wear_with": string } | null
   }
 }
 
@@ -471,6 +480,10 @@ export default async function handler(req, res) {
     },
     similar,
     ocr: data.ocr || null,
-    verdict: usefulVerdict({ ...product, name, brand, guess }, similar, verdict),
+    verdict: mergeDetailsIntoVerdict(
+      { ...product, name, brand, guess },
+      usefulVerdict({ ...product, name, brand, guess }, similar, verdict),
+      verdict.style_notes || data.style_notes
+    ),
   });
 }

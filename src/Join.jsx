@@ -54,8 +54,13 @@ export default function Join() {
   const navigate = useNavigate();
   const search = window.location.search || "";
   const wantHome = params.get("home") === "1";
+  const fresh = params.get("fresh") === "1";
 
-  const [step, setStep] = useState(() => (isYomReady() ? "home" : "create"));
+  const [step, setStep] = useState(() => {
+    if (fresh) return "create";
+    if (isYomReady()) return "home";
+    return "create";
+  });
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
   const [contextId, setContextId] = useState(() => initialShoppingContext(search));
@@ -77,7 +82,7 @@ export default function Join() {
     startLeadFlush();
     recordScanVisit({ email: loadJoinEmail() || undefined, path: "/join", metadata: { funnel: "join" } });
 
-    if (isYomReady() && !wantHome) {
+    if (isYomReady() && !wantHome && !fresh) {
       const next = params.get("next");
       if (next && /^\/s\/[0-9a-f-]{36}$/i.test(next)) {
         navigate(next, { replace: true });
@@ -86,8 +91,10 @@ export default function Join() {
       }
     } else if (isYomReady() && wantHome) {
       setStep("home");
+    } else if (fresh) {
+      setStep("create");
     }
-  }, [params, navigate, search, wantHome]);
+  }, [params, navigate, search, wantHome, fresh]);
 
   const qs = (extra = {}) => {
     const q = new URLSearchParams(search);

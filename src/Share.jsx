@@ -31,6 +31,7 @@ export default function SharePage() {
 
   const createHref = useMemo(() => {
     const q = new URLSearchParams();
+    q.set("fresh", "1");
     q.set("ref", share?.sender_user_id || share?.sender_anon_id || "");
     if (shareId) q.set("share_id", shareId);
     q.set("campaign", share?.campaign || "reformation_monday");

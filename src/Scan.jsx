@@ -6,6 +6,7 @@ import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail, loadJoinProfile, saveLastCheck } from "./lib/join-store.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
+import { enrichScanTake } from "./lib/scan-details.js";
 import ShareChannels from "./components/ShareChannels.jsx";
 import "./Scan.css";
 
@@ -85,13 +86,13 @@ const GENERIC_TAKE =
   /versatile|weigh it against|style needs|budget and style|great option|timeless|must-have|without brand|without price|summer option|wardrobe staple|worth considering|could work|strong match|very you|good for your style|consider your|depends on your|a great addition|elevate your/i;
 
 function scrubTake(data) {
-  if (!data || typeof data !== "object") return data;
+  if (!data || typeof data !== "object") return enrichScanTake(data);
   const product = data.product || {};
   const verdict = data.verdict || {};
   const similar = similarPieces(data);
   const blob = `${verdict.title || ""} ${verdict.body || ""}`;
   const generic = GENERIC_TAKE.test(blob) || /option$/i.test(String(verdict.title || "").trim());
-  if (!generic) return data;
+  if (!generic) return enrichScanTake(data);
   const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
   const cousins = similar.map((s) => s.name).filter(Boolean).slice(0, 3);
   const next = product.brand
@@ -117,7 +118,7 @@ function scrubTake(data) {
         stamp: "id",
         quiet: false,
       };
-  return { ...data, verdict: next };
+  return enrichScanTake({ ...data, verdict: next });
 }
 
 function scanFailMessage(res, data) {
@@ -177,6 +178,7 @@ export default function Scan() {
   const [emailSaved, setEmailSaved] = useState(() => Boolean(loadSavedEmail()));
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
+  const [friendVotes, setFriendVotes] = useState([]);
   const [allowed, setAllowed] = useState(() => isYomReady() || Boolean(loadBetaSession()?.access_token));
   const [facing, setFacing] = useState("environment"); // environment = rear, user = front
 
@@ -238,6 +240,30 @@ export default function Scan() {
     startCam(facing);
   }, [allowed, phase]); // eslint-disable-line react-hooks/exhaustive-deps -- recapture when returning to camera
 
+  const activeShareId = shareUrl ? shareUrl.split("/").pop() : "";
+
+  useEffect(() => {
+    if (!activeShareId || !/^[0-9a-f-]{36}$/i.test(activeShareId)) return;
+    let cancelled = false;
+    const loadVotes = async () => {
+      try {
+        const res = await fetch(`/api/share?id=${encodeURIComponent(activeShareId)}`);
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && res.ok && data.ok) {
+          setFriendVotes(Array.isArray(data.votes) ? data.votes : []);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+    loadVotes();
+    const timer = window.setInterval(loadVotes, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [activeShareId]);
+
   const flipCam = async () => {
     const next = facing === "environment" ? "user" : "environment";
     setFacing(next);
@@ -291,6 +317,7 @@ export default function Scan() {
     setDecision(null);
     setErr("");
     setShareUrl("");
+    setFriendVotes([]);
     setPhase("live");
   };
 
@@ -371,7 +398,7 @@ export default function Scan() {
       yomShare({
         action: "save_check",
         anon_id: getAnonId(),
-        email: emailSaved ? email : undefined,
+        email: loadSavedEmail() || undefined,
         product: cleaned.product,
         verdict: cleaned.verdict,
         input_method: mode,
@@ -402,10 +429,12 @@ export default function Scan() {
       track("purchase_recorded", productProps(result.product, { decision: action, input_method: mode }));
     }
     const acq = loadAcquisition();
+    const savedEmail = loadSavedEmail();
+    const shareId = shareUrl ? shareUrl.split("/").pop() : undefined;
     yomShare({
       action: "save_check",
       anon_id: getAnonId(),
-      email: emailSaved ? email : undefined,
+      email: savedEmail || undefined,
       product: result.product,
       verdict: result.verdict,
       decision: action,
@@ -413,6 +442,7 @@ export default function Scan() {
       surface: getSurface(),
       source: acq.source,
       campaign: acq.campaign,
+      share_id: shareId && /^[0-9a-f-]{36}$/i.test(shareId) ? shareId : undefined,
     });
   };
 
@@ -621,6 +651,29 @@ export default function Scan() {
               or {cousins.map((item) => item.name).join(" · ")}
             </p>
           )}
+          {verdict.details?.length > 0 && (
+            <ul className="scan-details">
+              {verdict.details.map((row) => (
+                <li key={row.key}>
+                  <span className="scan-detail-label">{row.label}</span>
+                  <span className="scan-detail-text">{row.text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {friendVotes.length > 0 && (
+            <div className="scan-friend-votes">
+              <p className="scan-meta">friends said</p>
+              <ul>
+                {friendVotes.map((v, i) => (
+                  <li key={`${v.vote}-${v.created_at || i}`}>
+                    <strong>{v.vote}</strong>
+                    {v.reason ? ` — ${v.reason}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <p className="scan-ask">send this to friends — or keep scanning.</p>
           <button
             type="button"
@@ -687,7 +740,6 @@ export default function Scan() {
           ref={fileRef}
           type="file"
           accept="image/*"
-          capture="environment"
           className="scan-file"
           onChange={onFile}
         />
