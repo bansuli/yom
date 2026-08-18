@@ -29,20 +29,3 @@ body,
   background: #fff;
   transform: rotate(4deg) scale(1.04);
 }
-
-@media (max-width: 1400px) {
-  /* Bottom-right is taken by the collage on phones and tablets — centre the pill in the
-     gap between the two bottom stickers instead of sitting on top of one. */
-  .beta-corner {
-    left: 50%;
-    right: auto;
-    bottom: max(0.9rem, env(safe-area-inset-bottom, 0px));
-    padding: 0.36rem 0.85rem;
-    font-size: 0.72rem;
-    transform: translateX(-50%) rotate(4deg);
-  }
-
-  .beta-corner:hover {
-    transform: translateX(-50%) rotate(4deg) scale(1.04);
-  }
-}
