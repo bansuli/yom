@@ -23,6 +23,7 @@ import {
   getContextById,
   initialShoppingContext,
   isBerkeleyRecruitmentContext,
+  isOtherContext,
   RECRUITMENT_ROUNDS,
   SHOPPING_CONTEXTS,
 } from "./lib/contexts.js";
@@ -64,6 +65,7 @@ export default function Join() {
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
   const [contextId, setContextId] = useState(() => initialShoppingContext(search));
+  const [contextOther, setContextOther] = useState(() => loadJoinProfile().contextOther || "");
   const [roundId, setRoundId] = useState(() => {
     const profile = loadJoinProfile();
     return isBerkeleyRecruitmentContext(profile.context) ? profile.round || "" : "";
@@ -115,9 +117,18 @@ export default function Join() {
       setErr("need a real email.");
       return;
     }
+    if (!contextId) {
+      setErr("what are you shopping for?");
+      return;
+    }
+    if (isOtherContext(contextId) && !contextOther.trim()) {
+      setErr("tell us what you're shopping for.");
+      return;
+    }
     setErr("");
     const savedEmail = email.trim().toLowerCase();
     const savedName = name.trim();
+    const savedContextOther = isOtherContext(contextId) ? contextOther.trim() : "";
     const resolvedContextId = contextId || "general_shopping";
     const context = getContextById(resolvedContextId);
     const rushRound = isBerkeleyRecruitmentContext(context.id) ? roundId : "";
@@ -127,11 +138,13 @@ export default function Join() {
       trait: profile.trait || "",
       email: savedEmail,
       context: context.id,
+      contextOther: savedContextOther,
       round: rushRound,
     });
     const acqPatch = {
       shopping_context: context.id,
       recruitment_round: rushRound || null,
+      ...(savedContextOther ? { shopping_context_label: savedContextOther } : {}),
     };
     if (isBerkeleyRecruitmentContext(context.id)) {
       acqPatch.source = context.source;
@@ -140,6 +153,7 @@ export default function Join() {
     saveAcquisition(acqPatch);
     track("context_selected", {
       shopping_context: context.id,
+      ...(savedContextOther ? { shopping_context_label: savedContextOther } : {}),
       ...(rushRound ? { recruitment_round: rushRound } : {}),
     });
     track("signup_started", { channel: "join", path: "/join" });
@@ -153,6 +167,7 @@ export default function Join() {
       metadata: {
         anon_id: getAnonId(),
         shopping_context: context.id,
+        ...(savedContextOther ? { shopping_context_label: savedContextOther } : {}),
         ...(rushRound ? { recruitment_round: rushRound } : {}),
       },
     });
@@ -164,6 +179,7 @@ export default function Join() {
           email: savedEmail,
           trait: profile.trait || "",
           context: context.id,
+          contextOther: savedContextOther,
           round: rushRound,
           preBuy: "",
           read: "",
@@ -226,24 +242,42 @@ export default function Join() {
               autoComplete="email"
               required
             />
-            <p className="join-label" style={{ marginTop: "0.9rem" }}>
+            <label className="join-label" htmlFor="join-context">
               what are you shopping for right now?
-            </p>
-            <div className="join-traits">
+            </label>
+            <select
+              id="join-context"
+              className="scan-email-input"
+              value={contextId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setContextId(next);
+                if (!isBerkeleyRecruitmentContext(next)) setRoundId("");
+                if (!isOtherContext(next)) setContextOther("");
+              }}
+            >
+              <option value="">select one</option>
               {SHOPPING_CONTEXTS.map((ctx) => (
-                <button
-                  key={ctx.id}
-                  type="button"
-                  className={contextId === ctx.id ? "on" : ""}
-                  onClick={() => {
-                    setContextId(ctx.id);
-                    if (!isBerkeleyRecruitmentContext(ctx.id)) setRoundId("");
-                  }}
-                >
+                <option key={ctx.id} value={ctx.id}>
                   {ctx.label}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
+            {isOtherContext(contextId) && (
+              <>
+                <label className="join-label" htmlFor="join-context-other">
+                  what is it?
+                </label>
+                <input
+                  id="join-context-other"
+                  className="scan-email-input"
+                  placeholder="e.g. wedding guest, internship wardrobe"
+                  value={contextOther}
+                  onChange={(e) => setContextOther(e.target.value)}
+                  required
+                />
+              </>
+            )}
             {isBerkeleyRecruitmentContext(contextId) && (
               <>
                 <label className="join-label" htmlFor="join-round">
@@ -288,6 +322,9 @@ export default function Join() {
             <p className="join-profile-tag">
               uc berkeley sorority recruitment{profile.round ? ` · ${profile.round.replaceAll("_", " ")}` : ""}
             </p>
+          )}
+          {isOtherContext(profile.context) && profile.contextOther && (
+            <p className="join-profile-tag">{profile.contextOther}</p>
           )}
           {traitLabel && <p className="join-profile-tag">{traitLabel}</p>}
           {last?.verdict?.title && (

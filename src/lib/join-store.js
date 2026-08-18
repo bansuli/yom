@@ -39,6 +39,7 @@ export function saveJoinProfile({
   trait = "",
   email = "",
   context = "general_shopping",
+  contextOther = "",
   round = "",
 } = {}) {
   try {
@@ -51,6 +52,7 @@ export function saveJoinProfile({
           .trim()
           .toLowerCase(),
         context: String(context || "general_shopping").trim(),
+        contextOther: String(contextOther || "").trim(),
         round: String(round || "").trim(),
         savedAt: Date.now(),
       })
@@ -78,13 +80,14 @@ export function loadJoinProfile() {
         trait: survey.trait || "",
         email: survey.email || loadJoinEmail(),
         context: survey.context || "general_shopping",
+        contextOther: survey.contextOther || "",
         round: survey.round || "",
       };
     }
   } catch {
     /* ignore */
   }
-  return { name: "", trait: "", email: loadJoinEmail(), context: "general_shopping", round: "" };
+  return { name: "", trait: "", email: loadJoinEmail(), context: "general_shopping", contextOther: "", round: "" };
 }
 
 export const LAST_CHECK_KEY = "yom_last_check";
