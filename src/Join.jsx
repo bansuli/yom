@@ -18,6 +18,14 @@ import {
   saveJoinEmail,
   saveJoinProfile,
 } from "./lib/join-store.js";
+import {
+  BERKELEY_FPR_CONTEXT_ID,
+  getContextById,
+  initialShoppingContext,
+  isBerkeleyRecruitmentContext,
+  RECRUITMENT_ROUNDS,
+  SHOPPING_CONTEXTS,
+} from "./lib/contexts.js";
 import "./Scan.css";
 import "./Share.css";
 
@@ -50,6 +58,11 @@ export default function Join() {
   const [step, setStep] = useState(() => (isYomReady() ? "home" : "create"));
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
+  const [contextId, setContextId] = useState(() => initialShoppingContext(search));
+  const [roundId, setRoundId] = useState(() => {
+    const profile = loadJoinProfile();
+    return isBerkeleyRecruitmentContext(profile.context) ? profile.round || "" : "";
+  });
   const [err, setErr] = useState("");
   const profile = loadJoinProfile();
   const traitLabel = TRAITS.find((t) => t.id === profile.trait)?.label;
@@ -98,8 +111,30 @@ export default function Join() {
     setErr("");
     const savedEmail = email.trim().toLowerCase();
     const savedName = name.trim();
+    const resolvedContextId = contextId || "general_shopping";
+    const context = getContextById(resolvedContextId);
+    const rushRound = isBerkeleyRecruitmentContext(context.id) ? roundId : "";
     saveJoinEmail(savedEmail);
-    saveJoinProfile({ name: savedName, trait: profile.trait || "", email: savedEmail });
+    saveJoinProfile({
+      name: savedName,
+      trait: profile.trait || "",
+      email: savedEmail,
+      context: context.id,
+      round: rushRound,
+    });
+    const acqPatch = {
+      shopping_context: context.id,
+      recruitment_round: rushRound || null,
+    };
+    if (isBerkeleyRecruitmentContext(context.id)) {
+      acqPatch.source = context.source;
+      acqPatch.campaign = context.campaign;
+    }
+    saveAcquisition(acqPatch);
+    track("context_selected", {
+      shopping_context: context.id,
+      ...(rushRound ? { recruitment_round: rushRound } : {}),
+    });
     track("signup_started", { channel: "join", path: "/join" });
     track("signup_completed", { channel: "join" });
     track("yom_creation_started", { path: "/join", onboarding_version: ONBOARDING_VERSION });
@@ -108,7 +143,11 @@ export default function Join() {
       name: savedName,
       channel: "join_create",
       path: "/join",
-      metadata: { anon_id: getAnonId() },
+      metadata: {
+        anon_id: getAnonId(),
+        shopping_context: context.id,
+        ...(rushRound ? { recruitment_round: rushRound } : {}),
+      },
     });
     try {
       localStorage.setItem(
@@ -117,6 +156,8 @@ export default function Join() {
           name: savedName,
           email: savedEmail,
           trait: profile.trait || "",
+          context: context.id,
+          round: rushRound,
           preBuy: "",
           read: "",
           headline: "",
@@ -150,7 +191,7 @@ export default function Join() {
       {step === "create" && (
         <section className="share-card">
           <h1>create your yom.</h1>
-          <p className="scan-body">name + email — then the camera.</p>
+          <p className="scan-body">it gets to know you and gives you a second opinion on everything you buy.</p>
           <form className="scan-email-form" onSubmit={createYom} style={{ marginTop: "1rem", flexDirection: "column" }}>
             <label className="join-label" htmlFor="join-name">
               your name
@@ -178,6 +219,53 @@ export default function Join() {
               autoComplete="email"
               required
             />
+            <p className="join-label" style={{ marginTop: "0.9rem" }}>
+              what are you shopping for right now?
+            </p>
+            <div className="join-traits">
+              {SHOPPING_CONTEXTS.map((ctx) => (
+                <button
+                  key={ctx.id}
+                  type="button"
+                  className={contextId === ctx.id ? "on" : ""}
+                  onClick={() => {
+                    setContextId(ctx.id);
+                    if (!isBerkeleyRecruitmentContext(ctx.id)) setRoundId("");
+                  }}
+                >
+                  {ctx.label}
+                </button>
+              ))}
+            </div>
+            {isBerkeleyRecruitmentContext(contextId) && (
+              <>
+                <label className="join-label" htmlFor="join-round">
+                  which round are you planning first?
+                </label>
+                <select
+                  id="join-round"
+                  className="scan-email-input"
+                  value={roundId}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setRoundId(next);
+                    if (next) {
+                      track("round_selected", {
+                        shopping_context: BERKELEY_FPR_CONTEXT_ID,
+                        recruitment_round: next,
+                      });
+                    }
+                  }}
+                >
+                  <option value="">select a round (optional)</option>
+                  {RECRUITMENT_ROUNDS.map((round) => (
+                    <option key={round.id} value={round.id}>
+                      {round.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
             <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
             <button type="submit" className="scan-shutter" style={{ marginTop: "0.35rem", width: "100%" }}>
               create my yom →
@@ -189,6 +277,11 @@ export default function Join() {
       {step === "home" && (
         <section className="share-card join-profile">
           <h1>{(firstNameOf(profile.name || name) || "you")}’s yom</h1>
+          {isBerkeleyRecruitmentContext(profile.context) && (
+            <p className="join-profile-tag">
+              uc berkeley sorority recruitment{profile.round ? ` · ${profile.round.replaceAll("_", " ")}` : ""}
+            </p>
+          )}
           {traitLabel && <p className="join-profile-tag">{traitLabel}</p>}
           {last?.verdict?.title && (
             <div className="join-last">

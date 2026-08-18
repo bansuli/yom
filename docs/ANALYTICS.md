@@ -25,6 +25,19 @@ Also capture when present: `utm_source`, `utm_medium`, `utm_campaign`, `ref` / `
 
 `onboarding_version` = `cohort1_survey_v1`.
 
+## Berkeley Recruitment context (new)
+
+Recruitment is tracked as **shopping context**, not a separate account type.
+
+- `shopping_context`: `berkeley_fpr_2026` (or `general_shopping`)
+- `recruitment_round`: `orientation` | `unity_day` | `sisterhood_day` | `philanthropy_day` | `preference` | `bid_day`
+- Recommended QR params: `?campaign=berkeley_fpr_2026&source=berkeley_flyer&context=berkeley_fpr_2026` (pre-selects the option; user must still tap it or submit with it selected)
+- `shopping_context` and `recruitment_round` are set **only when the user explicitly chooses** UC Berkeley sorority recruitment in `/join` — not from URL alone
+
+Key events added for this transition:
+- `context_selected`
+- `round_selected` (when round is explicitly chosen)
+
 ## Retention
 
 - Do **not** fire `week_N_retained`.

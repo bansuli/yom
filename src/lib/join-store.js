@@ -34,7 +34,13 @@ export function markYomReady() {
   }
 }
 
-export function saveJoinProfile({ name = "", trait = "", email = "" } = {}) {
+export function saveJoinProfile({
+  name = "",
+  trait = "",
+  email = "",
+  context = "general_shopping",
+  round = "",
+} = {}) {
   try {
     localStorage.setItem(
       YOM_PROFILE_KEY,
@@ -44,6 +50,8 @@ export function saveJoinProfile({ name = "", trait = "", email = "" } = {}) {
         email: String(email || loadJoinEmail() || "")
           .trim()
           .toLowerCase(),
+        context: String(context || "general_shopping").trim(),
+        round: String(round || "").trim(),
         savedAt: Date.now(),
       })
     );
@@ -69,12 +77,14 @@ export function loadJoinProfile() {
         name: survey.name || "",
         trait: survey.trait || "",
         email: survey.email || loadJoinEmail(),
+        context: survey.context || "general_shopping",
+        round: survey.round || "",
       };
     }
   } catch {
     /* ignore */
   }
-  return { name: "", trait: "", email: loadJoinEmail() };
+  return { name: "", trait: "", email: loadJoinEmail(), context: "general_shopping", round: "" };
 }
 
 export const LAST_CHECK_KEY = "yom_last_check";
