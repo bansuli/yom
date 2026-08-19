@@ -24,11 +24,14 @@ create table if not exists public.share_votes (
   id uuid primary key default gen_random_uuid(),
   share_id uuid not null references public.shares (id) on delete cascade,
   voter_anon_id text,
+  voter_name text,
   voter_email text,
   vote text not null,
   reason text,
   created_at timestamptz default now()
 );
+
+alter table public.share_votes add column if not exists voter_name text;
 
 create index if not exists share_votes_share_id_idx on public.share_votes (share_id);
 

@@ -242,6 +242,18 @@
   background: #c8f060;
 }
 
+.join-round-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: #5a5a5a;
+  line-height: 1.35;
+}
+
+.join-round-hint a {
+  color: inherit;
+  font-weight: 600;
+}
+
 .join-last {
   display: flex;
   align-items: center;

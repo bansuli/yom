@@ -107,6 +107,7 @@ export function saveLastCheck(check = {}) {
         similar: Array.isArray(check.similar) ? check.similar.slice(0, 4) : [],
         preview,
         mode: check.mode === "tag" ? "tag" : "photo",
+        share_id: check.share_id ? String(check.share_id).slice(0, 36) : "",
         at: check.at || Date.now(),
       })
     );

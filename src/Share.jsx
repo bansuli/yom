@@ -7,6 +7,7 @@ import {
   saveAcquisition,
   track,
 } from "./lib/analytics.js";
+import { loadVoterName, saveVoterName } from "./lib/share-votes.js";
 import "./Scan.css";
 import "./Share.css";
 
@@ -24,6 +25,7 @@ export default function SharePage() {
   const [loading, setLoading] = useState(true);
   const [share, setShare] = useState(null);
   const [err, setErr] = useState("");
+  const [voterName, setVoterName] = useState(() => loadVoterName());
   const [vote, setVote] = useState(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -88,14 +90,21 @@ export default function SharePage() {
 
   const submitVote = async (choice) => {
     if (done || busy) return;
+    const name = voterName.trim();
+    if (!name) {
+      setErr("what’s your name?");
+      return;
+    }
     setVote(choice);
     setBusy(true);
     setErr("");
+    saveVoterName(name);
     track("vote_submitted", {
       share_id: shareId,
       vote: choice,
       surface: getSurface(),
       sender_user_id: share?.sender_user_id,
+      voter_name: name,
     });
 
     const res = await fetch("/api/share", {
@@ -105,6 +114,7 @@ export default function SharePage() {
         action: "vote",
         share_id: shareId,
         vote: choice,
+        voter_name: name,
         voter_anon_id: getAnonId(),
       }),
     }).then((r) => r.json().catch(() => ({})));
@@ -145,6 +155,18 @@ export default function SharePage() {
           {!done && (
             <section className="share-card">
               <h1>{who} wants your opinion</h1>
+              <label className="join-label" htmlFor="share-voter-name">
+                your name
+              </label>
+              <input
+                id="share-voter-name"
+                className="scan-email-input"
+                placeholder="name"
+                value={voterName}
+                onChange={(e) => setVoterName(e.target.value)}
+                autoComplete="given-name"
+                required
+              />
               <div className="share-split">
                 <button
                   type="button"

@@ -1,96 +1,14 @@
 import { bearer, json, preflight, readJson } from "../lib/http.js";
 import { mergeDetailsIntoVerdict } from "../lib/scan-details.js";
+import { buildScanSystemPrompt, buildScanUserPrompt, defaultRetailer, humanizeVerdictText } from "../lib/scan-brain.js";
+import { RUSH_PARROT } from "../lib/berkeley-rush.js";
 import { accountFromToken } from "../lib/profile.js";
 import { supabaseConfigured } from "../lib/supabase.js";
 
 export const config = { maxDuration: 60 };
 
-const SYSTEM = `You are yom, a shopping companion. the user photographed a clothing item or a price tag (in-store, at home, or a product screenshot). studio shots and screenshots on white / light backgrounds are valid.
-
-today's context: this is often a reformation sample sale. default to identifying reformation when the piece or tag matches their language — do not wait for a perfect logo.
-
-treat input_method as the category they chose:
-- photo = they pointed at the piece. identify the garment. still read any tag in frame.
-- tag = they pointed at a price tag / hangtag / care label. read brand, style name, price, size, sku, fabric first, then name the garment.
-
-identification (be specific, then guess):
-1. read every bit of text in the photo: brand, style name, sku, size, price, fiber.
-2. if it is reformation — hangtag that says reformation / ref / made for reformation, their cream/black tag, style-name tags (mason, nikita, gavin, juliette, frankie, ojai, cindy, altina, kourtney, linnea, atkins, jackie, gellar, beatrix, bondi, marlowe, sandi, veronique), viscose/bias slip, vintage-inspired column, linen set — set brand to "reformation". name the closest style. identified=true.
-3. other readable brands (agolde, ganni, staud, khaite, the row, levis, etc.) — set product.brand to that name, lowercase.
-4. if you cannot read a brand but the cut is clearly reformation, still set brand "reformation" and put the closest style in name. identified can be true at confidence 0.45+.
-5. never leave product.name empty. never use "this piece" if clothing is visible. name = color + silhouette + garment, plus style name when you have one.
-6. similar[] = 2–4 close styles (other reformation names or the same silhouette at another brand). no invented prices.
-
-verdict — this is the product, not a caption:
-every take must change a buy decision and be anchored in something IN THE PHOTO (brand, style name, price, leather vs cork, strap, heel, lining, hangtag) or a close cousin they can compare.
-if brand/price are missing, say what it looks like and tell them to scan the tag. do not narrate the missing info.
-
-every clothing verdict MUST include style_notes with three concrete beats:
-- color: the color that reads in the photo + one styling note (e.g. "black — reads sharp, shows lint")
-- silhouette: the cut/silhouette in plain words (column slip, straight jean, ankle-strap wedge)
-- wear_with: one outfit combo or occasion ("with strappy sandals and a small bag for dinner")
-
-body should weave color + silhouette + how to wear it. never leave body empty or generic.
-
-NEVER write:
-- "versatile summer option"
-- "weigh it against your budget and style needs"
-- "without brand or price details"
-- "timeless" / "wardrobe staple" / "great option" / "consider your style"
-- anything that would still make sense for a different shoe or dress
-- customer-service hedging
-
-BAD:
-title: "this red wedge sandal is a versatile summer option"
-body: "without brand or price details, weigh it against your budget and style needs."
-
-GOOD:
-title: "red wedge — no brand on this shot"
-body: "ankle-strap leather wedge. closest: reformation wedge, ancient greek sandals. scan the insole or hangtag."
-
-GOOD:
-title: "walk in these"
-body: "that wedge looks steep and the strap sits low. cork showing through the sole will mark."
-
-title = the takeaway (short). body = the evidence. lowercase. no emoji. no hype.
-
-return ONLY compact json:
-{
-  "product": {
-    "name": string,
-    "brand": string | null,
-    "price": number | null,
-    "currency": "USD",
-    "category": string | null,
-    "color": string | null,
-    "sku": string | null,
-    "size_label": string | null,
-    "retailer": string | null,
-    "confidence": number,
-    "identified": boolean,
-    "guess": string
-  },
-  "similar": [{ "name": string, "why": string | null }],
-  "ocr": { "price_text": string | null, "brand_text": string | null, "other": string | null },
-  "verdict": {
-    "quiet": boolean,
-    "stamp": string | null,
-    "kind": "love" | "warn" | "neutral",
-    "title": string,
-    "body": string,
-    "resolve": string | null,
-    "decision_hint": "buy" | "skip" | "save" | null,
-    "style_notes": { "color": string, "silhouette": string, "wear_with": string } | null
-  }
-}
-
-rules:
-- confidence 0–1 for the exact style, not whether clothes are visible
-- identified=true when you have a brand, even if the style name is a best match
-- price as a number when visible; null if unknown — never invent a price
-- product.brand lowercase. title and body lowercase.
-- if not clothing/fashion, quiet=true, similar=[], explain briefly
-`;
+const OPENAI_SCAN_MODEL = process.env.OPENAI_SCAN_MODEL || "gpt-4o";
+const ANTHROPIC_SCAN_MODEL = process.env.ANTHROPIC_SCAN_MODEL || "claude-sonnet-4-5";
 
 function parseJson(text) {
   if (!text) return null;
@@ -215,12 +133,14 @@ function salvageScan(parsed) {
 }
 
 const GENERIC_VERDICT =
-  /versatile|weigh it against|style needs|budget and style|great option|timeless|must-have|without brand|without price|summer option|wardrobe staple|worth considering|could work|strong match|very you|good for your style|consider your|depends on your|a great addition|elevate your/i;
+  /versatile|weigh it against|style needs|budget and style|great option|timeless|must-have|without brand|without price|summer option|wardrobe staple|worth considering|could work|strong match|very you|good for your style|consider your|depends on your|a great addition|elevate your|great for recruitment|many rounds/i;
 
-function usefulVerdict(product, similar, verdict = {}) {
+function usefulVerdict(product, similar, verdict = {}, context = {}) {
   const title = String(verdict.title || "").toLowerCase().trim();
   const body = String(verdict.body || "").toLowerCase().trim();
-  const generic = GENERIC_VERDICT.test(`${title} ${body}`) || /option$/.test(title);
+  const parrot = RUSH_PARROT.test(`${title} ${body}`);
+  const generic =
+    GENERIC_VERDICT.test(`${title} ${body}`) || /option$/.test(title) || parrot;
   const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
   const cousins = (similar || []).map((s) => s.name).filter(Boolean).slice(0, 3);
   if (!generic && title && !/^this /.test(title)) {
@@ -228,9 +148,9 @@ function usefulVerdict(product, similar, verdict = {}) {
       quiet: Boolean(verdict.quiet),
       stamp: verdict.stamp || "id",
       kind: verdict.kind || "neutral",
-      title,
-      body,
-      resolve: verdict.resolve ? String(verdict.resolve).toLowerCase() : null,
+      title: humanizeVerdictText(title),
+      body: humanizeVerdictText(body),
+      resolve: verdict.resolve ? humanizeVerdictText(String(verdict.resolve).toLowerCase()) : null,
       decision_hint: verdict.decision_hint || null,
     };
   }
@@ -260,6 +180,25 @@ function usefulVerdict(product, similar, verdict = {}) {
   };
 }
 
+function normalizeGarmentName(name, category) {
+  let n = asText(name, 90).toLowerCase();
+  const cat = asText(category, 40).toLowerCase();
+  const hasType =
+    /\b(dress|top|blouse|shirt|tank|cami|skirt|pants|jeans|shorts|sandals|heels|boots|sneakers|blazer|jacket|coat|sweater|cardigan|bag)\b/.test(
+      n
+    );
+  if (!hasType && cat && !n.includes(cat)) {
+    n = n ? `${n} ${cat}` : cat;
+  }
+  if (/\bslip\b/.test(n) && !/\b(dress|top|cami|skirt)\b/.test(n)) {
+    if (cat.includes("dress")) n = `${n} dress`.replace(/\s+/g, " ").trim();
+    else if (cat.includes("top") || cat.includes("cami") || cat.includes("blouse")) {
+      n = `${n} top`.replace(/\s+/g, " ").trim();
+    } else if (cat.includes("skirt")) n = `${n} skirt`.replace(/\s+/g, " ").trim();
+  }
+  return n;
+}
+
 function normalizeImage(image) {
   const raw = String(image || "").trim();
   if (!raw) return null;
@@ -269,6 +208,8 @@ function normalizeImage(image) {
 }
 
 async function callOpenAIVision(key, imageUrl, context) {
+  const system = buildScanSystemPrompt(context);
+  const userText = buildScanUserPrompt(context);
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -276,36 +217,16 @@ async function callOpenAIVision(key, imageUrl, context) {
       authorization: `Bearer ${key}`,
     },
     body: JSON.stringify({
-      model: "gpt-4o",
+      model: OPENAI_SCAN_MODEL,
       temperature: 0.2,
-      max_tokens: 1100,
+      max_tokens: 1200,
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: SYSTEM },
+        { role: "system", content: system },
         {
           role: "user",
           content: [
-            {
-              type: "text",
-              text: [
-                context.input_method === "tag"
-                  ? "input_method: tag — this photo is a PRICE TAG / label. read brand, product name, price, size, sku, fabric. then name the garment."
-                  : "input_method: photo — this photo is the GARMENT itself. still read a tag if one is in frame.",
-                `surface: ${context.surface || "mobile_web"}`,
-                context.note ? `user_note: ${context.note}` : null,
-                context.memory ? `memory: ${String(context.memory).slice(0, 600)}` : "memory: none",
-                context.trait ? `shopper lean: ${context.trait}` : null,
-                context.campaign ? `campaign: ${context.campaign}` : null,
-                context.source ? `venue: ${context.source}` : "venue: reformation sample sale",
-                "this is likely a reformation sample sale. name the brand and closest style. if it looks like reformation, say so.",
-                context.input_method === "tag"
-                  ? "This photo is a PRICE TAG. Read the tag, then identify the garment."
-                  : "This photo is the GARMENT. Identify the piece.",
-                "Identify the garment/tag. If you cannot name the exact product, still guess what it is and list similar pieces. Then give a yom verdict.",
-              ]
-                .filter(Boolean)
-                .join("\n"),
-            },
+            { type: "text", text: userText },
             { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
           ],
         },
@@ -328,6 +249,8 @@ async function callAnthropicVision(key, imageUrl, context) {
   if (!match) return { ok: false, error: "anthropic scan needs a data URL image" };
   const mediaType = match[1];
   const data = match[2];
+  const system = buildScanSystemPrompt(context);
+  const userText = buildScanUserPrompt(context);
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -336,32 +259,15 @@ async function callAnthropicVision(key, imageUrl, context) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-5",
-      max_tokens: 1100,
+      model: ANTHROPIC_SCAN_MODEL,
+      max_tokens: 1200,
       temperature: 0.2,
-      system: SYSTEM,
+      system,
       messages: [
         {
           role: "user",
           content: [
-            {
-              type: "text",
-              text: [
-                context.input_method === "tag"
-                  ? "input_method: tag — this photo is a PRICE TAG / label. read brand, product name, price, size, sku, fabric. then name the garment."
-                  : "input_method: photo — this photo is the GARMENT itself. still read a tag if one is in frame.",
-                `surface: ${context.surface || "mobile_web"}`,
-                context.note ? `user_note: ${context.note}` : null,
-                context.memory ? `memory: ${String(context.memory).slice(0, 600)}` : "memory: none",
-                context.trait ? `shopper lean: ${context.trait}` : null,
-                context.campaign ? `campaign: ${context.campaign}` : "campaign: reformation_monday",
-                context.source ? `venue: ${context.source}` : "venue: reformation sample sale",
-                "this is likely a reformation sample sale. name the brand and closest style.",
-                "identify the garment/tag as json only. if you cannot name the exact product, still guess and list similar pieces.",
-              ]
-                .filter(Boolean)
-                .join("\n"),
-            },
+            { type: "text", text: userText },
             {
               type: "image",
               source: { type: "base64", media_type: mediaType, data },
@@ -413,12 +319,25 @@ export default async function handler(req, res) {
     return;
   }
 
+  const acq = {
+    campaign: body.campaign || "reformation_monday",
+    source: body.source || "reformation_sample_sale",
+    shopping_context: body.shopping_context || "",
+    recruitment_round: body.recruitment_round || "",
+    shopping_context_label: body.shopping_context_label || "",
+  };
+
   const context = {
     input_method: body.input_method === "tag" ? "tag" : "photo",
     surface: body.surface || "mobile_web",
     note: body.note || "",
-    campaign: body.campaign || "reformation_monday",
-    source: body.source || "reformation_sample_sale",
+    campaign: acq.campaign,
+    source: acq.source,
+    shopping_context: acq.shopping_context,
+    recruitment_round: acq.recruitment_round,
+    shopping_context_label: acq.shopping_context_label,
+    shopper_name: body.shopper_name || "",
+    scan_memory: body.scan_memory || "",
     trait: body.trait || "",
     memory: "",
     read: "",
@@ -431,6 +350,11 @@ export default async function handler(req, res) {
       context.memory = account.profile.memory || "";
       context.read = account.profile.read || "";
     }
+  }
+  if (!context.memory && context.scan_memory) {
+    context.memory = `recent scans: ${context.scan_memory}`;
+  } else if (context.memory && context.scan_memory) {
+    context.memory = `${context.memory} recent scans: ${context.scan_memory}`;
   }
 
   let result = null;
@@ -447,7 +371,8 @@ export default async function handler(req, res) {
   const data = salvageScan(result.data) || result.data;
   const product = data.product || {};
   const verdict = data.verdict || {};
-  const name = visualName(product).toLowerCase();
+  const category = product.category ? String(product.category).toLowerCase() : null;
+  const name = normalizeGarmentName(visualName(product), category);
   const brand = asText(product.brand, 60).toLowerCase() || null;
   const identified =
     typeof product.identified === "boolean"
@@ -468,11 +393,11 @@ export default async function handler(req, res) {
       brand,
       price: typeof product.price === "number" ? product.price : null,
       currency: product.currency || "USD",
-      category: product.category ? String(product.category).toLowerCase() : null,
+      category,
       color: product.color ? String(product.color).toLowerCase() : null,
       sku: product.sku || null,
       size_label: product.size_label || null,
-      retailer: product.retailer ? String(product.retailer).toLowerCase() : "reformation sample sale",
+      retailer: defaultRetailer(context, product.retailer),
       confidence: typeof product.confidence === "number" ? product.confidence : null,
       identified,
       guess: guess || null,
@@ -482,7 +407,7 @@ export default async function handler(req, res) {
     ocr: data.ocr || null,
     verdict: mergeDetailsIntoVerdict(
       { ...product, name, brand, guess },
-      usefulVerdict({ ...product, name, brand, guess }, similar, verdict),
+      usefulVerdict({ ...product, name, brand, guess }, similar, verdict, context),
       verdict.style_notes || data.style_notes
     ),
   });

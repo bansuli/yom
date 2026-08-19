@@ -26,6 +26,7 @@ import {
   isOtherContext,
   RECRUITMENT_ROUNDS,
   SHOPPING_CONTEXTS,
+  PHC_PINTEREST_URL,
 } from "./lib/contexts.js";
 import "./Scan.css";
 import "./Share.css";
@@ -305,6 +306,16 @@ export default function Join() {
                     </option>
                   ))}
                 </select>
+                {roundId && RECRUITMENT_ROUNDS.find((r) => r.id === roundId)?.hint && (
+                  <p className="join-round-hint">
+                    {RECRUITMENT_ROUNDS.find((r) => r.id === roundId).hint}
+                  </p>
+                )}
+                <p className="join-round-hint">
+                  <a href={PHC_PINTEREST_URL} target="_blank" rel="noreferrer">
+                    PHC outfit inspo on pinterest →
+                  </a>
+                </p>
               </>
             )}
             <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />

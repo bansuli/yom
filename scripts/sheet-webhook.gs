@@ -80,7 +80,7 @@ const TABLES = {
     "opens_count",
     "votes_count",
   ],
-  share_votes: ["at", "share_id", "vote", "reason", "voter_email", "voter_anon_id"],
+  share_votes: ["at", "share_id", "vote", "reason", "voter_name", "voter_email", "voter_anon_id"],
 };
 
 function ok(obj) {
@@ -92,6 +92,37 @@ function ok(obj) {
 function authorize_(secret) {
   if (SECRET && secret !== SECRET) return false;
   return true;
+}
+
+function getVotesForShare_(shareId) {
+  var sh = ensureSheet_("share_votes");
+  if (!sh || !shareId) return [];
+  var data = sh.getDataRange().getValues();
+  if (!data.length) return [];
+  var headers = data[0].map(String);
+  var shareCol = headers.indexOf("share_id");
+  var voteCol = headers.indexOf("vote");
+  var reasonCol = headers.indexOf("reason");
+  var nameCol = headers.indexOf("voter_name");
+  var emailCol = headers.indexOf("voter_email");
+  var atCol = headers.indexOf("at");
+  var votes = [];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][shareCol]) !== String(shareId)) continue;
+    votes.push({
+      vote: voteCol >= 0 ? String(data[i][voteCol] || "") : "",
+      reason: reasonCol >= 0 ? String(data[i][reasonCol] || "") || null : null,
+      voter_name: nameCol >= 0 ? String(data[i][nameCol] || "") || null : null,
+      voter_email: emailCol >= 0 ? String(data[i][emailCol] || "") || null : null,
+      created_at: atCol >= 0 ? data[i][atCol] : null,
+    });
+  }
+  votes.sort(function (a, b) {
+    var ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    var tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
+  return votes.slice(0, 40);
 }
 
 function getPhotoFolder_() {
@@ -218,7 +249,7 @@ function doGet(e) {
           sh.getRange(i + 1, opensCol + 1).setValue(n + 1);
           row.opens_count = n + 1;
         }
-        return ok({ ok: true, share: row, votes: [] });
+        return ok({ ok: true, share: row, votes: getVotesForShare_(id) });
       }
     }
     return ok({ ok: false, error: "share not found" });

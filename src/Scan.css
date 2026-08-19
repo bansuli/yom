@@ -278,6 +278,16 @@
   text-transform: lowercase;
 }
 
+.scan-friend-vote {
+  font-weight: 600;
+}
+
+.scan-friend-wait {
+  margin: 0.2rem 0 0;
+  font-size: 0.88rem;
+  color: var(--scan-muted);
+}
+
 .scan-meta {
   font-size: 0.8rem;
   color: var(--scan-muted);

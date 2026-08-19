@@ -3,7 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, track } from "./lib/analytics.js";
 import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
-import { isYomReady, loadJoinEmail, loadJoinProfile, saveLastCheck } from "./lib/join-store.js";
+import { isYomReady, loadJoinEmail, loadJoinProfile, loadLastCheck, saveLastCheck } from "./lib/join-store.js";
+import { voterDisplayName } from "./lib/share-votes.js";
+import { appendScanHistory, formatScanHistoryForPrompt } from "./lib/scan-history.js";
 import { loadBetaSession, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
@@ -242,6 +244,33 @@ export default function Scan() {
 
   const activeShareId = shareUrl ? shareUrl.split("/").pop() : "";
 
+  const persistShareId = (id) => {
+    try {
+      sessionStorage.setItem("yom_active_share_id", id);
+    } catch {
+      /* ignore */
+    }
+    const last = loadLastCheck();
+    if (last) saveLastCheck({ ...last, share_id: id });
+  };
+
+  useEffect(() => {
+    if (phase !== "result") return;
+    if (shareUrl) return;
+    try {
+      const stored = sessionStorage.getItem("yom_active_share_id");
+      const id =
+        stored && /^[0-9a-f-]{36}$/i.test(stored)
+          ? stored
+          : loadLastCheck()?.share_id && /^[0-9a-f-]{36}$/i.test(loadLastCheck().share_id)
+            ? loadLastCheck().share_id
+            : "";
+      if (id) setShareUrl(`${window.location.origin}/s/${id}`);
+    } catch {
+      /* ignore */
+    }
+  }, [phase, shareUrl]);
+
   useEffect(() => {
     if (!activeShareId || !/^[0-9a-f-]{36}$/i.test(activeShareId)) return;
     let cancelled = false;
@@ -318,6 +347,11 @@ export default function Scan() {
     setErr("");
     setShareUrl("");
     setFriendVotes([]);
+    try {
+      sessionStorage.removeItem("yom_active_share_id");
+    } catch {
+      /* ignore */
+    }
     setPhase("live");
   };
 
@@ -347,6 +381,8 @@ export default function Scan() {
     });
 
     const session = loadBetaSession();
+    const joinProfile = loadJoinProfile();
+    const acq = loadAcquisition();
     try {
       const res = await fetch("/api/yom-scan", {
         method: "POST",
@@ -358,9 +394,14 @@ export default function Scan() {
           image: shot,
           input_method: mode,
           surface: getSurface(),
-          campaign: loadAcquisition().campaign,
-          source: loadAcquisition().source,
-          trait: loadJoinProfile().trait || "",
+          campaign: acq.campaign,
+          source: acq.source,
+          shopping_context: joinProfile.context || acq.shopping_context || "",
+          recruitment_round: joinProfile.round || acq.recruitment_round || "",
+          shopping_context_label: joinProfile.contextOther || "",
+          shopper_name: joinProfile.name || "",
+          trait: joinProfile.trait || "",
+          scan_memory: formatScanHistoryForPrompt(),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -380,6 +421,11 @@ export default function Scan() {
         similar: cleaned.similar || cleaned.product?.similar,
         preview: sheetThumb || shot,
         mode,
+      });
+      appendScanHistory({
+        product: cleaned.product,
+        verdict: cleaned.verdict,
+        round: joinProfile.round || acq.recruitment_round || "",
       });
       const props = productProps(cleaned.product, {
         input_method: mode,
@@ -429,8 +475,15 @@ export default function Scan() {
       track("purchase_recorded", productProps(result.product, { decision: action, input_method: mode }));
     }
     const acq = loadAcquisition();
+    const joinProfile = loadJoinProfile();
     const savedEmail = loadSavedEmail();
     const shareId = shareUrl ? shareUrl.split("/").pop() : undefined;
+    appendScanHistory({
+      product: result.product,
+      verdict: result.verdict,
+      decision: action,
+      round: joinProfile.round || acq.recruitment_round || "",
+    });
     yomShare({
       action: "save_check",
       anon_id: getAnonId(),
@@ -454,6 +507,7 @@ export default function Scan() {
     const id = /^[0-9a-f-]{36}$/i.test(existingId) ? existingId : newShareId();
     const url = `${window.location.origin}/s/${id}`;
     setShareUrl(url);
+    persistShareId(id);
 
     if (preview) {
       try {
@@ -661,19 +715,6 @@ export default function Scan() {
               ))}
             </ul>
           )}
-          {friendVotes.length > 0 && (
-            <div className="scan-friend-votes">
-              <p className="scan-meta">friends said</p>
-              <ul>
-                {friendVotes.map((v, i) => (
-                  <li key={`${v.vote}-${v.created_at || i}`}>
-                    <strong>{v.vote}</strong>
-                    {v.reason ? ` — ${v.reason}` : ""}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
           <p className="scan-ask">send this to friends — or keep scanning.</p>
           <button
             type="button"
@@ -696,6 +737,24 @@ export default function Scan() {
               surface={getSurface()}
               label="or send via"
             />
+          )}
+          {shareUrl && (
+            <div className="scan-friend-votes">
+              <p className="scan-meta">friends said</p>
+              {friendVotes.length === 0 ? (
+                <p className="scan-friend-wait">waiting on friends…</p>
+              ) : (
+                <ul>
+                  {friendVotes.map((v, i) => (
+                    <li key={`${v.voter_name || v.voter_email || "v"}-${v.vote}-${v.created_at || i}`}>
+                      <strong>{voterDisplayName(v)}</strong>
+                      <span className="scan-friend-vote"> · {v.vote}</span>
+                      {v.reason ? ` — ${v.reason}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
           <p className="scan-ask scan-ask-self">your call</p>
           <div className="scan-decisions">
