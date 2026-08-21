@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import YomNav, { PnmPeople } from "./components/YomNav.jsx";
-import { LINEUP_DAYS } from "./lib/contexts.js";
+import { LINEUP_DAYS, LINEUP_PIECES, pieceLabel } from "./lib/contexts.js";
 import { loadJoinProfile, unlockIfTest } from "./lib/join-store.js";
 import {
   addLookToLineup,
@@ -10,6 +10,7 @@ import {
   loadLooks,
   loadPublicState,
   pipelinePayload,
+  removePieceFromDay,
   savePublicState,
 } from "./lib/pipeline-store.js";
 import { yomLineup } from "./lib/yom-api.js";
@@ -22,6 +23,7 @@ export default function Lineup() {
   const [pub, setPub] = useState(() => loadPublicState());
   const [modal, setModal] = useState("");
   const [assignDay, setAssignDay] = useState("");
+  const [assignSlot, setAssignSlot] = useState("top");
   const [busy, setBusy] = useState(false);
   const closet = useMemo(() => closetLooks(), [slots]);
   const ready = unlockIfTest();
@@ -79,33 +81,47 @@ export default function Lineup() {
 
       <div className="pnm-timeline">
         {slots.map((day) => (
-          <article key={day.id} className={`pnm-day${day.look ? " has-look" : ""}`}>
+          <article key={day.id} className={`pnm-day${day.pieces?.length ? " has-look" : ""}`}>
             <div className="pnm-day-date">
               <b>{day.weekday}</b>
               <span>{day.dateNum}</span>
             </div>
-            <div className="pnm-day-card">
-              {day.look?.preview ? (
-                <div className="pnm-thumb">
-                  <img src={day.look.preview} alt="" />
-                </div>
-              ) : (
-                <div className="pnm-thumb empty hanger" aria-hidden="true" />
-              )}
+            <div className="pnm-day-card is-pieces">
               <div>
+                <div className="pnm-piece-row">
+                  {day.pieces?.length ? (
+                    day.pieces.map((piece) => (
+                      <figure key={`${piece.lookId}-${piece.slot}`} className="pnm-piece">
+                        {piece.look?.preview ? (
+                          <img src={piece.look.preview} alt="" />
+                        ) : (
+                          <div className="pnm-thumb empty hanger" aria-hidden="true" />
+                        )}
+                        <figcaption>{pieceLabel(piece.slot)}</figcaption>
+                        <button
+                          type="button"
+                          className="pnm-piece-x"
+                          aria-label={`remove ${pieceLabel(piece.slot)}`}
+                          onClick={() => {
+                            removePieceFromDay(day.id, piece.lookId);
+                            refresh();
+                          }}
+                        >
+                          ×
+                        </button>
+                      </figure>
+                    ))
+                  ) : (
+                    <div className="pnm-thumb empty hanger" aria-hidden="true" />
+                  )}
+                </div>
                 <h3>{day.label}</h3>
-                {day.look ? (
-                  <>
-                    <p>your look</p>
-                    {day.look.score != null ? (
-                      <p className="pnm-day-score">
-                        <i />
-                        {Number(day.look.score).toFixed(1)}/10
-                      </p>
-                    ) : null}
-                  </>
+                {day.pieces?.length ? (
+                  <p>
+                    {day.pieces.length} piece{day.pieces.length === 1 ? "" : "s"}
+                  </p>
                 ) : (
-                  <p>no look yet</p>
+                  <p>no pieces yet</p>
                 )}
               </div>
               <button
@@ -113,10 +129,11 @@ export default function Lineup() {
                 className="pnm-edit-look"
                 onClick={() => {
                   setAssignDay(day.id);
+                  setAssignSlot("top");
                   setModal("assign");
                 }}
               >
-                {day.look ? "✎ edit look" : "+ add a look"}
+                + add a piece
               </button>
             </div>
           </article>
@@ -194,11 +211,23 @@ export default function Lineup() {
         <div className="pnm-modal-scrim" onClick={() => setModal("")}>
           <div className="pnm-modal" onClick={(e) => e.stopPropagation()}>
             <h2 className="pnm-title" style={{ marginTop: 0, fontSize: "1.45rem" }}>
-              pick a look
+              add a piece
             </h2>
             <p className="pnm-sub">{LINEUP_DAYS.find((d) => d.id === assignDay)?.label}</p>
+            <div className="pnm-chips">
+              {LINEUP_PIECES.map((piece) => (
+                <button
+                  key={piece.id}
+                  type="button"
+                  className={`pnm-chip${assignSlot === piece.id ? " on" : ""}`}
+                  onClick={() => setAssignSlot(piece.id)}
+                >
+                  {piece.label}
+                </button>
+              ))}
+            </div>
             {closet.length === 0 && loadLooks().length === 0 ? (
-              <p className="pnm-sub">show yom an outfit first.</p>
+              <p className="pnm-sub">show yom a piece first.</p>
             ) : (
               <div className="pnm-pick">
                 {(closet.length ? closet : loadLooks()).map((look) => (
@@ -206,7 +235,7 @@ export default function Lineup() {
                     key={look.id}
                     type="button"
                     onClick={() => {
-                      addLookToLineup(look, assignDay);
+                      addLookToLineup(look, assignDay, assignSlot);
                       refresh();
                       setModal("");
                     }}
@@ -216,11 +245,15 @@ export default function Lineup() {
                 ))}
               </div>
             )}
-            <button type="button" className="pnm-cta" onClick={() => navigate(`/scan?day=${assignDay}`)}>
-              show yom a new outfit →
+            <button
+              type="button"
+              className="pnm-cta"
+              onClick={() => navigate(`/scan?day=${assignDay}`)}
+            >
+              show yom a new piece →
             </button>
             <button type="button" className="pnm-ghost" onClick={() => setModal("")}>
-              cancel
+              never mind
             </button>
           </div>
         </div>

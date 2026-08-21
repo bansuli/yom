@@ -73,7 +73,7 @@ export const LINEUP_DAYS = [
     id: "unity_day_1",
     round: "unity_day",
     label: "unity day 1",
-    wear: "unity",
+    wear: "unity day 1",
     chip: "unity 1",
     weekday: "thu",
     dateNum: "27",
@@ -85,7 +85,7 @@ export const LINEUP_DAYS = [
     id: "unity_day_2",
     round: "unity_day",
     label: "unity day 2",
-    wear: "unity",
+    wear: "unity day 2",
     chip: "unity 2",
     weekday: "fri",
     dateNum: "28",
@@ -136,14 +136,28 @@ export const EVERYONE_FILTERS = [
   ...LINEUP_DAYS.map((day) => ({ id: day.id, label: day.chip })),
 ];
 
-export const CLOSET_CATEGORIES = [
-  { id: "all", label: "all items" },
-  { id: "tops", label: "tops" },
-  { id: "skirts", label: "skirts" },
-  { id: "dresses", label: "dresses" },
-  { id: "bottoms", label: "bottoms" },
-  { id: "athletic", label: "athletic" },
+export const LINEUP_PIECES = [
+  { id: "dress", label: "dress" },
+  { id: "top", label: "top" },
+  { id: "bottom", label: "skirt / pants" },
+  { id: "shoes", label: "shoes" },
+  { id: "jewelry", label: "jewelry" },
+  { id: "bag", label: "bag" },
 ];
+
+export function pieceSlotFor(look = {}) {
+  const hay = `${look.product?.category || ""} ${look.product?.name || ""} ${look.title || ""} ${look.note || ""}`.toLowerCase();
+  if (/jewel|earring|necklace|bracelet|ring|hoop/.test(hay)) return "jewelry";
+  if (/shoe|sandal|heel|boot|sneaker|mule|loafer|flat/.test(hay)) return "shoes";
+  if (/bag|purse|tote|clutch|mini bag/.test(hay)) return "bag";
+  if (/dress|gown|romper|jumpsuit/.test(hay)) return "dress";
+  if (/skirt|pant|jean|short|trouser|legging|bottom/.test(hay)) return "bottom";
+  return "top";
+}
+
+export function pieceLabel(slot) {
+  return LINEUP_PIECES.find((piece) => piece.id === slot)?.label || slot || "piece";
+}
 
 export function closetCategoryFor(look = {}) {
   const hay = `${look.product?.category || ""} ${look.product?.name || ""} ${look.title || ""}`.toLowerCase();
@@ -163,14 +177,20 @@ export function roundLabel(roundId) {
 }
 
 export function wearLabel(roundId) {
-  const day = LINEUP_DAYS.find((d) => d.round === roundId || d.id === roundId);
+  const day = LINEUP_DAYS.find((d) => d.id === roundId || (d.round === roundId && d.round !== "unity_day"));
   if (day?.wear) return day.wear;
+  if (roundId === "unity_day") return "unity";
   const label = roundLabel(roundId);
-  return String(label || "sisterhood").replace(/\s+day.*$/i, "") || "sisterhood";
+  return String(label || "recruitment").replace(/\s+day.*$/i, "") || "recruitment";
 }
 
 export function guessDayForRound(roundId) {
-  return LINEUP_DAYS.find((d) => d.id === roundId || d.round === roundId) || null;
+  const id = String(roundId || "").trim();
+  if (!id) return null;
+  const exact = LINEUP_DAYS.find((d) => d.id === id);
+  if (exact) return exact;
+  if (id === "unity_day") return null;
+  return LINEUP_DAYS.find((d) => d.round === id) || null;
 }
 
 export const PHC_PINTEREST_URL = "https://pin.it/5slpgAzHQ";

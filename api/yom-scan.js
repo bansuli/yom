@@ -4,6 +4,7 @@ import { buildScanSystemPrompt, buildScanUserPrompt, defaultRetailer, humanizeVe
 import { RUSH_PARROT } from "../lib/berkeley-rush.js";
 import { loadStylistContext } from "../lib/google-context.js";
 import { fetchImageAsDataUrl, fetchLinkPreview } from "../lib/link-preview.js";
+import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "../lib/product-link.js";
 import { accountFromToken } from "../lib/profile.js";
 import { supabaseConfigured } from "../lib/supabase.js";
 
@@ -137,7 +138,16 @@ function salvageScan(parsed) {
 const GENERIC_VERDICT =
   /versatile|weigh it against|style needs|budget and style|great option|timeless|must-have|without brand|without price|summer option|wardrobe staple|worth considering|could work|strong match|very you|good for your style|consider your|depends on your|a great addition|elevate your|great for recruitment|many rounds/i;
 
-const ROUNDS = new Set(["orientation", "unity_day", "sisterhood_day", "philanthropy_day", "preference", "bid_day"]);
+const ROUNDS = new Set([
+  "orientation",
+  "unity_day",
+  "unity_day_1",
+  "unity_day_2",
+  "sisterhood_day",
+  "philanthropy_day",
+  "preference",
+  "bid_day",
+]);
 
 function analysisFields(verdict = {}, context = {}) {
   const scoreRaw = Number(verdict.score);
@@ -345,22 +355,31 @@ export default async function handler(req, res) {
 
   const body = readJson(req);
   let imageUrl = normalizeImage(body.image);
-  let sourceUrl = String(body.link || body.source_url || "").trim();
-  const note = String(body.note || "").trim();
+  let sourceUrl = cleanProductUrl(body.link || body.source_url || "");
+  let note = String(body.note || "").trim();
   const methodHint = String(body.input_method || "").trim();
 
   if (!imageUrl && sourceUrl) {
+    imageUrl = normalizeImage(guessListingImage(sourceUrl));
     const preview = await fetchLinkPreview(sourceUrl);
-    if (preview.ok && preview.image) {
+    if (preview.ok) {
       sourceUrl = preview.url || sourceUrl;
-      imageUrl = (await fetchImageAsDataUrl(preview.image)) || normalizeImage(preview.image);
-      if (preview.title && !note) body.note = preview.title;
+      if (preview.image) {
+        imageUrl = (await fetchImageAsDataUrl(preview.image)) || normalizeImage(preview.image) || imageUrl;
+      }
+      if (preview.title && !note) note = preview.title;
     }
+    if (!note) note = noteFromProductUrl(sourceUrl);
   }
 
   const textOnly = Boolean(!imageUrl && note);
   if (!imageUrl && !textOnly) {
-    json(res, 400, { ok: false, error: "image, link, or a description required" });
+    json(res, 400, {
+      ok: false,
+      error: sourceUrl
+        ? "couldn’t open that store page — try a screenshot or describe the piece."
+        : "need a photo, a store link, or a description.",
+    });
     return;
   }
   if (imageUrl && imageUrl.length > 6_500_000) {
@@ -387,7 +406,7 @@ export default async function handler(req, res) {
   const context = {
     input_method: inputMethod,
     surface: body.surface || "mobile_web",
-    note: body.note || "",
+    note: note || body.note || "",
     campaign: acq.campaign,
     source: acq.source,
     shopping_context: acq.shopping_context,

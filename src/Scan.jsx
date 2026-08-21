@@ -9,8 +9,9 @@ import { loadBetaSession, yomLineup, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
-import { LINEUP_DAYS, wearLabel } from "./lib/contexts.js";
+import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel } from "./lib/contexts.js";
 import { addLookToLineup, lookFromScan, pipelinePayload, upsertLook } from "./lib/pipeline-store.js";
+import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
 import "./Scan.css";
 import "./Pipeline.css";
 
@@ -45,20 +46,24 @@ function compressImage(fileOrBlob, maxEdge = 1400, quality = 0.82) {
 /** Smaller JPEG for Google Sheet / Drive (keeps webhook under size limits). */
 function thumbForSheet(dataUrl, maxEdge = 720, quality = 0.55) {
   return new Promise((resolve) => {
-    if (!dataUrl) {
+    if (!dataUrl || !String(dataUrl).startsWith("data:image/")) {
       resolve("");
       return;
     }
     const img = new Image();
     img.onload = () => {
-      const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
-      const w = Math.max(1, Math.round(img.width * scale));
-      const h = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-      resolve(canvas.toDataURL("image/jpeg", quality));
+      try {
+        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      } catch {
+        resolve("");
+      }
     };
     img.onerror = () => resolve("");
     img.src = dataUrl;
@@ -130,8 +135,12 @@ function scanFailMessage(res, data) {
   if (res.status === 413) return "photo is too heavy — crop closer and try again.";
   if (res.status === 503) return "yom’s brain is warming up — try again in a moment.";
   if (res.status === 404 || res.status === 405) return "couldn’t reach yom — check your connection.";
-  if (res.status === 504 || res.status === 502) return "couldn’t read that photo — try again.";
-  return "couldn’t read that photo — try a clearer shot of the piece.";
+  if (res.status === 504 || res.status === 502) return "couldn’t read that — try again.";
+  return "couldn’t read that — try a clearer photo, another link, or a shorter description.";
+}
+
+function asHttpLink(raw) {
+  return cleanProductUrl(raw);
 }
 
 function loadSavedEmail() {
@@ -172,7 +181,15 @@ export default function Scan() {
   const [progress, setProgress] = useState(12);
   const [closetSaved, setClosetSaved] = useState(false);
   const [pickDay, setPickDay] = useState(() => params.get("day") || "");
+  const [pickSlot, setPickSlot] = useState("");
   const [lookId, setLookId] = useState("");
+
+  useEffect(() => {
+    if (!result) return;
+    const guessed = guessDayForRound(result.verdict?.round);
+    setPickDay((prev) => prev || guessed?.id || "");
+    setPickSlot((prev) => prev || pieceSlotFor({ product: result.product, title: result.product?.name, note }));
+  }, [result, note]);
 
   useEffect(() => {
     const search = window.location.search || "";
@@ -367,6 +384,7 @@ export default function Scan() {
     setFriendVotes([]);
     setClosetSaved(false);
     setLookId("");
+    setPickSlot("");
     setLink("");
     setNote("");
     try {
@@ -388,12 +406,13 @@ export default function Scan() {
 
   const runCheck = async (image, extra = {}) => {
     const shot = image || preview;
-    const nextLink = extra.link ?? link;
-    const nextNote = extra.note ?? note;
+    const nextLink = asHttpLink(extra.link ?? link);
+    const nextNote = String(extra.note ?? note ?? "").trim() || (nextLink ? noteFromProductUrl(nextLink) : "");
     const nextMode = extra.input_method || mode;
+    const listingImage = !shot && nextLink ? guessListingImage(nextLink) : "";
     if (!shot && !nextLink && !nextNote) return;
     const gen = ++checkGen.current;
-    if (shot) setPreview(shot);
+    if (shot || listingImage) setPreview(shot || listingImage);
     setPhase("checking");
     setErr("");
     setResult(null);
@@ -412,6 +431,7 @@ export default function Scan() {
     const session = loadBetaSession();
     const joinProfile = loadJoinProfile();
     const acq = loadAcquisition();
+    let data = {};
     try {
       const res = await fetch("/api/yom-scan", {
         method: "POST",
@@ -420,7 +440,7 @@ export default function Scan() {
           ...(session?.access_token ? { authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          image: shot || undefined,
+          image: shot || listingImage || undefined,
           link: nextLink || undefined,
           note: nextNote || undefined,
           input_method: nextMode,
@@ -437,19 +457,32 @@ export default function Scan() {
           occasion_label: occasion || joinProfile.occasion || joinProfile.contextOther || "",
         }),
       });
-      const data = await res.json().catch(() => ({}));
+      data = await res.json().catch(() => ({}));
       if (gen !== checkGen.current) return;
       if (!res.ok || !data.ok) {
         setErr(scanFailMessage(res, data));
         setPhase("error");
         return;
       }
-      const cleaned = scrubTake(data);
-      const shown = shot || data.image || preview;
-      if (shown) setPreview(shown);
-      setProgress(100);
-      setResult(cleaned);
-      setPhase("result");
+    } catch (e) {
+      if (gen !== checkGen.current) return;
+      console.warn("yom-scan request", e);
+      setErr("couldn’t reach yom — check your connection and try again.");
+      setPhase("error");
+      return;
+    }
+
+    const cleaned = scrubTake(data);
+    const shown =
+      shot ||
+      listingImage ||
+      (/^(https?:\/\/|data:image\/)/.test(String(data.image || "")) ? data.image : "") ||
+      preview;
+    if (shown) setPreview(shown);
+    setProgress(100);
+    setResult(cleaned);
+    setPhase("result");
+    try {
       const sheetThumb = shown ? await thumbForSheet(shown) : "";
       saveLastCheck({
         product: cleaned.product,
@@ -487,7 +520,7 @@ export default function Scan() {
         verdict: cleaned.verdict?.title || "",
         kind: cleaned.verdict?.kind,
       });
-      const acq = loadAcquisition();
+      const shareAcq = loadAcquisition();
       yomShare({
         action: "save_check",
         anon_id: getAnonId(),
@@ -496,14 +529,12 @@ export default function Scan() {
         verdict: cleaned.verdict,
         input_method: mode,
         surface: getSurface(),
-        source: acq.source,
-        campaign: acq.campaign,
+        source: shareAcq.source,
+        campaign: shareAcq.campaign,
         image: sheetThumb || undefined,
       });
-    } catch {
-      if (gen !== checkGen.current) return;
-      setErr("network hiccup — try again.");
-      setPhase("error");
+    } catch (e) {
+      console.warn("yom-scan save", e);
     }
   };
 
@@ -629,7 +660,7 @@ export default function Scan() {
   };
 
   const addToCloset = async () => {
-    if (!result || closetSaved) return;
+    if (!result || closetSaved || !pickDay) return;
     const existing = lookId ? { id: lookId } : null;
     const look = lookFromScan({
       preview,
@@ -639,8 +670,11 @@ export default function Scan() {
       verdict: result.verdict,
       note,
     });
-    const dayId = pickDay || look.dayId || LINEUP_DAYS.find((d) => d.round === result.verdict?.round)?.id || "";
-    addLookToLineup({ ...look, id: existing?.id || look.id, inCloset: true }, dayId);
+    addLookToLineup(
+      { ...look, id: existing?.id || look.id, inCloset: true, slot: pickSlot || look.slot },
+      pickDay,
+      pickSlot || look.slot
+    );
     setClosetSaved(true);
     decide("save");
     yomLineup(pipelinePayload());
@@ -664,7 +698,8 @@ export default function Scan() {
   const verdict = result?.verdict || {};
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
-  const wearRound = wearLabel(verdict.round || pickDay || "sisterhood_day");
+  const wearRound =
+    LINEUP_DAYS.find((d) => d.id === pickDay)?.wear || wearLabel(verdict.round) || "recruitment";
   const score = verdict.score != null ? Number(verdict.score).toFixed(1) : "—";
   const why = verdict.why_it_works || verdict.body || "";
   const change = verdict.change || verdict.resolve || "";
@@ -734,8 +769,42 @@ export default function Scan() {
           </div>
         </div>
         {err && <p className="scan-err">{err}</p>}
-        <button type="button" className="pnm-cta pnm-result-cta" onClick={addToCloset}>
-          {closetSaved ? "added →" : `add to ${wearRound} →`}
+        <div className="pnm-park">
+          <p className="pnm-field">park it on</p>
+          <div className="pnm-chips">
+            {LINEUP_DAYS.map((day) => (
+              <button
+                key={day.id}
+                type="button"
+                className={`pnm-chip${pickDay === day.id ? " on" : ""}`}
+                onClick={() => setPickDay(day.id)}
+              >
+                {day.chip}
+              </button>
+            ))}
+          </div>
+          {!pickDay && String(verdict.round || "").startsWith("unity") ? (
+            <p className="pnm-sub">unity 1 and 2 are different nights — pick one.</p>
+          ) : null}
+          <p className="pnm-field">this piece is a</p>
+          <div className="pnm-chips">
+            {LINEUP_PIECES.map((piece) => (
+              <button
+                key={piece.id}
+                type="button"
+                className={`pnm-chip${pickSlot === piece.id ? " on" : ""}`}
+                onClick={() => setPickSlot(piece.id)}
+              >
+                {piece.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button type="button" className="pnm-cta pnm-result-cta" disabled={!pickDay} onClick={addToCloset}>
+          {closetSaved ? "added →" : "add to lineup →"}
+        </button>
+        <button type="button" className="pnm-ghost" onClick={() => resetLive()}>
+          nah, keep looking
         </button>
       </div>
     );

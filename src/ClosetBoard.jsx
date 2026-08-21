@@ -19,7 +19,7 @@ function localFeed() {
     round_id: look.roundId,
     score: pub.show_ratings === false ? null : look.score,
     image_url: look.preview || "",
-    chip: LINEUP_DAYS.find((day) => day.id === look.dayId || day.round === look.roundId)?.chip || wearLabel(look.roundId),
+    chip: LINEUP_DAYS.find((day) => day.id === look.dayId)?.chip || wearLabel(look.roundId),
   }));
 }
 

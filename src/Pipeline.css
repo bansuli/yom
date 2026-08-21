@@ -213,6 +213,48 @@
   opacity: 0.55;
 }
 
+.pnm-park {
+  margin: 0.35rem 0 0.85rem;
+}
+
+.pnm-park .pnm-field {
+  margin: 0.7rem 0 0.35rem;
+}
+
+.pnm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+}
+
+.pnm-chip {
+  appearance: none;
+  border: 1.4px solid #111;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.32rem 0.7rem;
+  cursor: pointer;
+}
+
+.pnm-chip.on {
+  background: var(--scan-ink);
+  color: #fff;
+}
+
+.pnm-page.is-app .pnm-chip.on,
+.pnm-page.is-app .pnm-chip:hover {
+  border-color: var(--scan-olive);
+}
+
+.pnm-page.is-app .pnm-chip.on {
+  background: var(--scan-olive);
+  color: #fff;
+}
+
 .pnm-page.is-app .pnm-cta,
 .pnm-cta-olive {
   background: var(--scan-olive);
@@ -500,12 +542,69 @@
 
 .pnm-day-card {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 0.55rem;
   align-items: center;
   background: #fff;
   border-radius: 12px;
   padding: 0.42rem 0.48rem;
+}
+
+.pnm-day-card.is-pieces {
+  grid-template-columns: 1fr auto;
+  align-items: start;
+}
+
+.pnm-piece-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.pnm-piece {
+  position: relative;
+  margin: 0;
+  width: 48px;
+}
+
+.pnm-piece img,
+.pnm-piece .pnm-thumb {
+  width: 48px;
+  height: 62px;
+  border-radius: 6px;
+  object-fit: cover;
+  display: block;
+  background: #eee;
+}
+
+.pnm-piece figcaption {
+  margin-top: 0.18rem;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: var(--scan-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pnm-piece-x {
+  position: absolute;
+  top: -0.28rem;
+  right: -0.28rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 0;
+  border-radius: 50%;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
 }
 
 .pnm-day h3 {
@@ -697,6 +796,10 @@
   background: #fff;
   border-radius: 12px;
   padding: 0.4rem 0.45rem 0.4rem 0.4rem;
+}
+
+.pnm-look .pnm-chips {
+  grid-column: 1 / -1;
 }
 
 .pnm-look img,

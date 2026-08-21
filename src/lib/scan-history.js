@@ -46,7 +46,7 @@ export function formatScanHistoryForPrompt(items = loadScanHistory()) {
       const parts = [label];
       if (item.decision) parts.push(item.decision);
       if (item.verdict_title) parts.push(`"${item.verdict_title}"`);
-      if (item.round) parts.push(`for ${item.round.replaceAll("_", " ")}`);
+      if (item.round) parts.push(`for ${String(item.round).replaceAll("_", " ")}`);
       return parts.join(" · ");
     })
     .join("; ");

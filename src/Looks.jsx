@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import YomNav, { PnmBell } from "./components/YomNav.jsx";
-import { LINEUP_DAYS, wearLabel } from "./lib/contexts.js";
-import { addLookToLineup, loadLooks, loadLineupMap, pipelinePayload } from "./lib/pipeline-store.js";
+import { LINEUP_DAYS, pieceSlotFor, wearLabel } from "./lib/contexts.js";
+import { addLookToLineup, loadLooks, lookInLineup, loadLineupMap, pipelinePayload } from "./lib/pipeline-store.js";
 import { unlockIfTest } from "./lib/join-store.js";
 import { yomLineup } from "./lib/yom-api.js";
 import "./Pipeline.css";
 
 function lookDayId(look) {
-  return look.dayId || LINEUP_DAYS.find((day) => day.round === look.roundId || day.id === look.roundId)?.id || "";
+  if (LINEUP_DAYS.some((day) => day.id === look.dayId)) return look.dayId;
+  return "";
 }
 
 export default function Looks() {
   const navigate = useNavigate();
   const [looks, setLooks] = useState(() => loadLooks());
   const [lineup, setLineup] = useState(() => loadLineupMap());
+  const [placing, setPlacing] = useState(null);
   const ready = unlockIfTest();
   const list = useMemo(() => looks, [looks]);
 
@@ -24,12 +26,18 @@ export default function Looks() {
 
   if (!ready) return null;
 
-  const inLineup = (look) => Object.values(lineup).includes(look.id);
+  const inLineup = (look) => lookInLineup(look.id, lineup);
 
-  const addToLineup = (look) => {
-    addLookToLineup(look, lookDayId(look));
+  const addToLineup = (look, dayId) => {
+    const day = dayId || lookDayId(look);
+    if (!day) {
+      setPlacing({ lookId: look.id, slot: look.slot || pieceSlotFor(look) });
+      return;
+    }
+    addLookToLineup(look, day, look.slot || pieceSlotFor(look));
     setLooks(loadLooks());
     setLineup(loadLineupMap());
+    setPlacing(null);
     yomLineup(pipelinePayload());
   };
 
@@ -116,6 +124,20 @@ export default function Looks() {
                 >
                   {saved ? "✓ in your lineup" : "add to lineup →"}
                 </button>
+                {placing?.lookId === look.id && !saved ? (
+                  <div className="pnm-chips is-look">
+                    {LINEUP_DAYS.map((day) => (
+                      <button
+                        key={day.id}
+                        type="button"
+                        className="pnm-chip"
+                        onClick={() => addToLineup(look, day.id)}
+                      >
+                        {day.chip}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </li>
             );
           })}
