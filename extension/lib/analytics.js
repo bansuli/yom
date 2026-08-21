@@ -10,9 +10,9 @@ const ACQUISITION_KEY = "yom_acquisition";
 const ALIASED_KEY = "yom_ph_aliased";
 
 const COHORT1 = {
-  source: "reformation_sample_sale",
-  campaign: "reformation_monday",
-  activation_date: "2026-08-17",
+  source: "organic",
+  campaign: "stylist",
+  activation_date: "2026-08-19",
 };
 
 const ONBOARDING_VERSION = "cohort1_survey_v1";

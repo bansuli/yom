@@ -51,7 +51,7 @@ Redeploy after saving.
 3. Signup copies the spring 2026 closet into their profile
 4. Log into the extension popup with the same email
 
-Until these env vars exist, `/beta` and the extension keep the hardcoded demo. Reformation still works.
+Until these env vars exist, `/beta` login and synced profiles are unavailable. Scan and the extension still style from the page/photo.
 
 ## Analytics (PostHog + acquisition)
 
@@ -65,7 +65,15 @@ See [`leads.sql`](./leads.sql). Run it in Supabase.
 - Every `/scan` open → `scan_visitors` (by `anon_id`), even without email
 - They can create an account on `/beta` immediately — no manual allowlist for Cohort 1
 
-## Shares + scan checks
+## Recruitment lineup (PNM pipeline)
+
+See [`lineup.sql`](./lineup.sql). Run it in Supabase.
+
+- Looks from photo / upload / pasted link / text live in `pipeline_looks`
+- `/lineup` public share writes `lineups` (`is_public`, display name, last-name toggle)
+- `GET /api/lineup?id=` is the public view (top picks only — not the full house list)
+
+
 
 See [`shares.sql`](./shares.sql). Enables `/s/:id` friend votes and persists every scan check.
 

@@ -1,22 +1,28 @@
 import { bearer, json, preflight } from "../../lib/http.js";
-import { authUrl, googleConfigured } from "../../lib/google.js";
+import { authUrl, googleConfigured, safeReturnTo } from "../../lib/google.js";
 import { accountFromToken } from "../../lib/profile.js";
 import { supabaseConfigured } from "../../lib/supabase.js";
 
+function clientOrigin(req) {
+  const raw = String(req.headers.origin || req.headers.referer || "").trim();
+  try {
+    const u = new URL(raw);
+    if (u.hostname === "localhost" || u.hostname === "127.0.0.1") return u.origin;
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
 /**
  * GET /api/google/start
- * Auth: Bearer yom access token
- * Query: ?returnTo=/beta
- * → { ok, url }  (open url to begin Google OAuth)
+ * Auth optional: guests connect Gmail + Calendar; callback creates/links the yom account.
+ * Query: ?returnTo=/looks
  */
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
   if (req.method !== "GET") {
     json(res, 405, { ok: false, error: "GET only" });
-    return;
-  }
-  if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
     return;
   }
   if (!googleConfigured()) {
@@ -26,22 +32,25 @@ export default async function handler(req, res) {
     });
     return;
   }
+  if (!supabaseConfigured()) {
+    json(res, 503, {
+      ok: false,
+      error:
+        "google calendar + gmail need SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY on the server (to keep tokens). that is not a beta login.",
+    });
+    return;
+  }
 
+  const returnTo = safeReturnTo(req.query?.returnTo || "/looks");
   const token = bearer(req);
-  if (!token) {
-    json(res, 401, { ok: false, error: "not signed in." });
-    return;
-  }
-  const account = await accountFromToken(token);
-  if (!account?.profile?.id) {
-    json(res, 401, { ok: false, error: "session expired." });
-    return;
-  }
+  const account = token ? await accountFromToken(token) : null;
+  const userId = account?.profile?.id || null;
 
-  const returnTo = String(req.query?.returnTo || "/beta").startsWith("/")
-    ? String(req.query.returnTo)
-    : "/beta";
-
-  const url = authUrl({ userId: account.profile.id, returnTo });
-  json(res, 200, { ok: true, url });
+  const url = authUrl({
+    userId,
+    returnTo,
+    guest: !userId,
+    origin: clientOrigin(req),
+  });
+  json(res, 200, { ok: true, url, guest: !userId });
 }

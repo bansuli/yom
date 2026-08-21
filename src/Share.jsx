@@ -36,7 +36,7 @@ export default function SharePage() {
     q.set("fresh", "1");
     q.set("ref", share?.sender_user_id || share?.sender_anon_id || "");
     if (shareId) q.set("share_id", shareId);
-    q.set("campaign", share?.campaign || "reformation_monday");
+    q.set("campaign", share?.campaign || "stylist");
     return `/join?${q.toString()}`;
   }, [share, shareId]);
 

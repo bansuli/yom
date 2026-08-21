@@ -4,6 +4,7 @@
   ],
   "functions": {
     "api/yom-scan.js": { "maxDuration": 60 },
-    "api/yom-advise.js": { "maxDuration": 30 }
+    "api/yom-advise.js": { "maxDuration": 30 },
+    "api/link-preview.js": { "maxDuration": 15 }
   }
 }

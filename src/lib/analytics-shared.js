@@ -6,9 +6,9 @@
 export const ONBOARDING_VERSION = "cohort1_survey_v1";
 
 export const COHORT1_DEFAULTS = {
-  source: "reformation_sample_sale",
-  campaign: "reformation_monday",
-  activation_date: "2026-08-17",
+  source: "organic",
+  campaign: "stylist",
+  activation_date: "2026-08-19",
 };
 
 export const ANON_KEY = "yom_anon_id";

@@ -34,6 +34,28 @@ export function markYomReady() {
   }
 }
 
+/** Local-only skip for `/scan?test=1` etc. Does not send a lead. */
+export function seedTestYom() {
+  saveJoinEmail("test@youryom.com");
+  saveJoinProfile({
+    name: "test",
+    email: "test@youryom.com",
+    context: "berkeley_fpr_2026",
+  });
+  markYomReady();
+}
+
+export function unlockIfTest(search = typeof window !== "undefined" ? window.location.search : "") {
+  try {
+    const q = new URLSearchParams(search.startsWith("?") ? search : `?${search}`);
+    if (q.get("test") !== "1") return isYomReady();
+    seedTestYom();
+    return true;
+  } catch {
+    return isYomReady();
+  }
+}
+
 export function saveJoinProfile({
   name = "",
   trait = "",
@@ -41,6 +63,7 @@ export function saveJoinProfile({
   context = "general_shopping",
   contextOther = "",
   round = "",
+  occasion = "",
 } = {}) {
   try {
     localStorage.setItem(
@@ -54,6 +77,7 @@ export function saveJoinProfile({
         context: String(context || "general_shopping").trim(),
         contextOther: String(contextOther || "").trim(),
         round: String(round || "").trim(),
+        occasion: String(occasion || "").trim(),
         savedAt: Date.now(),
       })
     );
@@ -82,12 +106,13 @@ export function loadJoinProfile() {
         context: survey.context || "general_shopping",
         contextOther: survey.contextOther || "",
         round: survey.round || "",
+        occasion: survey.occasion || "",
       };
     }
   } catch {
     /* ignore */
   }
-  return { name: "", trait: "", email: loadJoinEmail(), context: "general_shopping", contextOther: "", round: "" };
+  return { name: "", trait: "", email: loadJoinEmail(), context: "general_shopping", contextOther: "", round: "", occasion: "" };
 }
 
 export const LAST_CHECK_KEY = "yom_last_check";

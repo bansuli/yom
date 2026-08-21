@@ -1,51 +1,6 @@
-/* yom memory + session copy. Sofia's wedding is the authored cinematic example. */
+/* yom memory + session copy. Calendar events load live when Google is connected. */
 window.YOM_DEMO = {
-  events: [
-    {
-      id: "sofia-wedding",
-      label: "sofia's wedding",
-      when: "sat, mar 16",
-      source: "from your calendar",
-      kind: "wedding",
-      story: "wedding",
-      plp: {
-        title: "right for the wedding",
-        body: "silhouette and colour both fit sofia’s day.",
-        stamp: "for the wedding",
-      },
-      delivery: {
-        title: "arrives in 3–4 days",
-        body: "way before the wedding.",
-      },
-      check: {
-        title: "reviews are really good",
-        body: "a lot of people say it’s really long.",
-        resolve:
-          "lucky for you, Reformation offers alterations. and based on timing, there’s enough time to alter it and still have it before the event.",
-      },
-    },
-    {
-      id: "nyc-trip",
-      label: "nyc weekend",
-      when: "sep 4–7",
-      source: "from your calendar",
-      kind: "trip",
-      plp: {
-        title: "works for a city weekend",
-        body: "easy to wear walking around",
-        stamp: "for nyc",
-      },
-      delivery: {
-        title: "arrives way before sep 4",
-        body: "usual Reformation timing — you’ll have it before the weekend.",
-      },
-      check: {
-        title: "travels well",
-        body: "reviews mention the fabric holds up and doesn’t need much fuss.",
-        resolve: "nothing in the reviews that would be a problem for a short trip.",
-      },
-    },
-  ],
+  events: [],
   purposeFallback: {
     work: {
       kind: "work",
@@ -101,7 +56,7 @@ window.YOM_DEMO = {
       title: "reviews say it runs long",
       body: "a lot of people say it’s really long.",
       resolve:
-        "lucky for you, Reformation offers alterations. length comes up a lot, and it’s fixable.",
+        "if the shop offers alterations, length is fixable. otherwise check the hem against your height.",
     },
     strong: {
       title: "reviews are strong",
@@ -129,21 +84,21 @@ window.YOM_DEMO = {
       stamp: "reviews",
     },
     green: {
-      title: "green is your color",
-      body: "you’ve kept every green piece you’ve bought.",
+      title: "is this a gap?",
+      body: "only buy it if it does a job the closet doesn’t.",
       stamp: "your color",
       closetKey: "green",
     },
     forWhat: {
-      title: "green is your color",
+      title: "what’s it for?",
       body: "is this for something coming up, or still just browsing?",
       stamp: "your color",
       closetKey: "green",
     },
     pairing: {
-      title: "perfect with your Jaded London shorts",
-      body: "already in your closet; easy outfit.",
-      stamp: "with your shorts",
+      title: "already an outfit?",
+      body: "name one thing you own that this goes with before you add it.",
+      stamp: "how to wear",
       closetKey: "shorts",
     },
     pairingCheck: {
@@ -206,8 +161,8 @@ window.YOM_DEMO = {
   },
   closet: {
     similar: {
-      title: "your Reformation Maya Set",
-      note: "same silhouette, softer wash",
+      title: "a similar silhouette in your closet",
+      note: "same job, different version",
       file: "closet-similar.jpg",
     },
     green: {
@@ -216,8 +171,8 @@ window.YOM_DEMO = {
       file: "closet-green.jpg",
     },
     shorts: {
-      title: "Jaded London shorts",
-      note: "bought last week · still in closet",
+      title: "a recent pair of shorts",
+      note: "check you don’t already own this job",
       file: "closet-shorts.jpg",
     },
   },
@@ -265,7 +220,7 @@ window.YOM_DEMO = {
       { id: "neutrals", label: "neutrals" },
       { id: "color", label: "color, always" },
     ],
-    demo: {
+    demo: null, _retired_demo: {
       name: "ban",
       userId: "yom-ban",
       trait: "nothing",

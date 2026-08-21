@@ -79,7 +79,7 @@ const WEAR_BY_TYPE = {
 };
 
 const STYLE_BY_TYPE = {
-  dress: "column or fit-and-flare — reformation tends toward vintage-inspired lengths.",
+  dress: "column or fit-and-flare — check hem against sitting and walking.",
   "slip dress": "bias-cut slip — skims the body, usually midi length.",
   jeans: "straight or relaxed leg — check the wash against what you already own.",
   skirt: "midi or mini — look at the waist (zip vs elastic) and how it sits.",

@@ -6,8 +6,9 @@ Framework so yom can pull **upcoming occasions** from Google Calendar and **orde
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /api/google/start` | Returns Google OAuth URL (Bearer auth) |
+| `GET /api/google/start` | Returns Google OAuth URL (auth optional) |
 | `GET /api/google/callback` | OAuth redirect — stores tokens, first sync |
+| `POST /api/google/claim` | Exchange guest OAuth grant for a yom session |
 | `GET /api/google/status` | `{ connected, email, calendar_synced_at, gmail_synced_at }` |
 | `POST /api/google/sync` | Re-pull calendar and/or gmail |
 | `GET /api/google/events` | Upcoming events + recent mail signals for yom context |
@@ -59,9 +60,25 @@ GOOGLE_TOKEN_SECRET=          # optional HMAC for OAuth state; defaults to clien
 
 Plus existing `SUPABASE_*`. Redeploy after saving.
 
-## 4. Connect from the beta page
+## 4. Connect from the pipeline (no beta login)
 
-Logged-in flow:
+On `/join`, `/looks`, or `/scan` tap **connect gmail & calendar**. Google can create the yom account. Tokens still live in Supabase (`google_accounts`).
+
+Required on Vercel (this is the database for tokens — not a “log into beta” wall):
+
+```
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://youryom.com/api/google/callback
+APP_BASE_URL=https://youryom.com
+```
+
+Local `npm run dev` proxies `/api` to production, so those env vars must be on **Vercel**. After connect from localhost, OAuth returns to `http://localhost:5173/...`.
+
+Logged-in `/beta` flow still works:
 
 ```js
 // 1) get oauth url
@@ -94,15 +111,13 @@ const dig = await fetch('/api/google/events', {
 // dig.gmail  → [{ subject, kind: 'order'|'return'|..., brand, snippet }]
 ```
 
-## 5. How the extension should use it
+## 5. How yom uses it
 
-1. User logs into yom (existing popup / beta)
-2. Connect Google once on `/beta`
-3. Extension (or `/api/me` later) loads `/api/google/events`
-4. Purpose chips prefer real calendar rows (`kind: wedding|trip|work|date|event`)
-5. “look into this” research can cite `gmail` signals (orders, returns, sizing mail) as another source
-
-Demo path on Reformation can keep hardcoded Sofia’s wedding until a connected calendar has a wedding-like event.
+1. Connect Gmail & Calendar on `/scan`, `/join`, or `/beta` (login optional — Google can create the yom account)
+2. First sync pulls ~75 days of calendar + fashion-related mail
+3. `/api/yom-scan` and `/api/yom-advise` inject those events and gmail signals into the stylist prompt
+4. Extension purpose chips become real calendar rows (`GET /api/google/events`)
+5. Stale syncs refresh automatically when yom advises (about every 6 hours)
 
 ## Security notes
 

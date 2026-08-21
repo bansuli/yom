@@ -1,6 +1,6 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.32") return;
-  window.__YOM_BUILD__ = "1.1.32";
+  if (window.__YOM_BUILD__ === "1.1.40") return;
+  window.__YOM_BUILD__ = "1.1.40";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
@@ -218,18 +218,6 @@
   function activePersona() {
     const live = livePersona();
     if (live) return live;
-    const demo = demoPersona();
-    if (demo) {
-      return {
-        userId: demo.userId || "yom-ban",
-        trait: demo.trait,
-        preBuy: demo.preBuy,
-        keepLean: demo.keepLean,
-        read: demo.read || composeRead(demo.trait, demo.preBuy, demo.keepLean),
-        memory: demo.memory || "",
-        sizes: demo.sizes || {},
-      };
-    }
     return {
       userId: state.userId,
       trait: state.trait,
@@ -297,7 +285,13 @@
     render();
   }
 
-  function isDemoSite() {
+  let calendarEvents = [];
+
+  function occasionEvents() {
+    return Array.isArray(calendarEvents) && calendarEvents.length ? calendarEvents : DATA.events || [];
+  }
+
+  function isReformationHost() {
     return /(^|\.)thereformation\.com$/i.test(location.hostname);
   }
 
@@ -313,12 +307,12 @@
   }
 
   function isPdp() {
-    if (isDemoSite()) return /\/products\//.test(location.pathname);
+    if (isReformationHost()) return /\/products\//.test(location.pathname);
     return EXTRACT?.isPdp?.() || /\/products?\//i.test(location.pathname);
   }
 
   function isCart() {
-    if (isDemoSite()) return /^\/cart\/?$/.test(location.pathname);
+    if (isReformationHost()) return /^\/cart\/?$/.test(location.pathname);
     return EXTRACT?.isCart?.() || /\/(cart|bag)(\/|$)/i.test(location.pathname);
   }
 
@@ -631,7 +625,7 @@
 
   function purposeMeta() {
     if (state.mode !== "purpose" || !state.purpose) return null;
-    const ev = DATA.events.find((e) => e.label === state.purpose);
+    const ev = occasionEvents().find((e) => e.label === state.purpose);
     if (ev) return ev;
     if (/work/i.test(state.purpose)) return { label: state.purpose, ...DATA.purposeFallback.work };
     if (/date/i.test(state.purpose)) return { label: state.purpose, ...DATA.purposeFallback.date };
@@ -1983,7 +1977,7 @@
     ask({
       title: "what’s coming up?",
       body: "pulled from your calendar.",
-      options: DATA.events.map((e) => ({
+      options: occasionEvents().map((e) => ({
         label: e.label,
         sub: `${e.when} · ${e.source}`,
         block: true,
@@ -2044,7 +2038,7 @@
       { label: "casually browsing", value: "browse", on: state.mode === "browse" },
       { label: "buying for an event", value: "event", on: state.mode === "purpose" },
       { label: "sos", value: "sos", on: state.mode === "sos" },
-      ...DATA.events.map((e) => ({
+      ...occasionEvents().map((e) => ({
         label: e.label,
         value: e.label,
         on: state.mode === "purpose" && state.purpose === e.label,
@@ -2061,9 +2055,7 @@
     const spentHtml = state.spent
       ? `bag so far · $${state.spent}${state.budget != null ? ` · $${remainingBudget()} left` : ""}`
       : "";
-    const newYomHtml = isDemoSite()
-      ? ""
-      : `<button type="button" class="yom-new-yom" data-new-yom>new yom</button>`;
+    const newYomHtml = `<button type="button" class="yom-new-yom" data-new-yom>new yom</button>`;
 
     const savedHtml = (state.saved || []).length
       ? `saved · ${state.saved
@@ -2211,7 +2203,7 @@
         return {
           title: "reviews say it runs long",
           body: "a lot of people say it’s really long.",
-          resolve: "Reformation offers alterations. you’ll still have it before the weekend.",
+          resolve: "if the shop offers alterations, length is fixable. otherwise check the hem against your height.",
         };
       }
       return DATA.reviews.long;
@@ -2226,7 +2218,6 @@
       return `${ev.delivery.title} — ${ev.delivery.body}`;
     }
     if (ev?.delivery?.body) return ev.delivery.body;
-    if (isDemoSite()) return "arrives in 3–5 days — Reformation’s usual timing.";
     return "this shop is usually 3–5 days. fine unless you need it tomorrow.";
   }
 
@@ -2259,12 +2250,12 @@
   }
 
   function sizeRead(info) {
-    const sizes = activePersona().sizes || DATA.persona?.demo?.sizes || {};
+    const sizes = activePersona().sizes || {};
     const kind = kindOf(info);
     let base = "";
     if (kind === "shoes" || isShoeProduct(info)) {
-      base = `you wear ${sizes.shoes || "EU 37"}, and only rounder toes stick.`;
-    } else if (kind === "jeans") base = `you wear a ${sizes.denim || "26"} in denim.`;
+      base = sizes.shoes ? `you wear ${sizes.shoes}.` : "no shoe size on file yet.";
+    } else if (kind === "jeans") base = sizes.denim ? `you wear a ${sizes.denim} in denim.` : "no denim size on file yet.";
     else if (sizes.us) base = `you usually take a ${sizes.us}.`;
     if (runsLong(info) && !isShoeProduct(info)) {
       return [base, "reviews say it runs long."].filter(Boolean).join(" ");
@@ -2325,7 +2316,7 @@
 
   function mergeBrief(info, advice) {
     const local = localBrief(info);
-    if (!advice || advice.quiet || isDemoSite()) {
+    if (!advice || advice.quiet) {
       return local;
     }
     const regret = Number.isFinite(Number(advice.regret)) ? Number(advice.regret) : local.regret;
@@ -2570,7 +2561,6 @@
         return;
       }
       paintSos(info);
-      if (isDemoSite()) return;
       const pageKey = location.pathname;
       const shot = info;
       advise("check", shot).then((advice) => {
@@ -2605,7 +2595,7 @@
 
   function enterPurposeOnPdp() {
     state.mode = "purpose";
-    if (!state.purpose) state.purpose = "Sofia's wedding";
+    if (!state.purpose && occasionEvents()[0]?.label) state.purpose = occasionEvents()[0].label;
     state.panelOpen = false;
     spokenKey = `purpose:${location.pathname}`;
     saveState();
@@ -2619,7 +2609,7 @@
 
   function checkStages(info) {
     const name = pieceName(info);
-    const facts = isDemoSite() ? { reviews: "", shipping: "", sizeNote: "" } : pageFacts();
+    const facts = pageFacts();
     const price = info.price ? `$${Number(info.price)}` : "";
     const listing = [info.color, price, String(info.description || "").slice(0, 120)].filter(Boolean).join(" · ");
     const size = sizeRead(info);
@@ -2729,7 +2719,6 @@
         regret: brief?.regret,
       })
     );
-    if (isDemoSite()) return;
     advise("check", info).then((advice) => {
       if (!advice || advice.quiet || location.pathname !== pageKey) return;
       paintChecked(
@@ -2807,7 +2796,7 @@
           preBuy: activePersona().preBuy,
           keepLean: activePersona().keepLean,
           mode: state.mode,
-          purpose: state.purpose,
+          purpose: state.purpose || occasionEvents()[0]?.label || "none",
           budget: state.budget,
           spent: state.spent,
           gift: isGift(),
@@ -2821,7 +2810,7 @@
                 kind: prior.love ? "love" : prior.warn ? "warn" : "neutral",
               }
             : null,
-          facts: isDemoSite() ? {} : isPdp() ? pageFacts() : {},
+          facts: isPdp() ? pageFacts() : {},
         },
       };
       chrome.runtime.sendMessage({ type: "YOM_ADVISE", payload }, (res) => {
@@ -2831,7 +2820,7 @@
         if (chrome.runtime.lastError || !res?.ok) resolve(null);
         else resolve(res.advice || null);
       });
-      const wait = surface === "tile" ? 1200 : 2500;
+      const wait = surface === "tile" ? 5000 : 14000;
       const timer = setTimeout(() => {
         if (done) return;
         done = true;
@@ -2877,7 +2866,7 @@
   }
 
   async function livePdp() {
-    if (!isPdp() || !state.mode || isDemoSite()) return false;
+    if (!isPdp() || !state.mode) return false;
     const info = pdpInfo();
     const pageKey = location.pathname;
 
@@ -2956,20 +2945,8 @@
   }
 
   function specificTake(info) {
-    const color = cleanProductName(info.color || "").trim().toLowerCase();
     const price = Number(info.price) || 0;
-    const kind = kindOf(info);
-    const label = pieceLabel(info);
-    const bits = fitBits(info);
-    const fabric = bits.find((b) =>
-      /silk|cashmere|poplin|linen|satin|leather|knit|denim/.test(b)
-    );
-    const cut = bits.find((b) =>
-      /oversized|cropped|low-rise|midi|mini|maxi|straight|wide-leg/.test(b)
-    );
     const rem = remainingBudget();
-    const ev = purposeMeta();
-
     if (state.budget != null && price > rem) {
       return takeOf(
         "this would put you over",
@@ -2978,185 +2955,7 @@
         { warn: true }
       );
     }
-
-    if (kind === "shoes") {
-      return takeOf(
-        "this shape isn’t really you",
-        "the shoes you keep are rounder. this shape never makes it out.",
-        "skip the toe",
-        { warn: true }
-      );
-    }
-
-    if (isGreenProduct(info)) {
-      return takeOf(
-        "green is your color",
-        "you've kept every green piece. this one would too.",
-        "your color",
-        { love: true, closetKey: "green" }
-      );
-    }
-
-    if (ev?.kind === "wedding" && kind === "dress") {
-      return takeOf(
-        "right for the wedding",
-        color ? `${color} reads right for sofia’s day.` : "silhouette and formality both fit.",
-        "for the wedding",
-        { love: true }
-      );
-    }
-
-    if (kind === "set" || /maya/i.test(label)) {
-      return takeOf(
-        "you have something really similar",
-        "same silhouette you already own. you don't need a second.",
-        "in your closet",
-        { closetKey: "similar" }
-      );
-    }
-
-    if (!isGift() && state.spent > 0 && /top|tee|knit/.test(kind)) {
-      return takeOf(
-        "perfect with your jaded london shorts",
-        color ? `${color} against those — already an outfit.` : "already an outfit with what's in the bag.",
-        "with your shorts",
-        { love: true, closetKey: "shorts" }
-      );
-    }
-
-    if (fabric === "cashmere") {
-      return takeOf(
-        "you'd keep this",
-        price ? `cashmere at $${price} — a fabric you actually keep.` : "this is the fabric you don't return.",
-        "you'd keep it",
-        { love: true }
-      );
-    }
-    if (fabric === "silk" || fabric === "satin") {
-      return takeOf(
-        "people aren’t loving the material",
-        `${fabric} looks beautiful, and high-maintenance. you research this and then don't wear it.`,
-        "think twice",
-        { warn: true }
-      );
-    }
-    if (fabric === "poplin") {
-      return takeOf(
-        "you already own this job",
-        "crisp poplin — you'll think you need it and it'll hang next to the ones you already have.",
-        "you own this"
-      );
-    }
-
-    if (kind === "jeans") {
-      return takeOf(
-        "your closet already does this",
-        cut ? `another ${cut} jean. you're filling a hole that isn't there.` : "you're filling a hole that isn't there.",
-        "you have this"
-      );
-    }
-
-    if (kind === "skirt") {
-      if (cut === "midi") {
-        return takeOf(
-          "you'd actually wear this",
-          color ? `midi in ${color} — unlike the minis you skip.` : "midi length — you'd actually wear this.",
-          "you'd wear it",
-          { love: true }
-        );
-      }
-      return takeOf(
-        "needs a reason",
-        "a skirt you'll need a reason for. do you have one?",
-        "needs a reason"
-      );
-    }
-
-    if (kind === "tee") {
-      return takeOf(
-        "maybe skip",
-        cut === "oversized"
-          ? "oversized tee — you'll live in it or never pick it up."
-          : "a tee. you already think you have nothing to wear with a drawer of these.",
-        "maybe skip"
-      );
-    }
-
-    if (kind === "dress") {
-      if (fabric === "knit") {
-        return takeOf(
-          "easy yes",
-          "knit dress — easy, and you'd actually put it on a Tuesday.",
-          "easy yes",
-          { love: true }
-        );
-      }
-      return takeOf(
-        ev ? `only if it’s for ${ev.label}` : "needs a date",
-        ev
-          ? `this only earns a yes if it's for ${ev.label}.`
-          : "a dress without a date on it tends to sit.",
-        ev ? `for ${ev.label}` : "needs a date"
-      );
-    }
-
-    if (kind === "pants") {
-      return takeOf(
-        "compare first",
-        cut === "cropped"
-          ? "cropped — check it against the trousers you already rotate."
-          : "another pant. map it against what you already wear.",
-        "compare first"
-      );
-    }
-
-    if (kind === "knit" || kind === "top") {
-      return takeOf(
-        "closet check",
-        kind === "top" && fabric === "knit"
-          ? "a knit top. check it against the ones you already rotate."
-          : "you'll reach for this or ignore it. you already own the one you reach for.",
-        "closet check"
-      );
-    }
-
-    if (kind === "jacket") {
-      return takeOf(
-        "needs a job",
-        "outerwear only pays off if it does a job the closet doesn't. does it?",
-        "needs a job"
-      );
-    }
-
-    if (kind === "shorts" && !isGift()) {
-      return takeOf(
-        "you just bought this",
-        "you just bought the jaded london pair. this is how duplicates happen.",
-        "you just bought this",
-        { warn: true, closetKey: "shorts" }
-      );
-    }
-
-    const named = [
-      takeOf(
-        "not a gap",
-        color ? `${color} doesn't make it a gap in the closet.` : "same job as something you already own.",
-        "not a gap"
-      ),
-      takeOf(
-        "slow down",
-        price ? `$${price}. would you still want it in three weeks?` : "would you still want it in three weeks?",
-        "slow down",
-        { warn: true }
-      ),
-      takeOf(
-        "maybe yes",
-        "this actually looks like you'd wear it, not just buy it.",
-        "maybe yes",
-        { love: true }
-      ),
-    ];
-    return named[hashStr(String(info.id || label)) % named.length];
+    return null;
   }
 
   function opinionFor(info) {
@@ -3202,7 +3001,7 @@
         if (isPdp()) return;
         if (askEl?.querySelector?.(".yom-fb-open")) return;
         paintSos(tileInfo(tile));
-      } else demoOnPause(tile);
+      } else liveOnPause(tile);
     } catch (err) {
       console.warn("yom pause", err);
     }
@@ -3303,7 +3102,7 @@
   function purposeAskChips(keepNote) {
     return {
       chips: [
-        ...DATA.events.map((e) => ({
+        ...occasionEvents().map((e) => ({
           label: e.label,
           onPick: () => {
             state.mode = "purpose";
@@ -3341,10 +3140,6 @@
   async function renderPdpPresence() {
     if (!isPdp() || !state.mode) return;
     if (state.mode === "sos") closeAsk();
-    if (isDemoSite()) {
-      demoPdp();
-      return;
-    }
     livePdp().catch(() => {});
   }
 
@@ -3544,17 +3339,41 @@
   });
   mo.observe(document.documentElement, { childList: true, subtree: true });
 
+  function loadGoogleEvents() {
+    try {
+      chrome.runtime.sendMessage({ type: "YOM_GOOGLE" }, (res) => {
+        if (chrome.runtime.lastError || !res?.ok) return;
+        const events = Array.isArray(res.events) ? res.events : [];
+        calendarEvents = events.map((e) => ({
+          id: e.id,
+          label: e.label,
+          when: e.when,
+          source: "from your calendar",
+          kind: e.kind || "generic",
+          location: e.location || "",
+        }));
+        if (Array.isArray(res.gmail) && res.gmail.length && liveAccount?.profile) {
+          const bits = res.gmail
+            .slice(0, 8)
+            .map((s) => `${s.kind || "mail"}${s.brand ? ` ${s.brand}` : ""}: ${s.subject || s.snippet || ""}`)
+            .join("; ");
+          if (bits) {
+            liveAccount.profile.memory = [liveAccount.profile.memory, `gmail: ${bits}`]
+              .filter(Boolean)
+              .join(" ");
+          }
+        }
+        if (state.panelOpen || askEl) render();
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "local" || !changes[LIVE_KEY]) return;
     liveAccount = changes[LIVE_KEY].newValue || null;
-    if (applyLivePersona()) return;
-    const demo = demoPersona();
-    if (!demo) return;
-    state.userId = demo.userId || state.userId || "yom-ban";
-    state.trait = demo.trait;
-    state.preBuy = demo.preBuy;
-    state.keepLean = demo.keepLean;
-    state.read = demo.read || composeRead(demo.trait, demo.preBuy, demo.keepLean);
+    applyLivePersona();
   });
 
   async function boot() {
@@ -3574,16 +3393,8 @@
     } catch {
       state = defaultState();
     }
-    if (!applyLivePersona()) {
-      const demo = demoPersona();
-      if (demo) {
-        state.userId = demo.userId || state.userId || "yom-ban";
-        state.trait = demo.trait;
-        state.preBuy = demo.preBuy;
-        state.keepLean = demo.keepLean;
-        state.read = demo.read || composeRead(demo.trait, demo.preBuy, demo.keepLean);
-      }
-    }
+    applyLivePersona();
+    loadGoogleEvents();
     dockBuddy(true);
     startHoverWatch();
     try {

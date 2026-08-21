@@ -82,7 +82,7 @@ export function yomGoogleStatus(token) {
   return get("/api/google/status", token);
 }
 
-export function yomGoogleStart(token, returnTo = "/beta") {
+export function yomGoogleStart(token, returnTo = "/looks") {
   return get(`/api/google/start?returnTo=${encodeURIComponent(returnTo)}`, token);
 }
 
@@ -96,6 +96,10 @@ export function yomGoogleEvents(token) {
 
 export function yomGoogleDisconnect(token) {
   return post("/api/google/disconnect", {}, token);
+}
+
+export function yomGoogleClaim(grant) {
+  return post("/api/google/claim", { grant });
 }
 
 export function yomScan(body, token) {
@@ -112,6 +116,22 @@ export function yomScanVisit(body) {
 
 export function yomShare(body) {
   return post("/api/share", body);
+}
+
+export function yomLinkPreview(url) {
+  return post("/api/link-preview", { url });
+}
+
+export function yomLineup(body) {
+  return post("/api/lineup", body);
+}
+
+export function yomGetLineup(id) {
+  return get(`/api/lineup?id=${encodeURIComponent(id)}`);
+}
+
+export function yomEveryone() {
+  return get("/api/lineup?feed=1");
 }
 
 export function yomGetShare(id, anonId) {

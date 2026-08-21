@@ -67,6 +67,112 @@ export const FPR_SCHEDULE_2026 = [
   { id: "bid_day", label: "Bid Day", when: "Tue Sep 1 · 6:00 PM" },
 ];
 
+/** Lineup days shown in the PNM pipeline (outfit week, not orientation/bid). */
+export const LINEUP_DAYS = [
+  {
+    id: "unity_day_1",
+    round: "unity_day",
+    label: "unity day 1",
+    wear: "unity",
+    chip: "unity 1",
+    weekday: "thu",
+    dateNum: "27",
+    date: "thu 27",
+    when: "Thu Aug 27 · 5:30–10:30 PM",
+    location: "outside",
+  },
+  {
+    id: "unity_day_2",
+    round: "unity_day",
+    label: "unity day 2",
+    wear: "unity",
+    chip: "unity 2",
+    weekday: "fri",
+    dateNum: "28",
+    date: "fri 28",
+    when: "Fri Aug 28 · 4:30–11:00 PM",
+    location: "outside",
+  },
+  {
+    id: "sisterhood_day",
+    round: "sisterhood_day",
+    label: "sisterhood day",
+    wear: "sisterhood",
+    chip: "sisterhood",
+    weekday: "sat",
+    dateNum: "29",
+    date: "sat 29",
+    when: "Sat Aug 29 · 9:20 AM–8:45 PM",
+    location: "house",
+  },
+  {
+    id: "philanthropy_day",
+    round: "philanthropy_day",
+    label: "philanthropy day",
+    wear: "philanthropy",
+    chip: "philanthropy",
+    weekday: "sun",
+    dateNum: "30",
+    date: "sun 30",
+    when: "Sun Aug 30 · 9:20 AM–7:00 PM",
+    location: "house",
+  },
+  {
+    id: "preference",
+    round: "preference",
+    label: "preference night",
+    wear: "preference",
+    chip: "preference",
+    weekday: "mon",
+    dateNum: "31",
+    date: "mon 31",
+    when: "Mon Aug 31 · 6:00–11:30 PM",
+    location: "house",
+  },
+];
+
+export const EVERYONE_FILTERS = [
+  { id: "all", label: "all" },
+  ...LINEUP_DAYS.map((day) => ({ id: day.id, label: day.chip })),
+];
+
+export const CLOSET_CATEGORIES = [
+  { id: "all", label: "all items" },
+  { id: "tops", label: "tops" },
+  { id: "skirts", label: "skirts" },
+  { id: "dresses", label: "dresses" },
+  { id: "bottoms", label: "bottoms" },
+  { id: "athletic", label: "athletic" },
+];
+
+export function closetCategoryFor(look = {}) {
+  const hay = `${look.product?.category || ""} ${look.product?.name || ""} ${look.title || ""}`.toLowerCase();
+  if (/dress|gown|slip dress/.test(hay)) return "dresses";
+  if (/skirt/.test(hay)) return "skirts";
+  if (/short|pant|jean|trouser|legging/.test(hay)) return "bottoms";
+  if (/athletic|sport|tennis|gym|hoodie/.test(hay)) return "athletic";
+  if (/top|tank|blouse|shirt|tee|cami|sweater|cardigan/.test(hay)) return "tops";
+  return "tops";
+}
+
+export function roundLabel(roundId) {
+  const day = LINEUP_DAYS.find((d) => d.round === roundId || d.id === roundId);
+  if (day) return day.label;
+  const round = RECRUITMENT_ROUNDS.find((r) => r.id === roundId);
+  return round ? round.label : String(roundId || "").replaceAll("_", " ");
+}
+
+export function wearLabel(roundId) {
+  const day = LINEUP_DAYS.find((d) => d.round === roundId || d.id === roundId);
+  if (day?.wear) return day.wear;
+  const label = roundLabel(roundId);
+  return String(label || "sisterhood").replace(/\s+day.*$/i, "") || "sisterhood";
+}
+
+export function guessDayForRound(roundId) {
+  return LINEUP_DAYS.find((d) => d.id === roundId || d.round === roundId) || null;
+}
+
 export const PHC_PINTEREST_URL = "https://pin.it/5slpgAzHQ";
 
 export function isBerkeleyRecruitmentContext(contextId) {

@@ -2,6 +2,8 @@ import { bearer, json, preflight, readJson } from "../lib/http.js";
 import { mergeDetailsIntoVerdict } from "../lib/scan-details.js";
 import { buildScanSystemPrompt, buildScanUserPrompt, defaultRetailer, humanizeVerdictText } from "../lib/scan-brain.js";
 import { RUSH_PARROT } from "../lib/berkeley-rush.js";
+import { loadStylistContext } from "../lib/google-context.js";
+import { fetchImageAsDataUrl, fetchLinkPreview } from "../lib/link-preview.js";
 import { accountFromToken } from "../lib/profile.js";
 import { supabaseConfigured } from "../lib/supabase.js";
 
@@ -135,6 +137,25 @@ function salvageScan(parsed) {
 const GENERIC_VERDICT =
   /versatile|weigh it against|style needs|budget and style|great option|timeless|must-have|without brand|without price|summer option|wardrobe staple|worth considering|could work|strong match|very you|good for your style|consider your|depends on your|a great addition|elevate your|great for recruitment|many rounds/i;
 
+const ROUNDS = new Set(["orientation", "unity_day", "sisterhood_day", "philanthropy_day", "preference", "bid_day"]);
+
+function analysisFields(verdict = {}, context = {}) {
+  const scoreRaw = Number(verdict.score);
+  const kind = verdict.kind;
+  const fallbackScore = kind === "love" ? 8.4 : kind === "warn" ? 5.6 : 7.2;
+  const round = ROUNDS.has(String(verdict.round || "").trim())
+    ? String(verdict.round).trim()
+    : String(context.recruitment_round || "").trim() || null;
+  return {
+    score: Number.isFinite(scoreRaw) ? Math.max(0, Math.min(10, Math.round(scoreRaw * 10) / 10)) : fallbackScore,
+    round: ROUNDS.has(round) ? round : null,
+    why_it_works: humanizeVerdictText(String(verdict.why_it_works || verdict.body || "").toLowerCase()).slice(0, 280),
+    change: humanizeVerdictText(String(verdict.change || verdict.resolve || "").toLowerCase()).slice(0, 280),
+    berkeley: humanizeVerdictText(String(verdict.berkeley || verdict.spotting || "").toLowerCase()).slice(0, 280),
+    spotting: humanizeVerdictText(String(verdict.berkeley || verdict.spotting || "").toLowerCase()).slice(0, 280),
+  };
+}
+
 function usefulVerdict(product, similar, verdict = {}, context = {}) {
   const title = String(verdict.title || "").toLowerCase().trim();
   const body = String(verdict.body || "").toLowerCase().trim();
@@ -143,6 +164,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
     GENERIC_VERDICT.test(`${title} ${body}`) || /option$/.test(title) || parrot;
   const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
   const cousins = (similar || []).map((s) => s.name).filter(Boolean).slice(0, 3);
+  const extra = analysisFields(verdict, context);
   if (!generic && title && !/^this /.test(title)) {
     return {
       quiet: Boolean(verdict.quiet),
@@ -152,6 +174,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
       body: humanizeVerdictText(body),
       resolve: verdict.resolve ? humanizeVerdictText(String(verdict.resolve).toLowerCase()) : null,
       decision_hint: verdict.decision_hint || null,
+      ...extra,
     };
   }
   if (!product.brand) {
@@ -165,6 +188,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
         : "no brand readable on this shot. scan the hangtag or insole — that's the read.",
       resolve: "scan the price tag next.",
       decision_hint: "save",
+      ...extra,
     };
   }
   return {
@@ -177,6 +201,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
       : "named from what we can see. scan the tag to lock the style.",
     resolve: verdict.resolve ? String(verdict.resolve).toLowerCase() : "scan the tag if you want the exact sku.",
     decision_hint: verdict.decision_hint || "save",
+    ...extra,
   };
 }
 
@@ -207,9 +232,7 @@ function normalizeImage(image) {
   return `data:image/jpeg;base64,${raw}`;
 }
 
-async function callOpenAIVision(key, imageUrl, context) {
-  const system = buildScanSystemPrompt(context);
-  const userText = buildScanUserPrompt(context);
+async function openaiMessages(key, messages) {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -219,18 +242,9 @@ async function callOpenAIVision(key, imageUrl, context) {
     body: JSON.stringify({
       model: OPENAI_SCAN_MODEL,
       temperature: 0.2,
-      max_tokens: 1200,
+      max_tokens: 1400,
       response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: system },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: userText },
-            { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
-          ],
-        },
-      ],
+      messages,
     }),
   });
   if (!res.ok) {
@@ -240,8 +254,30 @@ async function callOpenAIVision(key, imageUrl, context) {
   }
   const data = await res.json();
   const parsed = salvageScan(parseJson(data.choices?.[0]?.message?.content));
-  if (!parsed?.product) return { ok: false, error: "could not read that photo." };
+  if (!parsed?.product) return { ok: false, error: "could not read that." };
   return { ok: true, data: parsed, brain: "openai" };
+}
+
+async function callOpenAIVision(key, imageUrl, context) {
+  const system = buildScanSystemPrompt(context);
+  const userText = buildScanUserPrompt(context);
+  return openaiMessages(key, [
+    { role: "system", content: system },
+    {
+      role: "user",
+      content: [
+        { type: "text", text: userText },
+        { type: "image_url", image_url: { url: imageUrl, detail: "high" } },
+      ],
+    },
+  ]);
+}
+
+async function callOpenAIText(key, context) {
+  return openaiMessages(key, [
+    { role: "system", content: buildScanSystemPrompt(context) },
+    { role: "user", content: buildScanUserPrompt(context) },
+  ]);
 }
 
 async function callAnthropicVision(key, imageUrl, context) {
@@ -291,7 +327,7 @@ async function callAnthropicVision(key, imageUrl, context) {
 
 /**
  * POST /api/yom-scan
- * Body: { image: dataURL|base64, input_method?: "photo"|"tag", note?, surface? }
+ * Body: { image?: dataURL|base64, link?: url, note?, input_method?: "photo"|"tag"|"link"|"text" }
  */
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
@@ -308,27 +344,48 @@ export default async function handler(req, res) {
   }
 
   const body = readJson(req);
-  const imageUrl = normalizeImage(body.image);
-  if (!imageUrl) {
-    json(res, 400, { ok: false, error: "image required" });
+  let imageUrl = normalizeImage(body.image);
+  let sourceUrl = String(body.link || body.source_url || "").trim();
+  const note = String(body.note || "").trim();
+  const methodHint = String(body.input_method || "").trim();
+
+  if (!imageUrl && sourceUrl) {
+    const preview = await fetchLinkPreview(sourceUrl);
+    if (preview.ok && preview.image) {
+      sourceUrl = preview.url || sourceUrl;
+      imageUrl = (await fetchImageAsDataUrl(preview.image)) || normalizeImage(preview.image);
+      if (preview.title && !note) body.note = preview.title;
+    }
+  }
+
+  const textOnly = Boolean(!imageUrl && note);
+  if (!imageUrl && !textOnly) {
+    json(res, 400, { ok: false, error: "image, link, or a description required" });
     return;
   }
-  // Soft cap — client should compress; reject absurd payloads
-  if (imageUrl.length > 6_500_000) {
+  if (imageUrl && imageUrl.length > 6_500_000) {
     json(res, 413, { ok: false, error: "image too large — try again closer / lower res" });
     return;
   }
 
   const acq = {
-    campaign: body.campaign || "reformation_monday",
-    source: body.source || "reformation_sample_sale",
+    campaign: body.campaign || "",
+    source: body.source || "",
     shopping_context: body.shopping_context || "",
     recruitment_round: body.recruitment_round || "",
-    shopping_context_label: body.shopping_context_label || "",
+    shopping_context_label: body.shopping_context_label || body.occasion_label || "",
   };
 
+  const inputMethod = methodHint === "tag" || methodHint === "link" || methodHint === "text"
+    ? methodHint
+    : sourceUrl
+      ? "link"
+      : textOnly
+        ? "text"
+        : "photo";
+
   const context = {
-    input_method: body.input_method === "tag" ? "tag" : "photo",
+    input_method: inputMethod,
     surface: body.surface || "mobile_web",
     note: body.note || "",
     campaign: acq.campaign,
@@ -336,11 +393,14 @@ export default async function handler(req, res) {
     shopping_context: acq.shopping_context,
     recruitment_round: acq.recruitment_round,
     shopping_context_label: acq.shopping_context_label,
+    occasion: body.occasion || "",
+    occasion_label: body.occasion_label || "",
     shopper_name: body.shopper_name || "",
     scan_memory: body.scan_memory || "",
     trait: body.trait || "",
     memory: "",
     read: "",
+    google_prompt: "",
   };
 
   const token = bearer(req);
@@ -349,6 +409,17 @@ export default async function handler(req, res) {
     if (account?.profile) {
       context.memory = account.profile.memory || "";
       context.read = account.profile.read || "";
+      context.shopper_name = context.shopper_name || account.profile.name || "";
+      try {
+        const google = await loadStylistContext(account.profile.id, { refresh: true });
+        context.google_prompt = google.prompt || "";
+        if (!context.occasion && google.events?.length) {
+          const next = google.events[0];
+          if (next?.label) context.occasion = `${next.label}${next.when ? ` · ${next.when}` : ""}`;
+        }
+      } catch (e) {
+        console.warn("scan google context", e?.message || e);
+      }
     }
   }
   if (!context.memory && context.scan_memory) {
@@ -358,9 +429,17 @@ export default async function handler(req, res) {
   }
 
   let result = null;
-  if (openai) result = await callOpenAIVision(openai, imageUrl, context);
-  if ((!result || !result.ok) && anthropic) {
-    result = await callAnthropicVision(anthropic, imageUrl, context);
+  if (textOnly) {
+    if (!openai) {
+      json(res, 400, { ok: false, error: "a photo or link works better for this." });
+      return;
+    }
+    result = await callOpenAIText(openai, context);
+  } else {
+    if (openai) result = await callOpenAIVision(openai, imageUrl, context);
+    if ((!result || !result.ok) && anthropic) {
+      result = await callAnthropicVision(anthropic, imageUrl, context);
+    }
   }
 
   if (!result?.ok) {
@@ -388,6 +467,8 @@ export default async function handler(req, res) {
   json(res, 200, {
     ok: true,
     brain: result.brain,
+    source_url: sourceUrl || null,
+    image: imageUrl && imageUrl.startsWith("https://") ? imageUrl : undefined,
     product: {
       name,
       brand,

@@ -1,0 +1,168 @@
+import { json, preflight, readJson } from "../lib/http.js";
+import { rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
+
+function asText(v, max = 180) {
+  return String(v || "").trim().slice(0, max);
+}
+
+function publicView(row, looks = []) {
+  if (!row) return null;
+  const name = row.display_name || "a pnm";
+  const days = row.days && typeof row.days === "object" ? row.days : {};
+  const showRatings = row.show_ratings !== false;
+  const picks = looks
+    .filter((look) => look.in_closet && (look.score == null || Number(look.score) >= 7))
+    .slice(0, 8)
+    .map((look) => ({
+      id: look.id,
+      title: look.title,
+      day_id: look.day_id,
+      round_id: look.round_id,
+      score: showRatings ? look.score : null,
+      image_url: look.image_url || "",
+    }));
+  return {
+    id: row.id,
+    name: asText(name, 80).toLowerCase(),
+    sisterhood: Boolean(row.sisterhood),
+    is_public: Boolean(row.is_public),
+    days,
+    picks,
+  };
+}
+
+function parseQuery(req) {
+  const q = req.query || {};
+  let urlQ = {};
+  try {
+    urlQ = Object.fromEntries(new URL(req.url, "http://localhost").searchParams.entries());
+  } catch {
+    /* ignore */
+  }
+  return { ...urlQ, ...q };
+}
+
+export default async function handler(req, res) {
+  if (preflight(req, res)) return;
+  if (!supabaseConfigured()) {
+    json(res, 200, { ok: true, fallback: true, looks: [] });
+    return;
+  }
+
+  if (req.method === "GET") {
+    const q = parseQuery(req);
+    if (String(q.feed || "") === "1") {
+      const pubs = await sbAdmin(rest("lineups", "is_public=eq.true&select=*&order=updated_at.desc&limit=40"));
+      const rows = Array.isArray(pubs.data) ? pubs.data : [];
+      const emails = [...new Set(rows.map((row) => row.email).filter(Boolean))];
+      let looks = [];
+      if (emails.length) {
+        const found = await sbAdmin(
+          rest(
+            "pipeline_looks",
+            `in_closet=eq.true&email=in.(${emails.map((email) => `"${email.replace(/"/g, "")}"`).join(",")})&order=created_at.desc&limit=80`
+          )
+        );
+        looks = Array.isArray(found.data) ? found.data : [];
+      }
+      const byEmail = new Map(rows.map((row) => [row.email, row]));
+      json(res, 200, {
+        ok: true,
+        looks: looks
+          .map((look) => {
+            const row = byEmail.get(look.email);
+            if (!row) return null;
+            return {
+              id: look.id,
+              name: asText(row.display_name, 40).toLowerCase() || "a pnm",
+              title: look.title,
+              day_id: look.day_id,
+              round_id: look.round_id,
+              score: row.show_ratings === false ? null : look.score,
+              image_url: look.image_url || "",
+            };
+          })
+          .filter(Boolean),
+      });
+      return;
+    }
+    const id = asText(q.id || "", 36);
+    if (!id) {
+      json(res, 400, { ok: false, error: "need a lineup id." });
+      return;
+    }
+    const found = await sbAdmin(rest("lineups", `id=eq.${encodeURIComponent(id)}&select=*`));
+    const row = Array.isArray(found.data) ? found.data[0] : found.data;
+    if (!found.ok || !row || !row.is_public) {
+      json(res, 404, { ok: false, error: "this lineup isn’t public." });
+      return;
+    }
+    const looks = await sbAdmin(
+      rest("pipeline_looks", `email=eq.${encodeURIComponent(row.email || "")}&in_closet=eq.true&order=created_at.desc`)
+    );
+    json(res, 200, { ok: true, lineup: publicView(row, Array.isArray(looks.data) ? looks.data : []) });
+    return;
+  }
+
+  if (req.method !== "POST") {
+    json(res, 405, { ok: false, error: "GET or POST" });
+    return;
+  }
+
+  const body = readJson(req);
+  const email = asText(body.email, 180).toLowerCase();
+  const anonId = asText(body.anon_id, 80);
+  if (!email && !anonId) {
+    json(res, 400, { ok: false, error: "need an email or anon id." });
+    return;
+  }
+
+  const looks = Array.isArray(body.looks) ? body.looks.slice(0, 40) : [];
+  if (looks.length) {
+    const rows = looks.map((look) => ({
+      id: look.id && /^[0-9a-f-]{36}$/i.test(look.id) ? look.id : undefined,
+      anon_id: anonId || null,
+      email: email || null,
+      title: asText(look.title, 120),
+      image_url: asText(look.preview, 2000),
+      source_url: asText(look.sourceUrl, 500),
+      input_method: asText(look.inputMethod, 40),
+      round_id: asText(look.roundId, 40),
+      day_id: asText(look.dayId, 40),
+      score: look.score == null || look.score === "" ? null : Number(look.score),
+      product: look.product || {},
+      verdict: look.verdict || {},
+      in_closet: Boolean(look.inCloset),
+    }));
+    await sbAdmin(rest("pipeline_looks"), { method: "POST", body: rows });
+  }
+
+  const pub = body.public || {};
+  const existingQ = email
+    ? `email=eq.${encodeURIComponent(email)}`
+    : `anon_id=eq.${encodeURIComponent(anonId)}`;
+  const existing = await sbAdmin(rest("lineups", `${existingQ}&select=*&limit=1`));
+  const current = Array.isArray(existing.data) ? existing.data[0] : null;
+  const payload = {
+    anon_id: anonId || current?.anon_id || null,
+    email: email || current?.email || null,
+    display_name: asText(pub.display_name || body.name, 80) || current?.display_name || null,
+    last_name: asText(pub.last_name, 80),
+    show_last_name: pub.show_last_name !== false,
+    is_public: Boolean(pub.is_public),
+    sisterhood: Boolean(pub.sisterhood || pub.is_public),
+    days: body.lineup && typeof body.lineup === "object" ? body.lineup : current?.days || {},
+    updated_at: new Date().toISOString(),
+  };
+
+  let row = current;
+  if (current?.id) {
+    const updated = await sbAdmin(rest("lineups", `id=eq.${current.id}`), { method: "PATCH", body: payload });
+    row = Array.isArray(updated.data) ? updated.data[0] : updated.data || current;
+  } else {
+    const inserted = await sbAdmin(rest("lineups"), { method: "POST", body: payload });
+    row = Array.isArray(inserted.data) ? inserted.data[0] : inserted.data;
+  }
+
+  json(res, 200, { ok: true, lineup_id: row?.id || null, lineup: publicView(row, looks) });
+}

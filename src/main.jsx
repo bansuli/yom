@@ -11,6 +11,10 @@ import Scan from './Scan.jsx'
 import SharePage from './Share.jsx'
 import Create from './Create.jsx'
 import Join from './Join.jsx'
+import Looks from './Looks.jsx'
+import Lineup from './Lineup.jsx'
+import ClosetBoard from './ClosetBoard.jsx'
+import PublicLineup from './PublicLineup.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { startLeadFlush } from './lib/lead-queue.js'
 
@@ -37,8 +41,13 @@ function BetaCorner() {
     pathname === '/scan' ||
     pathname === '/create' ||
     pathname === '/join' ||
+    pathname === '/looks' ||
+    pathname === '/lineup' ||
+    pathname === '/closet' ||
+    pathname === '/everyone' ||
     pathname.startsWith('/survey') ||
-    pathname.startsWith('/s/')
+    pathname.startsWith('/s/') ||
+    pathname.startsWith('/l/')
   ) {
     return null
   }
@@ -62,8 +71,13 @@ createRoot(document.getElementById('root')).render(
         <Route path="/beta" element={<Beta />} />
         <Route path="/scan" element={<Scan />} />
         <Route path="/join" element={<Join />} />
+        <Route path="/looks" element={<Looks />} />
+        <Route path="/lineup" element={<Lineup />} />
+        <Route path="/closet" element={<ClosetBoard />} />
+        <Route path="/everyone" element={<ClosetBoard />} />
         <Route path="/create" element={<Create />} />
         <Route path="/s/:shareId" element={<SharePage />} />
+        <Route path="/l/:lineupId" element={<PublicLineup />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

@@ -19,8 +19,8 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg?.type === "OPEN_REFORMATION") {
-    chrome.tabs.create({ url: msg.url || "https://www.thereformation.com/clothing" });
+  if (msg?.type === "OPEN_SHOP") {
+    chrome.tabs.create({ url: msg.url || "https://youryom.com/scan" });
     sendResponse({ ok: true });
     return true;
   }
@@ -48,6 +48,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .identify(id, msg.traits || {})
       .then((data) => sendResponse(data || { ok: true }))
       .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg?.type === "YOM_GOOGLE") {
+    loadGoogle()
+      .then((data) => sendResponse(data))
+      .catch(() => sendResponse({ ok: false, events: [], gmail: [] }));
     return true;
   }
 
@@ -263,6 +270,18 @@ async function saveLearn(learn) {
     await chrome.storage.local.set({ [SESSION_KEY]: session });
   }
   return data;
+}
+
+async function loadGoogle() {
+  const session = await loadSession();
+  if (!session?.access_token) return { ok: false, events: [], gmail: [] };
+  const data = await api("/api/google/events", { token: session.access_token });
+  if (!data.ok) return { ok: false, events: [], gmail: [] };
+  return {
+    ok: true,
+    events: data.events || [],
+    gmail: data.gmail || [],
+  };
 }
 
 async function callSharedBrain(payload) {

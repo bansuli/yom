@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, track } from "./lib/analytics.js";
 import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
-import { isYomReady, loadJoinEmail, loadJoinProfile, loadLastCheck, saveLastCheck } from "./lib/join-store.js";
-import { voterDisplayName } from "./lib/share-votes.js";
+import { isYomReady, loadJoinEmail, loadJoinProfile, loadLastCheck, saveJoinProfile, saveLastCheck, unlockIfTest } from "./lib/join-store.js";
 import { appendScanHistory, formatScanHistoryForPrompt } from "./lib/scan-history.js";
-import { loadBetaSession, yomShare } from "./lib/yom-api.js";
+import { loadBetaSession, yomLineup, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
-import ShareChannels from "./components/ShareChannels.jsx";
+import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
+import { LINEUP_DAYS, wearLabel } from "./lib/contexts.js";
+import { addLookToLineup, lookFromScan, pipelinePayload, upsertLook } from "./lib/pipeline-store.js";
 import "./Scan.css";
+import "./Pipeline.css";
 
 function compressImage(fileOrBlob, maxEdge = 1400, quality = 0.82) {
   return new Promise((resolve, reject) => {
@@ -136,41 +138,19 @@ function loadSavedEmail() {
   return loadJoinEmail();
 }
 
-function IosShareIcon() {
-  return (
-    <svg
-      className="scan-a2hs-icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        d="M12 15.5V3.8M8.2 7.2 12 3.5l3.8 3.7"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M5 11.5v7.2A2.3 2.3 0 0 0 7.3 21h9.4A2.3 2.3 0 0 0 19 18.7v-7.2"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2.1"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 export default function Scan() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileRef = useRef(null);
+  const camFileRef = useRef(null);
   const checkGen = useRef(0);
-  const [mode, setMode] = useState("photo");
-  const [phase, setPhase] = useState("live");
+  const [mode, setMode] = useState(() => {
+    const m = params.get("mode");
+    return m === "tag" || m === "link" || m === "text" ? m : "photo";
+  });
+  const [phase, setPhase] = useState("think");
   const [preview, setPreview] = useState(null);
   const [result, setResult] = useState(null);
   const [err, setErr] = useState("");
@@ -181,14 +161,24 @@ export default function Scan() {
   const [shareUrl, setShareUrl] = useState("");
   const [shareBusy, setShareBusy] = useState(false);
   const [friendVotes, setFriendVotes] = useState([]);
-  const [allowed, setAllowed] = useState(() => isYomReady() || Boolean(loadBetaSession()?.access_token));
+  const [allowed, setAllowed] = useState(
+    () => unlockIfTest() || isYomReady() || Boolean(loadBetaSession()?.access_token)
+  );
   const [facing, setFacing] = useState("environment"); // environment = rear, user = front
+  const [googleEvents, setGoogleEvents] = useState([]);
+  const [occasion, setOccasion] = useState(() => loadJoinProfile().occasion || "");
+  const [link, setLink] = useState("");
+  const [note, setNote] = useState("");
+  const [progress, setProgress] = useState(12);
+  const [closetSaved, setClosetSaved] = useState(false);
+  const [pickDay, setPickDay] = useState(() => params.get("day") || "");
+  const [lookId, setLookId] = useState("");
 
   useEffect(() => {
     const search = window.location.search || "";
     captureAcquisitionFromUrl(search);
     // Pipeline: link → email → create yom → camera
-    if (!isYomReady() && !loadBetaSession()?.access_token) {
+    if (!unlockIfTest(search) && !loadBetaSession()?.access_token) {
       navigate(`/join${search}`, { replace: true });
       return;
     }
@@ -199,6 +189,19 @@ export default function Scan() {
       metadata: { entry: true },
     });
     void flushLeadQueue();
+    const params = new URLSearchParams(search);
+    const grant = params.get("grant");
+    const startMode = params.get("mode");
+    if (startMode === "photo") setPhase("live");
+    if (startMode === "upload") {
+      window.setTimeout(() => fileRef.current?.click(), 80);
+    }
+    if (startMode === "link" || startMode === "text") setMode(startMode);
+    (async () => {
+      if (grant) await claimGoogleGrant(grant);
+      const g = await loadGoogleState();
+      setGoogleEvents(g.events || []);
+    })();
     return () => {
       streamRef.current?.getTracks?.().forEach((t) => t.stop());
     };
@@ -236,6 +239,21 @@ export default function Scan() {
     },
     [facing]
   );
+
+  useEffect(() => {
+    if (phase !== "checking") {
+      setProgress(12);
+      return;
+    }
+    setProgress(18);
+    const ticks = [28, 42, 55, 67, 76, 84];
+    let i = 0;
+    const timer = window.setInterval(() => {
+      setProgress(ticks[Math.min(i, ticks.length - 1)]);
+      i += 1;
+    }, 450);
+    return () => window.clearInterval(timer);
+  }, [phase]);
 
   useEffect(() => {
     if (!allowed || phase !== "live") return;
@@ -347,33 +365,44 @@ export default function Scan() {
     setErr("");
     setShareUrl("");
     setFriendVotes([]);
+    setClosetSaved(false);
+    setLookId("");
+    setLink("");
+    setNote("");
     try {
       sessionStorage.removeItem("yom_active_share_id");
     } catch {
       /* ignore */
     }
-    setPhase("live");
+    setPhase("think");
   };
 
   const startScan = async (nextMode) => {
     setMode(nextMode);
-    if (phase === "live") return;
-    await resetLive();
+    if (nextMode === "photo") {
+      setPhase("live");
+      return;
+    }
+    setPhase("think");
   };
 
-  const runCheck = async (image) => {
+  const runCheck = async (image, extra = {}) => {
     const shot = image || preview;
-    if (!shot) return;
+    const nextLink = extra.link ?? link;
+    const nextNote = extra.note ?? note;
+    const nextMode = extra.input_method || mode;
+    if (!shot && !nextLink && !nextNote) return;
     const gen = ++checkGen.current;
-    setPreview(shot);
+    if (shot) setPreview(shot);
     setPhase("checking");
     setErr("");
     setResult(null);
     setDecision(null);
+    setClosetSaved(false);
     track("product_check_started", {
-      input_method: mode,
+      input_method: nextMode,
       surface: getSurface(),
-      retailer: "in_store",
+      retailer: nextLink ? "web" : "in_store",
     });
     recordScanVisit({
       email: emailSaved ? email : undefined,
@@ -391,17 +420,21 @@ export default function Scan() {
           ...(session?.access_token ? { authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          image: shot,
-          input_method: mode,
+          image: shot || undefined,
+          link: nextLink || undefined,
+          note: nextNote || undefined,
+          input_method: nextMode,
           surface: getSurface(),
           campaign: acq.campaign,
           source: acq.source,
-          shopping_context: joinProfile.context || acq.shopping_context || "",
-          recruitment_round: joinProfile.round || acq.recruitment_round || "",
+          shopping_context: joinProfile.context || acq.shopping_context || "berkeley_fpr_2026",
+          recruitment_round: joinProfile.round || acq.recruitment_round || pickDay || "",
           shopping_context_label: joinProfile.contextOther || "",
           shopper_name: joinProfile.name || "",
           trait: joinProfile.trait || "",
           scan_memory: formatScanHistoryForPrompt(),
+          occasion: occasion || joinProfile.occasion || "",
+          occasion_label: occasion || joinProfile.occasion || joinProfile.contextOther || "",
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -412,23 +445,37 @@ export default function Scan() {
         return;
       }
       const cleaned = scrubTake(data);
+      const shown = shot || data.image || preview;
+      if (shown) setPreview(shown);
+      setProgress(100);
       setResult(cleaned);
       setPhase("result");
-      const sheetThumb = await thumbForSheet(shot);
+      const sheetThumb = shown ? await thumbForSheet(shown) : "";
       saveLastCheck({
         product: cleaned.product,
         verdict: cleaned.verdict,
         similar: cleaned.similar || cleaned.product?.similar,
-        preview: sheetThumb || shot,
-        mode,
+        preview: sheetThumb || shown,
+        mode: nextMode,
       });
       appendScanHistory({
         product: cleaned.product,
         verdict: cleaned.verdict,
-        round: joinProfile.round || acq.recruitment_round || "",
+        round: cleaned.verdict?.round || joinProfile.round || acq.recruitment_round || "",
       });
+      const savedLook = upsertLook(
+        lookFromScan({
+          preview: sheetThumb || shown,
+          sourceUrl: nextLink || data.source_url || "",
+          inputMethod: nextMode,
+          product: cleaned.product,
+          verdict: cleaned.verdict,
+          note: nextNote,
+        })
+      );
+      setLookId(savedLook.id);
       const props = productProps(cleaned.product, {
-        input_method: mode,
+        input_method: nextMode,
         surface: getSurface(),
         verdict: cleaned.verdict?.title || "",
         confidence: cleaned.product?.confidence,
@@ -581,14 +628,33 @@ export default function Scan() {
     });
   };
 
+  const addToCloset = async () => {
+    if (!result || closetSaved) return;
+    const existing = lookId ? { id: lookId } : null;
+    const look = lookFromScan({
+      preview,
+      sourceUrl: link || result.source_url || "",
+      inputMethod: mode,
+      product: result.product,
+      verdict: result.verdict,
+      note,
+    });
+    const dayId = pickDay || look.dayId || LINEUP_DAYS.find((d) => d.round === result.verdict?.round)?.id || "";
+    addLookToLineup({ ...look, id: existing?.id || look.id, inCloset: true }, dayId);
+    setClosetSaved(true);
+    decide("save");
+    yomLineup(pipelinePayload());
+    navigate("/lineup");
+  };
+
   if (!allowed) {
     return (
-      <div className="scan-page">
-        <header className="scan-top">
-          <Link to="/" className="scan-brand">
+      <div className="pnm-page is-flush">
+        <header>
+          <Link to="/" className="pnm-brand">
             yom
           </Link>
-          <p className="scan-sub">one sec…</p>
+          <p className="pnm-kicker">one sec…</p>
         </header>
       </div>
     );
@@ -598,222 +664,221 @@ export default function Scan() {
   const verdict = result?.verdict || {};
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
-  const senderName = (loadJoinProfile().name || "").trim();
+  const wearRound = wearLabel(verdict.round || pickDay || "sisterhood_day");
+  const score = verdict.score != null ? Number(verdict.score).toFixed(1) : "—";
+  const why = verdict.why_it_works || verdict.body || "";
+  const change = verdict.change || verdict.resolve || "";
+  const berkeley =
+    verdict.berkeley ||
+    verdict.spotting ||
+    (cousins.length ? cousins.map((item) => item.name).join(" · ") : "");
 
-  return (
-    <div className={`scan-page${landed ? " is-landed" : ""}`}>
-      <header className="scan-top">
-        <Link
-          to={loadBetaSession()?.access_token ? "/beta" : "/join?home=1"}
-          className="scan-profile-link"
-        >
-          my yom
-        </Link>
-        <Link to="/" className="scan-brand">
-          yom
-        </Link>
-        <p className="scan-sub">
-          {landed
-            ? "your read"
-            : phase === "live"
-              ? mode === "tag"
-                ? "point at the price tag."
-                : "point at the piece."
-              : "scan a piece or a price tag."}
-        </p>
-      </header>
+  if (phase === "checking") {
+    return (
+      <div className="pnm-page is-flush">
+        <header className="pnm-brand-row">
+          <Link to="/looks" className="pnm-brand">
+            yom
+          </Link>
+          <button type="button" className="pnm-back" onClick={() => resetLive()}>
+            ← back
+          </button>
+        </header>
+        <div className="pnm-looking">
+          <h1>taking a look...</h1>
+          <p className="pnm-sub">yom’s looking at the details.</p>
+          <div className="pnm-progress" aria-label="progress">
+            <i style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      {!landed && (
-      <div
-        className={`scan-modes${phase === "error" ? " is-restart" : ""}`}
-        role="tablist"
-        aria-label="what you’re scanning"
-      >
-        <button
-          type="button"
-          className={mode === "photo" ? "on" : ""}
-          aria-pressed={mode === "photo"}
-          aria-label="scan a piece"
-          onClick={() => startScan("photo")}
-        >
-          piece
-        </button>
-        <button
-          type="button"
-          className={mode === "tag" ? "on" : ""}
-          aria-pressed={mode === "tag"}
-          aria-label="scan a price tag"
-          onClick={() => startScan("tag")}
-        >
-          price tag
+  if (landed) {
+    return (
+      <div className="pnm-page is-flush">
+        <header className="pnm-brand-row">
+          <Link to="/looks" className="pnm-brand">
+            yom
+          </Link>
+          <button type="button" className="pnm-back" onClick={() => resetLive()}>
+            ← back
+          </button>
+        </header>
+        <h1 className="pnm-title pnm-wear">
+          i’d wear this for
+          <em>{wearRound}.</em>
+        </h1>
+        <div className="pnm-result-body">
+          <div className="pnm-shot">
+            {preview ? <img src={preview} alt={product.name || "the look"} /> : <div className="pnm-thumb empty" />}
+          </div>
+          <div className="pnm-result-copy">
+            <div className="pnm-score">
+              {score}
+              <span>/10</span>
+            </div>
+            <article className="pnm-block">
+              <h3>why it works</h3>
+              <p>{why || verdict.title}</p>
+            </article>
+            <article className="pnm-block">
+              <h3>one thing i’d change</h3>
+              <p>{change || "swap the shoes for something you’ll actually be comfortable walking and standing in."}</p>
+            </article>
+            <article className="pnm-block">
+              <h3>for berkeley specifically</h3>
+              <p>{berkeley || "it’s looking warm that day, so you probably won’t need another layer."}</p>
+            </article>
+          </div>
+        </div>
+        {err && <p className="scan-err">{err}</p>}
+        <button type="button" className="pnm-cta pnm-result-cta" onClick={addToCloset}>
+          {closetSaved ? "added →" : `add to ${wearRound} →`}
         </button>
       </div>
-      )}
+    );
+  }
 
-      {!landed && (
-        <div className={`scan-stage${mode === "tag" ? " is-tag" : ""}`}>
-          {phase === "live" && (
-            <>
-              <video
-                ref={videoRef}
-                className={`scan-video${facing === "user" ? " is-front" : ""}`}
-                playsInline
-                muted
-                autoPlay
-              />
-              {!camReady && <div className="scan-fallback">waiting on camera…</div>}
-              <div className="scan-frame" aria-hidden="true" />
-              <button type="button" className="scan-flip" onClick={flipCam} aria-label="Flip camera">
-                flip
-              </button>
-            </>
-          )}
-          {(phase === "checking" || phase === "error") && preview && (
-            <img className="scan-preview" src={preview} alt="" />
-          )}
-          {phase === "checking" && (
-            <div className="scan-overlay">
-              <p>looking into this…</p>
-            </div>
-          )}
-        </div>
-      )}
+  return (
+    <div className="pnm-page is-flush">
+      <header className="pnm-brand-row">
+        <Link to="/looks" className="pnm-brand">
+          yom
+        </Link>
+        <button type="button" className="pnm-back" onClick={() => (phase === "think" ? navigate("/looks") : resetLive())}>
+          ← back
+        </button>
+      </header>
 
-      {err && <p className="scan-err">{err}</p>}
-
-      {landed && (
-        <section className="scan-landing" aria-live="polite">
-          {preview && (
-            <div className="scan-landing-photo">
-              <img src={preview} alt={product.name || "scanned piece"} />
-            </div>
-          )}
-          <p className="scan-meta">
-            {[product.brand, product.name].filter(Boolean).join(" · ") || "this piece"}
-            {product.price != null ? ` · $${product.price}` : ""}
-            {!product.identified && product.name && product.name !== "this piece" ? " · best guess" : ""}
-          </p>
-          {product.guess &&
-            product.guess.toLowerCase() !== String(product.name || "").toLowerCase() && (
-              <p className="scan-guess">looks like {product.guess}</p>
-            )}
-          <h2>{verdict.title || "checked"}</h2>
-          {verdict.body && <p className="scan-body">{verdict.body}</p>}
-          {verdict.resolve && <p className="scan-resolve">{verdict.resolve}</p>}
-          {cousins.length > 0 && !verdict.quiet && (
-            <p className="scan-similar-inline">
-              or {cousins.map((item) => item.name).join(" · ")}
-            </p>
-          )}
-          {verdict.details?.length > 0 && (
-            <ul className="scan-details">
-              {verdict.details.map((row) => (
-                <li key={row.key}>
-                  <span className="scan-detail-label">{row.label}</span>
-                  <span className="scan-detail-text">{row.text}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <p className="scan-ask">send this to friends — or keep scanning.</p>
+      {phase === "think" && (
+        <>
+          <h1 className="pnm-title pnm-think">
+            show me what
+            <br />
+            you’re thinking.
+          </h1>
+          <p className="pnm-sub">an outfit, a single piece, anything.</p>
+          <button type="button" className="pnm-choice" onClick={() => startScan("photo")}>
+            <span>
+              <strong>take a photo</strong>
+              <span>use your camera</span>
+            </span>
+            <span className="pnm-choice-arrow">→</span>
+          </button>
+          <button type="button" className="pnm-choice" onClick={() => fileRef.current?.click()}>
+            <span>
+              <strong>upload a photo</strong>
+              <span>from your camera roll</span>
+            </span>
+            <span className="pnm-choice-arrow">→</span>
+          </button>
           <button
             type="button"
-            className="scan-shutter scan-ask-friends"
-            onClick={shareWithFriends}
-            disabled={shareBusy}
+            className="pnm-choice"
+            onClick={() => {
+              setMode("link");
+            }}
           >
-            {shareBusy ? "making link…" : "ask friends"}
+            <span>
+              <strong>paste a link</strong>
+              <span>from any store</span>
+            </span>
+            <span className="pnm-choice-arrow">→</span>
           </button>
-          <button type="button" className="scan-secondary scan-again" onClick={() => startScan(mode)}>
-            scan another
-          </button>
-          {shareUrl && (
-            <ShareChannels
-              url={shareUrl}
-              product={product}
-              verdict={verdict}
-              name={senderName || loadJoinProfile().name}
-              shareId={shareUrl.split("/").pop()}
-              surface={getSurface()}
-              label="or send via"
-            />
-          )}
-          {shareUrl && (
-            <div className="scan-friend-votes">
-              <p className="scan-meta">friends said</p>
-              {friendVotes.length === 0 ? (
-                <p className="scan-friend-wait">waiting on friends…</p>
-              ) : (
-                <ul>
-                  {friendVotes.map((v, i) => (
-                    <li key={`${v.voter_name || v.voter_email || "v"}-${v.vote}-${v.created_at || i}`}>
-                      <strong>{voterDisplayName(v)}</strong>
-                      <span className="scan-friend-vote"> · {v.vote}</span>
-                      {v.reason ? ` — ${v.reason}` : ""}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-          <p className="scan-ask scan-ask-self">your call</p>
-          <div className="scan-decisions">
-            {["buy", "skip", "save"].map((action) => (
-              <button
-                key={action}
-                type="button"
-                className={decision === action ? "picked" : ""}
-                disabled={Boolean(decision)}
-                onClick={() => decide(action)}
-              >
-                {action}
+          {mode === "link" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                runCheck(null, { link, input_method: "link" });
+              }}
+            >
+              <input
+                className="pnm-input"
+                placeholder="https://"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                inputMode="url"
+                autoFocus
+              />
+              <button type="submit" className="pnm-cta" style={{ marginTop: "0.65rem" }}>
+                look at this link →
               </button>
-            ))}
-          </div>
-          {decision && <p className="scan-done">logged · {decision}</p>}
-        </section>
+            </form>
+          )}
+          <p className="pnm-or">or</p>
+          <p className="pnm-tell">or just tell yom about it</p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!note.trim()) return;
+              runCheck(null, { note, input_method: "text" });
+            }}
+          >
+            <input
+              className="pnm-input"
+              placeholder="i have a white mini dress..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </form>
+        </>
       )}
 
-      <footer className="scan-actions">
-        {phase === "live" && (
-          <>
+      {phase === "live" && (
+        <>
+          <div className={`scan-stage${mode === "tag" ? " is-tag" : ""}`}>
+            <video
+              ref={videoRef}
+              className={`scan-video${facing === "user" ? " is-front" : ""}`}
+              playsInline
+              muted
+              autoPlay
+            />
+            {!camReady && <div className="scan-fallback">waiting on camera…</div>}
+            <div className="scan-frame" aria-hidden="true" />
+            <button type="button" className="scan-flip" onClick={flipCam} aria-label="Flip camera">
+              flip
+            </button>
+          </div>
+          <footer className="scan-actions">
             <button type="button" className="scan-shutter" onClick={snapFromVideo}>
               capture
             </button>
             <button type="button" className="scan-secondary" onClick={() => fileRef.current?.click()}>
               upload
             </button>
-          </>
-        )}
-        {phase === "error" && (
-          <>
-            <button type="button" className="scan-shutter" onClick={() => runCheck(preview)}>
-              try again
-            </button>
-            <button type="button" className="scan-secondary" onClick={() => startScan(mode)}>
-              retake
-            </button>
-          </>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="scan-file"
-          onChange={onFile}
-        />
-      </footer>
-
-      {!landed && (
-      <p className="scan-a2hs">
-        on iphone:{" "}
-        <span className="scan-a2hs-share" aria-label="share">
-          <IosShareIcon />
-          share
-        </span>{" "}
-        → add to home screen. yom stays in your pocket.
-      </p>
+          </footer>
+        </>
       )}
+
+      {phase === "error" && (
+        <>
+          {preview && (
+            <div className="pnm-shot">
+              <img src={preview} alt="" />
+            </div>
+          )}
+          {err && <p className="scan-err">{err}</p>}
+          <button type="button" className="pnm-cta" onClick={() => runCheck(preview, { link, note })}>
+            try again
+          </button>
+          <button type="button" className="pnm-ghost" onClick={() => resetLive()}>
+            start over
+          </button>
+        </>
+      )}
+
+      <input ref={fileRef} type="file" accept="image/*" className="scan-file" onChange={onFile} />
+      <input
+        ref={camFileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="scan-file"
+        onChange={onFile}
+      />
     </div>
   );
 }

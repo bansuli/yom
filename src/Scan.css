@@ -540,3 +540,88 @@
     max-height: 50vh;
   }
 }
+
+.scan-google {
+  margin: 0 0 0.75rem;
+}
+
+.scan-occasions {
+  margin-bottom: 0.55rem;
+}
+
+.scan-occasion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+}
+
+.scan-occasion-chips button {
+  border: 1.5px solid var(--scan-ink);
+  background: transparent;
+  color: var(--scan-ink);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  cursor: pointer;
+  max-width: 100%;
+  text-align: left;
+}
+
+.scan-occasion-chips button.on {
+  background: var(--scan-lime);
+}
+
+.google-connect {
+  margin-top: 0.55rem;
+}
+
+.google-connect.is-compact .google-connect-copy {
+  font-size: 0.82rem;
+  color: var(--scan-muted);
+  margin: 0 0 0.4rem;
+}
+
+.google-connect-copy {
+  margin: 0.4rem 0 0.5rem;
+  font-size: 0.9rem;
+  color: var(--scan-muted);
+}
+
+.google-connect-meta {
+  margin: 0.2rem 0;
+  font-size: 0.8rem;
+  color: var(--scan-muted);
+}
+
+.google-connect-events {
+  list-style: none;
+  margin: 0.35rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.google-connect-events li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  font-size: 0.88rem;
+}
+
+.google-connect-events span {
+  font-size: 0.78rem;
+  color: var(--scan-muted);
+}
+
+.google-connect-actions,
+.google-connect-btn {
+  margin-top: 0.35rem;
+}
+
+.google-connect-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
