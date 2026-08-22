@@ -42,6 +42,12 @@ function parseQuery(req) {
   return { ...urlQ, ...q };
 }
 
+function inFilter(values) {
+  return values
+    .map((value) => `"${String(value).replace(/"/g, "")}"`)
+    .join(",");
+}
+
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
   if (!supabaseConfigured()) {
@@ -55,22 +61,24 @@ export default async function handler(req, res) {
       const pubs = await sbAdmin(rest("lineups", "is_public=eq.true&select=*&order=updated_at.desc&limit=40"));
       const rows = Array.isArray(pubs.data) ? pubs.data : [];
       const emails = [...new Set(rows.map((row) => row.email).filter(Boolean))];
+      const anons = [...new Set(rows.map((row) => row.anon_id).filter(Boolean))];
+      const clauses = [];
+      if (emails.length) clauses.push(`email.in.(${inFilter(emails)})`);
+      if (anons.length) clauses.push(`anon_id.in.(${inFilter(anons)})`);
       let looks = [];
-      if (emails.length) {
+      if (clauses.length) {
         const found = await sbAdmin(
-          rest(
-            "pipeline_looks",
-            `in_closet=eq.true&email=in.(${emails.map((email) => `"${email.replace(/"/g, "")}"`).join(",")})&order=created_at.desc&limit=80`
-          )
+          rest("pipeline_looks", `or=(${clauses.join(",")})&order=created_at.desc&limit=120`)
         );
         looks = Array.isArray(found.data) ? found.data : [];
       }
-      const byEmail = new Map(rows.map((row) => [row.email, row]));
+      const byEmail = new Map(rows.filter((row) => row.email).map((row) => [row.email, row]));
+      const byAnon = new Map(rows.filter((row) => row.anon_id).map((row) => [row.anon_id, row]));
       json(res, 200, {
         ok: true,
         looks: looks
           .map((look) => {
-            const row = byEmail.get(look.email);
+            const row = byEmail.get(look.email) || byAnon.get(look.anon_id);
             if (!row) return null;
             return {
               id: look.id,
@@ -124,7 +132,9 @@ export default async function handler(req, res) {
       anon_id: anonId || null,
       email: email || null,
       title: asText(look.title, 120),
-      image_url: asText(look.preview, 2000),
+      image_url: String(look.preview || "").startsWith("http")
+        ? asText(look.preview, 2000)
+        : asText(look.preview, 180000),
       source_url: asText(look.sourceUrl, 500),
       input_method: asText(look.inputMethod, 40),
       round_id: asText(look.roundId, 40),
@@ -134,7 +144,11 @@ export default async function handler(req, res) {
       verdict: look.verdict || {},
       in_closet: Boolean(look.inCloset),
     }));
-    await sbAdmin(rest("pipeline_looks"), { method: "POST", body: rows });
+    await sbAdmin(rest("pipeline_looks?on_conflict=id"), {
+      method: "POST",
+      body: rows,
+      prefer: "resolution=merge-duplicates,return=representation",
+    });
   }
 
   const pub = body.public || {};
@@ -149,6 +163,7 @@ export default async function handler(req, res) {
     display_name: asText(pub.display_name || body.name, 80) || current?.display_name || null,
     last_name: asText(pub.last_name, 80),
     show_last_name: pub.show_last_name !== false,
+    show_ratings: pub.show_ratings !== false,
     is_public: Boolean(pub.is_public),
     sisterhood: Boolean(pub.sisterhood || pub.is_public),
     days: body.lineup && typeof body.lineup === "object" ? body.lineup : current?.days || {},

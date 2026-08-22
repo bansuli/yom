@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import YomNav, { PnmBell } from "./components/YomNav.jsx";
+import YomNav from "./components/YomNav.jsx";
 import { EVERYONE_FILTERS, LINEUP_DAYS, wearLabel } from "./lib/contexts.js";
 import { closetLooks, loadPublicState } from "./lib/pipeline-store.js";
 import { unlockIfTest } from "./lib/join-store.js";
@@ -38,11 +38,10 @@ export default function ClosetBoard() {
     (async () => {
       const res = await yomEveryone();
       if (cancelled) return;
-      if (res?.ok && Array.isArray(res.looks) && res.looks.length) {
-        setFeed(res.looks);
-      } else {
-        setFeed(localFeed());
-      }
+      const remote = res?.ok && Array.isArray(res.looks) ? res.looks : [];
+      const mine = localFeed();
+      const seen = new Set(remote.map((look) => look.id));
+      setFeed([...remote, ...mine.filter((look) => !seen.has(look.id))]);
     })();
     return () => {
       cancelled = true;
@@ -62,7 +61,6 @@ export default function ClosetBoard() {
         <Link to="/looks" className="pnm-brand" aria-label="yom">
           yom
         </Link>
-        <PnmBell />
       </header>
 
       <div className="pnm-cats" role="tablist" aria-label="rounds">
@@ -79,12 +77,12 @@ export default function ClosetBoard() {
       </div>
 
       {filtered.length === 0 ? (
-        <p className="pnm-sub">nobody’s shared a lineup yet. make yours public to see the board.</p>
+        <p className="pnm-sub">nobody’s shared a lineup yet. yours will show here once you make it public.</p>
       ) : (
         <div className="pnm-grid">
           {filtered.map((look) => (
             <figure key={look.id} className="pnm-card">
-              {look.image_url ? <img src={look.image_url} alt="" /> : <div className="pnm-thumb empty" />}
+              {look.image_url ? <img src={look.image_url} alt="" referrerPolicy="no-referrer" /> : <div className="pnm-thumb empty" />}
               <figcaption>
                 {look.name || look.title || "look"}
                 <span className="pnm-day-score">

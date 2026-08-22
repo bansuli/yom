@@ -26,10 +26,6 @@
   padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
 }
 
-.pnm-page.is-app {
-  background: var(--scan-cream);
-}
-
 .pnm-brand {
   display: block;
   text-align: center;
@@ -113,7 +109,7 @@
 .pnm-title em,
 .pnm-round {
   font-style: italic;
-  color: var(--scan-olive);
+  color: var(--scan-ink);
   font-family: "Instrument Serif", Georgia, serif;
 }
 
@@ -245,20 +241,9 @@
   color: #fff;
 }
 
-.pnm-page.is-app .pnm-chip.on,
-.pnm-page.is-app .pnm-chip:hover {
-  border-color: var(--scan-olive);
-}
-
-.pnm-page.is-app .pnm-chip.on {
-  background: var(--scan-olive);
-  color: #fff;
-}
-
-.pnm-page.is-app .pnm-cta,
 .pnm-cta-olive {
-  background: var(--scan-olive);
-  color: #fff;
+  background: var(--scan-lime);
+  color: var(--scan-ink);
 }
 
 .pnm-ghost {
@@ -491,7 +476,7 @@
   top: 0.85rem;
   bottom: 0.85rem;
   width: 1.5px;
-  background: #ddd8cc;
+  background: var(--scan-line);
 }
 
 .pnm-day {
@@ -531,13 +516,13 @@
   height: 9px;
   border-radius: 50%;
   background: #fff;
-  border: 1.5px solid #c9c4b8;
+  border: 1.5px solid #d4d4d4;
   transform: translateY(-50%);
 }
 
 .pnm-day.has-look::after {
-  background: var(--scan-olive);
-  border-color: var(--scan-olive);
+  background: var(--scan-lime);
+  border-color: var(--scan-lime);
 }
 
 .pnm-day-card {
@@ -634,13 +619,13 @@
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 50%;
-  background: var(--scan-olive);
+  background: var(--scan-lime);
   display: inline-block;
 }
 
 .pnm-edit-look {
   appearance: none;
-  border: 1px solid #d8d4c8;
+  border: 1px solid #d4d4d4;
   background: #fff;
   font: inherit;
   font-size: 0.66rem;
@@ -668,15 +653,15 @@
 }
 
 .pnm-thumb.empty {
-  background: #efebe1;
+  background: #f3f3f3;
 }
 
 .pnm-thumb.empty.hanger {
-  background: #efebe1 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='%23b7b29f' stroke-width='1.6' stroke-linecap='round' d='M6 9h12M8 9v10h8V9M10 6.5L12 9l2-2.5'/></svg>") center/18px no-repeat;
+  background: #f3f3f3 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='%23b0b0b0' stroke-width='1.6' stroke-linecap='round' d='M6 9h12M8 9v10h8V9M10 6.5L12 9l2-2.5'/></svg>") center/18px no-repeat;
 }
 
 .pnm-status {
-  background: #efebe1;
+  background: #f6f6f6;
   border-radius: 12px;
   padding: 0.95rem 0.95rem 1rem;
   margin-top: auto;
@@ -688,7 +673,7 @@
   gap: 0.55rem;
   align-items: start;
   margin-bottom: 0.75rem;
-  color: var(--scan-olive);
+  color: var(--scan-ink);
 }
 
 .pnm-status h2 {
@@ -732,7 +717,7 @@
   object-fit: cover;
   border-radius: 10px;
   display: block;
-  background: #efebe1;
+  background: #f3f3f3;
 }
 
 .pnm-card figcaption {
@@ -762,7 +747,7 @@
 
 .pnm-cats button {
   flex-shrink: 0;
-  border: 1px solid #d8d4c8;
+  border: 1px solid #d4d4d4;
   border-radius: 999px;
   background: #fff;
   color: #111;
@@ -774,9 +759,9 @@
 }
 
 .pnm-cats button.on {
-  background: var(--scan-olive);
-  border-color: var(--scan-olive);
-  color: #fff;
+  background: var(--scan-lime);
+  border-color: var(--scan-ink);
+  color: var(--scan-ink);
 }
 
 .pnm-looks {
@@ -824,8 +809,8 @@
 .pnm-mini {
   appearance: none;
   border: 0;
-  background: var(--scan-olive);
-  color: #fff;
+  background: var(--scan-lime);
+  color: var(--scan-ink);
   font: inherit;
   font-size: 0.68rem;
   font-weight: 700;
@@ -837,8 +822,8 @@
 
 .pnm-mini.is-ghost {
   background: #fff;
-  color: var(--scan-olive);
-  border: 1.4px solid var(--scan-olive);
+  color: var(--scan-ink);
+  border: 1.4px solid #111;
 }
 
 .pnm-actions {
@@ -850,14 +835,14 @@
 
 .pnm-action {
   appearance: none;
-  border: 1px solid #e6e2d8;
+  border: 1.5px solid #111;
   background: #fff;
   border-radius: 12px;
   padding: 0.75rem 0.3rem 0.7rem;
   font: inherit;
   cursor: pointer;
   text-align: center;
-  color: var(--scan-olive);
+  color: var(--scan-ink);
 }
 
 .pnm-action svg {
@@ -901,16 +886,16 @@
   width: 2.5rem;
   height: 2.5rem;
   margin: 0 auto 0.55rem;
-  border: 1.5px solid var(--scan-olive);
+  border: 1.5px solid var(--scan-ink);
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: var(--scan-olive);
+  color: var(--scan-ink);
 }
 
 .pnm-modal .pnm-cta {
-  background: var(--scan-olive);
-  color: #fff;
+  background: var(--scan-lime);
+  color: var(--scan-ink);
 }
 
 .pnm-toggle {
@@ -937,7 +922,7 @@
 }
 
 .pnm-switch.on {
-  background: var(--scan-olive);
+  background: var(--scan-lime);
 }
 
 .pnm-switch::after {
@@ -968,7 +953,7 @@
   font-family: "Instrument Serif", Georgia, serif;
   font-size: 1.2rem;
   font-weight: 400;
-  color: var(--scan-olive);
+  color: var(--scan-ink);
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -981,8 +966,8 @@
   height: 1.15rem;
   padding: 0 0.28rem;
   border-radius: 99px;
-  background: #efe8d4;
-  color: var(--scan-olive);
+  background: var(--scan-lime);
+  color: var(--scan-ink);
   font-family: "Schibsted Grotesk", sans-serif;
   font-size: 0.68rem;
   font-weight: 700;
@@ -1000,7 +985,7 @@
   gap: 0.35rem;
   padding: 0.5rem 0.6rem max(0.62rem, env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid #eceae4;
+  border-top: 1px solid var(--scan-line);
   z-index: 20;
 }
 
@@ -1017,7 +1002,7 @@
 
 .yom-nav a.on,
 .yom-nav-y.on {
-  color: var(--scan-olive);
+  color: var(--scan-ink);
 }
 
 .yom-nav-ico {

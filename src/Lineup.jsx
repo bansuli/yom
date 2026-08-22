@@ -48,7 +48,7 @@ export default function Lineup() {
     if (!pub.display_name.trim()) return;
     setBusy(true);
     const parts = pub.display_name.trim().split(/\s+/);
-    const res = await persist({
+    await persist({
       ...pub,
       display_name: parts[0] || pub.display_name,
       last_name: parts.slice(1).join(" ") || pub.last_name,
@@ -57,11 +57,23 @@ export default function Lineup() {
     });
     setBusy(false);
     setModal("");
-    if (res?.ok && res.lineup_id) {
-      savePublicState({ id: res.lineup_id, is_public: true, sisterhood: true });
-      setPub(loadPublicState());
-    }
+    setPub(loadPublicState());
+    navigate("/looks#looks");
   };
+
+  const makePrivate = async () => {
+    setBusy(true);
+    await persist({
+      ...pub,
+      is_public: false,
+      sisterhood: false,
+    });
+    setBusy(false);
+    setModal("");
+    setPub(loadPublicState());
+  };
+
+  const isPublic = Boolean(pub.is_public);
 
   return (
     <div className="pnm-page is-app">
@@ -93,7 +105,7 @@ export default function Lineup() {
                     day.pieces.map((piece) => (
                       <figure key={`${piece.lookId}-${piece.slot}`} className="pnm-piece">
                         {piece.look?.preview ? (
-                          <img src={piece.look.preview} alt="" />
+                          <img src={piece.look.preview} alt="" referrerPolicy="no-referrer" />
                         ) : (
                           <div className="pnm-thumb empty hanger" aria-hidden="true" />
                         )}
@@ -144,19 +156,42 @@ export default function Lineup() {
         <div className="pnm-status-row">
           <PnmPeople />
           <div className="pnm-status-copy">
-            <h2>wondering what everyone else is wearing?</h2>
-            <p>share your lineup to see what other girls at Berkeley are putting together.</p>
+            <h2>
+              {isPublic ? "your lineup is public." : "wondering what everyone else is wearing?"}
+            </h2>
+            <p>
+              {isPublic
+                ? "other girls at berkeley can see your first name and looks. you can switch this off anytime."
+                : "share your lineup to see what other girls at Berkeley are putting together."}
+            </p>
           </div>
         </div>
-        <button type="button" className="pnm-cta" onClick={() => setModal("public")}>
-          make my lineup public →
-        </button>
+        {isPublic ? (
+          <>
+            <button type="button" className="pnm-cta" disabled={busy} onClick={makePrivate}>
+              {busy ? "updating…" : "make my lineup private →"}
+            </button>
+            <button type="button" className="pnm-ghost" onClick={() => setModal("public")}>
+              edit sharing
+            </button>
+          </>
+        ) : (
+          <button type="button" className="pnm-cta" onClick={() => setModal("public")}>
+            make my lineup public →
+          </button>
+        )}
         <p className="pnm-lock">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            {isPublic ? (
+              <path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0" stroke="currentColor" strokeWidth="1.8" />
+            ) : (
+              <path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11" stroke="currentColor" strokeWidth="1.8" />
+            )}
             <rect x="6" y="11" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
-            <path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11" stroke="currentColor" strokeWidth="1.8" />
           </svg>
-          your lineup stays private unless you choose to share it.
+          {isPublic
+            ? "right now anyone with the everyone board can see it."
+            : "your lineup stays private unless you choose to share it."}
         </p>
       </section>
 
@@ -198,11 +233,17 @@ export default function Lineup() {
               />
             </div>
             <button type="button" className="pnm-cta" disabled={busy} onClick={makePublic}>
-              {busy ? "sharing…" : "make my lineup public →"}
+              {busy ? "sharing…" : isPublic ? "save sharing →" : "make my lineup public →"}
             </button>
-            <p className="pnm-sub" style={{ margin: "0.75rem 0 0" }}>
-              you can make it private again anytime.
-            </p>
+            {isPublic ? (
+              <button type="button" className="pnm-ghost" disabled={busy} onClick={makePrivate}>
+                make it private instead
+              </button>
+            ) : (
+              <p className="pnm-sub" style={{ margin: "0.75rem 0 0" }}>
+                you can make it private again anytime.
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -125,6 +125,7 @@ export function enrichScanTake(data) {
   if (!data || typeof data !== "object") return data;
   const product = data.product || {};
   const verdict = data.verdict || {};
+  if (verdict.quiet) return data;
   const category = inferCategory(product);
   const color = inferColor(product);
   const styleNotes = verdict.style_notes || data.style_notes || {};

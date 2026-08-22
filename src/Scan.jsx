@@ -5,13 +5,14 @@ import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail, loadJoinProfile, loadLastCheck, saveJoinProfile, saveLastCheck, unlockIfTest } from "./lib/join-store.js";
 import { appendScanHistory, formatScanHistoryForPrompt } from "./lib/scan-history.js";
-import { loadBetaSession, yomLineup, yomShare } from "./lib/yom-api.js";
+import { loadBetaSession, yomLineup, yomLinkPreview, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
 import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel } from "./lib/contexts.js";
 import { addLookToLineup, lookFromScan, pipelinePayload, upsertLook } from "./lib/pipeline-store.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
+import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "./lib/scan-score.js";
 import "./Scan.css";
 import "./Pipeline.css";
 
@@ -44,13 +45,20 @@ function compressImage(fileOrBlob, maxEdge = 1400, quality = 0.82) {
 }
 
 /** Smaller JPEG for Google Sheet / Drive (keeps webhook under size limits). */
-function thumbForSheet(dataUrl, maxEdge = 720, quality = 0.55) {
+function thumbForSheet(src, maxEdge = 720, quality = 0.55) {
   return new Promise((resolve) => {
-    if (!dataUrl || !String(dataUrl).startsWith("data:image/")) {
+    const s = String(src || "");
+    if (!s) {
+      resolve("");
+      return;
+    }
+    if (!s.startsWith("data:image/") && !/^https?:\/\//i.test(s)) {
       resolve("");
       return;
     }
     const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    if (/^https?:\/\//i.test(s)) img.crossOrigin = "anonymous";
     img.onload = () => {
       try {
         const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
@@ -59,14 +67,17 @@ function thumbForSheet(dataUrl, maxEdge = 720, quality = 0.55) {
         const canvas = document.createElement("canvas");
         canvas.width = w;
         canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL("image/jpeg", quality));
       } catch {
-        resolve("");
+        resolve(/^https?:\/\//i.test(s) ? s : "");
       }
     };
-    img.onerror = () => resolve("");
-    img.src = dataUrl;
+    img.onerror = () => resolve(/^https?:\/\//i.test(s) ? s : "");
+    img.src = s;
   });
 }
 
@@ -97,11 +108,15 @@ const GENERIC_TAKE =
 function scrubTake(data) {
   if (!data || typeof data !== "object") return enrichScanTake(data);
   const product = data.product || {};
-  const verdict = data.verdict || {};
+  const rawVerdict = data.verdict || {};
+  if (isNonClothingScan(product, rawVerdict)) {
+    return enrichScanTake({ ...data, verdict: emptyClothingVerdict(), similar: [] });
+  }
+  const verdict = capRunningTrainerVerdict(product, rawVerdict);
   const similar = similarPieces(data);
   const blob = `${verdict.title || ""} ${verdict.body || ""}`;
   const generic = GENERIC_TAKE.test(blob) || /option$/i.test(String(verdict.title || "").trim());
-  if (!generic) return enrichScanTake(data);
+  if (!generic) return enrichScanTake({ ...data, verdict });
   const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
   const cousins = similar.map((s) => s.name).filter(Boolean).slice(0, 3);
   const next = product.brand
@@ -127,7 +142,10 @@ function scrubTake(data) {
         stamp: "id",
         quiet: false,
       };
-  return enrichScanTake({ ...data, verdict: next });
+  return enrichScanTake({
+    ...data,
+    verdict: capRunningTrainerVerdict(product, { ...verdict, ...next }),
+  });
 }
 
 function scanFailMessage(res, data) {
@@ -409,9 +427,22 @@ export default function Scan() {
     const nextLink = asHttpLink(extra.link ?? link);
     const nextNote = String(extra.note ?? note ?? "").trim() || (nextLink ? noteFromProductUrl(nextLink) : "");
     const nextMode = extra.input_method || mode;
-    const listingImage = !shot && nextLink ? guessListingImage(nextLink) : "";
+    let listingImage = !shot && nextLink ? guessListingImage(nextLink) : "";
     if (!shot && !nextLink && !nextNote) return;
     const gen = ++checkGen.current;
+    const previewJob =
+      !shot && nextLink && !listingImage
+        ? Promise.race([
+            yomLinkPreview(nextLink)
+              .then((pre) => {
+                const img = String(pre?.image || "");
+                if (!img || /akamai-logo/i.test(img)) return "";
+                return /^(https?:\/\/|data:image\/)/i.test(img) ? img : "";
+              })
+              .catch(() => ""),
+            new Promise((resolve) => setTimeout(() => resolve(""), 5000)),
+          ])
+        : null;
     if (shot || listingImage) setPreview(shot || listingImage);
     setPhase("checking");
     setErr("");
@@ -431,6 +462,11 @@ export default function Scan() {
     const session = loadBetaSession();
     const joinProfile = loadJoinProfile();
     const acq = loadAcquisition();
+    if (previewJob) {
+      listingImage = listingImage || (await previewJob);
+      if (gen !== checkGen.current) return;
+      if (listingImage) setPreview(listingImage);
+    }
     let data = {};
     try {
       const res = await fetch("/api/yom-scan", {
@@ -496,17 +532,19 @@ export default function Scan() {
         verdict: cleaned.verdict,
         round: cleaned.verdict?.round || joinProfile.round || acq.recruitment_round || "",
       });
-      const savedLook = upsertLook(
-        lookFromScan({
-          preview: sheetThumb || shown,
-          sourceUrl: nextLink || data.source_url || "",
-          inputMethod: nextMode,
-          product: cleaned.product,
-          verdict: cleaned.verdict,
-          note: nextNote,
-        })
-      );
-      setLookId(savedLook.id);
+      if (!cleaned.verdict?.quiet) {
+        const savedLook = upsertLook(
+          lookFromScan({
+            preview: sheetThumb || shown,
+            sourceUrl: nextLink || data.source_url || "",
+            inputMethod: nextMode,
+            product: cleaned.product,
+            verdict: cleaned.verdict,
+            note: nextNote,
+          })
+        );
+        setLookId(savedLook.id);
+      }
       const props = productProps(cleaned.product, {
         input_method: nextMode,
         surface: getSurface(),
@@ -708,6 +746,8 @@ export default function Scan() {
     verdict.spotting ||
     (cousins.length ? cousins.map((item) => item.name).join(" · ") : "");
 
+  const noClothes = Boolean(verdict.quiet) || isNonClothingScan(product, verdict);
+
   if (phase === "checking") {
     return (
       <div className="pnm-page is-flush">
@@ -730,6 +770,42 @@ export default function Scan() {
     );
   }
 
+  if (landed && noClothes) {
+    return (
+      <div className="pnm-page is-flush">
+        <header className="pnm-brand-row">
+          <Link to="/looks" className="pnm-brand">
+            yom
+          </Link>
+          <button type="button" className="pnm-back" onClick={() => resetLive()}>
+            ← back
+          </button>
+        </header>
+        <h1 className="pnm-title pnm-wear">
+          no clothing
+          <em>detected.</em>
+        </h1>
+        <div className="pnm-result-body">
+          <div className="pnm-shot">
+            {preview ? (
+              <img src={preview} alt="" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="pnm-thumb empty" />
+            )}
+          </div>
+          <div className="pnm-result-copy">
+            <p className="pnm-sub" style={{ margin: 0 }}>
+              {verdict.body || "yom needs a photo, link, or description of something you’d actually wear."}
+            </p>
+          </div>
+        </div>
+        <button type="button" className="pnm-cta pnm-result-cta" onClick={() => resetLive()}>
+          try another →
+        </button>
+      </div>
+    );
+  }
+
   if (landed) {
     return (
       <div className="pnm-page is-flush">
@@ -747,7 +823,11 @@ export default function Scan() {
         </h1>
         <div className="pnm-result-body">
           <div className="pnm-shot">
-            {preview ? <img src={preview} alt={product.name || "the look"} /> : <div className="pnm-thumb empty" />}
+            {preview ? (
+              <img src={preview} alt={product.name || "the look"} referrerPolicy="no-referrer" />
+            ) : (
+              <div className="pnm-thumb empty" />
+            )}
           </div>
           <div className="pnm-result-copy">
             <div className="pnm-score">
@@ -770,7 +850,7 @@ export default function Scan() {
         </div>
         {err && <p className="scan-err">{err}</p>}
         <div className="pnm-park">
-          <p className="pnm-field">park it on</p>
+          <p className="pnm-field">which day?</p>
           <div className="pnm-chips">
             {LINEUP_DAYS.map((day) => (
               <button
@@ -926,7 +1006,7 @@ export default function Scan() {
         <>
           {preview && (
             <div className="pnm-shot">
-              <img src={preview} alt="" />
+              <img src={preview} alt="" referrerPolicy="no-referrer" />
             </div>
           )}
           {err && <p className="scan-err">{err}</p>}

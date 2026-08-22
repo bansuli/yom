@@ -1,21 +1,5 @@
 import { NavLink } from "react-router-dom";
 
-export function PnmBell() {
-  return (
-    <span className="pnm-bell" aria-hidden="true">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path
-          d="M6.2 9.4a5.8 5.8 0 0 1 11.6 0c0 4.1 1.4 5.4 1.4 5.4H4.8s1.4-1.3 1.4-5.4Z"
-          stroke="currentColor"
-          strokeWidth="1.7"
-          strokeLinejoin="round"
-        />
-        <path d="M10 18.4a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
-    </span>
-  );
-}
-
 export function PnmPeople({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">

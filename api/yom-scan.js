@@ -7,6 +7,7 @@ import { fetchImageAsDataUrl, fetchLinkPreview } from "../lib/link-preview.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "../lib/product-link.js";
 import { accountFromToken } from "../lib/profile.js";
 import { supabaseConfigured } from "../lib/supabase.js";
+import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "../lib/scan-score.js";
 
 export const config = { maxDuration: 60 };
 
@@ -156,6 +157,16 @@ function analysisFields(verdict = {}, context = {}) {
   const round = ROUNDS.has(String(verdict.round || "").trim())
     ? String(verdict.round).trim()
     : String(context.recruitment_round || "").trim() || null;
+  if (verdict.quiet) {
+    return {
+      score: null,
+      round: null,
+      why_it_works: "",
+      change: "",
+      berkeley: "",
+      spotting: "",
+    };
+  }
   return {
     score: Number.isFinite(scoreRaw) ? Math.max(0, Math.min(10, Math.round(scoreRaw * 10) / 10)) : fallbackScore,
     round: ROUNDS.has(round) ? round : null,
@@ -167,6 +178,9 @@ function analysisFields(verdict = {}, context = {}) {
 }
 
 function usefulVerdict(product, similar, verdict = {}, context = {}) {
+  if (isNonClothingScan(product, verdict)) {
+    return emptyClothingVerdict();
+  }
   const title = String(verdict.title || "").toLowerCase().trim();
   const body = String(verdict.body || "").toLowerCase().trim();
   const parrot = RUSH_PARROT.test(`${title} ${body}`);
@@ -174,7 +188,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
     GENERIC_VERDICT.test(`${title} ${body}`) || /option$/.test(title) || parrot;
   const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
   const cousins = (similar || []).map((s) => s.name).filter(Boolean).slice(0, 3);
-  const extra = analysisFields(verdict, context);
+  const extra = capRunningTrainerVerdict(product, { ...verdict, ...analysisFields(verdict, context) });
   if (!generic && title && !/^this /.test(title)) {
     return {
       quiet: Boolean(verdict.quiet),
@@ -477,17 +491,28 @@ export default async function handler(req, res) {
       ? product.identified
       : Boolean(brand && (typeof product.confidence !== "number" || product.confidence >= 0.4));
   const guess = (asText(product.guess, 90) || (!identified && !isGenericName(name) ? name : "")).toLowerCase();
-  const similar = verdict.quiet
+  const analysis = usefulVerdict(
+    { ...product, name, brand, guess },
+    normalizeSimilar(data.similar || product.similar),
+    verdict,
+    context
+  );
+  const similar = analysis.quiet
     ? []
     : ensureSimilar(product, name, normalizeSimilar(data.similar || product.similar)).map((item) => ({
         name: item.name.toLowerCase(),
         why: item.why ? item.why.toLowerCase() : null,
       }));
+  const previewImage =
+    (imageUrl && /^https?:\/\//i.test(imageUrl) && imageUrl) ||
+    (imageUrl && imageUrl.startsWith("data:image/") && imageUrl.length < 900_000 && imageUrl) ||
+    guessListingImage(sourceUrl) ||
+    undefined;
   json(res, 200, {
     ok: true,
     brain: result.brain,
     source_url: sourceUrl || null,
-    image: imageUrl && imageUrl.startsWith("https://") ? imageUrl : undefined,
+    image: previewImage,
     product: {
       name,
       brand,
@@ -505,10 +530,12 @@ export default async function handler(req, res) {
     },
     similar,
     ocr: data.ocr || null,
-    verdict: mergeDetailsIntoVerdict(
-      { ...product, name, brand, guess },
-      usefulVerdict({ ...product, name, brand, guess }, similar, verdict, context),
-      verdict.style_notes || data.style_notes
-    ),
+    verdict: analysis.quiet
+      ? analysis
+      : mergeDetailsIntoVerdict(
+          { ...product, name, brand, guess },
+          analysis,
+          verdict.style_notes || data.style_notes
+        ),
   });
 }

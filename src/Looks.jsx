@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import YomNav, { PnmBell } from "./components/YomNav.jsx";
+import YomNav from "./components/YomNav.jsx";
 import { LINEUP_DAYS, pieceSlotFor, wearLabel } from "./lib/contexts.js";
 import { addLookToLineup, loadLooks, lookInLineup, loadLineupMap, pipelinePayload } from "./lib/pipeline-store.js";
 import { unlockIfTest } from "./lib/join-store.js";
@@ -23,6 +23,13 @@ export default function Looks() {
   useEffect(() => {
     if (!ready) navigate("/join", { replace: true });
   }, [ready, navigate]);
+
+  useEffect(() => {
+    if (window.location.hash !== "#looks") return;
+    window.requestAnimationFrame(() => {
+      document.getElementById("looks")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [ready]);
 
   if (!ready) return null;
 
@@ -47,7 +54,6 @@ export default function Looks() {
         <Link to="/looks" className="pnm-brand">
           yom
         </Link>
-        <PnmBell />
       </header>
 
       <h1 className="pnm-title pnm-home-title">
@@ -101,7 +107,11 @@ export default function Looks() {
             const saved = inLineup(look);
             return (
               <li key={look.id} className="pnm-look">
-                {look.preview ? <img src={look.preview} alt="" /> : <div className="pnm-thumb empty" />}
+                {look.preview ? (
+                  <img src={look.preview} alt="" referrerPolicy="no-referrer" />
+                ) : (
+                  <div className="pnm-thumb empty" />
+                )}
                 <div>
                   <h3>{look.title || wearLabel(look.roundId) || look.product?.name || "look"}</h3>
                   {look.score != null ? (
