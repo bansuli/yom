@@ -36,12 +36,11 @@ export default function Join() {
   const [step, setStep] = useState(() => {
     if (fresh) return "create";
     if (isYomReady()) return "land";
-    return "land";
+    return "create";
   });
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
   const [err, setErr] = useState("");
-  const [afterCreate, setAfterCreate] = useState("/scan");
 
   useEffect(() => {
     const acq = captureAcquisitionFromUrl(search);
@@ -66,8 +65,6 @@ export default function Join() {
       } else if (params.get("home") === "1") {
         navigate(`/looks${search}`, { replace: true });
       }
-    } else if (fresh) {
-      setStep("create");
     }
   }, [params, navigate, search, fresh]);
 
@@ -142,25 +139,32 @@ export default function Join() {
     persistYom(name.trim(), email.trim().toLowerCase());
     const next = params.get("next");
     const shareNext = next && /^\/s\/[0-9a-f-]{36}$/i.test(next) ? next : null;
-    navigate(shareNext || `${afterCreate}${qs({ from: "join" })}`);
+    if (shareNext) {
+      navigate(shareNext);
+      return;
+    }
+    setStep("land");
+    try {
+      window.scrollTo(0, 0);
+    } catch {
+      /* ignore */
+    }
   };
 
   const showOutfit = () => {
-    if (isYomReady()) {
-      navigate(`/scan${qs({ from: "land" })}`);
+    if (!isYomReady()) {
+      setStep("create");
       return;
     }
-    setAfterCreate("/scan");
-    setStep("create");
+    navigate(`/scan${qs({ from: "land" })}`);
   };
 
   const noOutfitYet = () => {
-    if (isYomReady()) {
-      navigate(`/looks${qs({ from: "land" })}`);
+    if (!isYomReady()) {
+      setStep("create");
       return;
     }
-    setAfterCreate("/looks");
-    setStep("create");
+    navigate(`/looks${qs({ from: "land" })}`);
   };
 
   return (
