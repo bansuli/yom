@@ -752,12 +752,12 @@ export default function Scan() {
     return (
       <div className="pnm-page is-flush">
         <header className="pnm-brand-row">
-          <Link to="/looks" className="pnm-brand">
-            yom
-          </Link>
           <button type="button" className="pnm-back" onClick={() => resetLive()}>
             ← back
           </button>
+          <Link to="/looks" className="pnm-brand">
+            yom
+          </Link>
         </header>
         <div className="pnm-looking">
           <h1>taking a look...</h1>
@@ -774,12 +774,12 @@ export default function Scan() {
     return (
       <div className="pnm-page is-flush">
         <header className="pnm-brand-row">
-          <Link to="/looks" className="pnm-brand">
-            yom
-          </Link>
           <button type="button" className="pnm-back" onClick={() => resetLive()}>
             ← back
           </button>
+          <Link to="/looks" className="pnm-brand">
+            yom
+          </Link>
         </header>
         <h1 className="pnm-title pnm-wear">
           no clothing
@@ -810,12 +810,12 @@ export default function Scan() {
     return (
       <div className="pnm-page is-flush">
         <header className="pnm-brand-row">
-          <Link to="/looks" className="pnm-brand">
-            yom
-          </Link>
           <button type="button" className="pnm-back" onClick={() => resetLive()}>
             ← back
           </button>
+          <Link to="/looks" className="pnm-brand">
+            yom
+          </Link>
         </header>
         <h1 className="pnm-title pnm-wear">
           i’d wear this for
@@ -893,12 +893,12 @@ export default function Scan() {
   return (
     <div className="pnm-page is-flush">
       <header className="pnm-brand-row">
-        <Link to="/looks" className="pnm-brand">
-          yom
-        </Link>
         <button type="button" className="pnm-back" onClick={() => (phase === "think" ? navigate("/looks") : resetLive())}>
           ← back
         </button>
+        <Link to="/looks" className="pnm-brand">
+          yom
+        </Link>
       </header>
 
       {phase === "think" && (

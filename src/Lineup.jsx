@@ -78,11 +78,11 @@ export default function Lineup() {
   return (
     <div className="pnm-page is-app">
       <header className="pnm-brand-row">
-        <Link to="/looks" className="pnm-brand">
-          yom
-        </Link>
         <Link to="/looks" className="pnm-back">
           ← back
+        </Link>
+        <Link to="/looks" className="pnm-brand">
+          yom
         </Link>
       </header>
 
