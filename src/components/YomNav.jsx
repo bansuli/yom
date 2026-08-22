@@ -3,10 +3,10 @@ import { NavLink } from "react-router-dom";
 export function PnmPeople({ size = 18 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="9" cy="8.5" r="2.2" stroke="currentColor" strokeWidth="1.7" />
-      <circle cx="15.4" cy="8.5" r="2.2" stroke="currentColor" strokeWidth="1.7" />
-      <path d="M4.8 18.2c.8-2.6 2.6-4 5.1-4s4.3 1.4 5.1 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <path d="M13.2 18.2c.6-2 1.9-3.2 3.8-3.2 1.9 0 3.2 1.2 3.8 3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="9.4" cy="8" r="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 18.9c0-3.1 2.7-5.1 5.9-5.1s5.9 2 5.9 5.1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M16.4 5.5a3 3 0 0 1 0 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M17.8 14.2c1.8.6 2.9 2.2 2.9 4.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -18,15 +18,16 @@ export default function YomNav({ active = "y" }) {
         <span className="yom-nav-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
             <path
-              d="M12 4.6a1.7 1.7 0 0 1 1.7 1.7c0 .7-.4 1.2-1.1 1.5L9.2 9.4"
+              d="M12 9.6V8.1a1.75 1.75 0 1 0-1.75-1.75"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="1.7"
               strokeLinecap="round"
+              strokeLinejoin="round"
             />
             <path
-              d="M3.6 18.4h16.8L12 8.6 3.6 18.4Z"
+              d="M12 9.6 4.3 16.3a1 1 0 0 0 .66 1.75h14.08a1 1 0 0 0 .66-1.75L12 9.6Z"
               stroke="currentColor"
-              strokeWidth="1.8"
+              strokeWidth="1.7"
               strokeLinejoin="round"
             />
           </svg>
