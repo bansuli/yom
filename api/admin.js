@@ -63,11 +63,6 @@ function rows(res) {
   return Array.isArray(res?.data) ? res.data : [];
 }
 
-function dayKey(value) {
-  const at = value ? new Date(value) : null;
-  return at && !Number.isNaN(at.valueOf()) ? at.toISOString().slice(0, 10) : "";
-}
-
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
   const who = await authed(req);
@@ -185,52 +180,65 @@ export default async function handler(req, res) {
   const showInternal = query(req, "internal") === "1";
   const internal = everyone.filter((p) => isInternal(p.email));
   const list = showInternal ? everyone : everyone.filter((p) => !isInternal(p.email));
-  const today = new Date().toISOString().slice(0, 10);
+
+  // A calendar "today" is a trap: the server runs in utc, so at 9pm in
+  // california today already means "since 5pm". Windows are measured back from
+  // now instead, which means the same thing everywhere.
+  const WINDOWS = { "24h": 864e5, "7d": 6048e5, all: 0 };
+  const windowKey = WINDOWS[query(req, "window")] === undefined ? "all" : query(req, "window");
+  const span = WINDOWS[windowKey];
+  const since = span ? Date.now() - span : 0;
+  const inWindow = (value) => {
+    if (!since) return true;
+    const at = value ? new Date(value).valueOf() : 0;
+    return Boolean(at) && at >= since;
+  };
+
+  const keyOf = (p) => p.email;
+  const peopleIn = list.filter((p) => inWindow(p.first_seen) || inWindow(p.last_seen));
+  const peopleInKeys = new Set(peopleIn.map(keyOf));
+
+  // Every step counts the same population over the same window, or the chart
+  // compares two different things and reads as nonsense.
+  const visitorsIn = visitors.filter((v) => inWindow(v.created_at) || inWindow(v.last_seen_at));
+  const trackedAnons = new Set(visitorsIn.map((v) => v.anon_id).filter(Boolean));
+  // Someone backfilled from the sheet has no visitor row, so count her once here
+  // rather than letting the funnel show more emails than opens.
+  const untracked = peopleIn.filter((p) => !(p.anon_ids || []).some((id) => trackedAnons.has(id))).length;
+  const opened = trackedAnons.size + untracked;
+
+  const looksIn = looks.filter(
+    (look) => inWindow(look.created_at) && (showInternal || !isInternal(look.email))
+  );
+  const scannedKeys = new Set();
+  const lineupKeys = new Set();
+  for (const look of looksIn) {
+    const p = (look.email ? people.get(String(look.email).trim().toLowerCase()) : null) || byAnon.get(look.anon_id);
+    if (!p || !peopleInKeys.has(keyOf(p))) continue;
+    scannedKeys.add(keyOf(p));
+    if (look.in_closet) lineupKeys.add(keyOf(p));
+  }
+  const sharedCount = peopleIn.filter((p) => p.is_public).length;
+
+  const funnel = [
+    { step: "Opened yom", people: opened },
+    { step: "Gave an email", people: peopleIn.length },
+    { step: "Scanned a look", people: scannedKeys.size },
+    { step: "Built a lineup", people: lineupKeys.size },
+    { step: "Shared it", people: sharedCount },
+  ];
+
+  const stuck = {
+    no_scan: peopleIn.filter((p) => p.looks === 0).map((p) => p.email),
+    scanned_no_lineup: peopleIn.filter((p) => p.looks > 0 && p.in_lineup === 0).map((p) => p.email),
+    lineup_not_shared: peopleIn.filter((p) => p.in_lineup > 0 && !p.is_public).map((p) => p.email),
+  };
+
   const byCampaign = {};
   for (const p of list) {
     const key = p.campaign || "unattributed";
     byCampaign[key] = (byCampaign[key] || 0) + 1;
   }
-
-  // Visitors with no email are the top of the funnel: she opened yom and left.
-  const anonOnly = visitors.filter((v) => !v.email);
-  const anonToday = new Set(anonOnly.filter((v) => dayKey(v.created_at) === today).map((v) => v.anon_id));
-
-  if (String(parseCsv(req)) === "1") {
-    const head = "email,name,source,campaign,first_seen,looks,in_lineup,public";
-    const body = list
-      .map((p) =>
-        [p.email, p.name, p.source, p.campaign, p.first_seen, p.looks, p.in_lineup, p.is_public ? "yes" : ""]
-          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      )
-      .join("\n");
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="yom-people.csv"`);
-    res.end(`${head}\n${body}\n`);
-    return;
-  }
-
-  // The funnel, in the order she actually moves through it. Each step is the
-  // people who reached it, so the gaps between them are where she gave up.
-  const openedToday = new Set(
-    visitors.filter((v) => dayKey(v.created_at) === today).map((v) => v.anon_id)
-  ).size;
-  const scanned = list.filter((p) => p.looks > 0);
-  const funnel = [
-    { step: "opened yom", people: openedToday + list.filter((p) => dayKey(p.first_seen) === today).length },
-    { step: "gave an email", people: list.filter((p) => dayKey(p.first_seen) === today).length },
-    { step: "scanned a look", people: scanned.length },
-    { step: "built a lineup", people: list.filter((p) => p.in_lineup > 0).length },
-    { step: "shared it", people: list.filter((p) => p.is_public).length },
-  ];
-
-  // Where each person is stuck right now — the actionable version of the funnel.
-  const stuck = {
-    no_scan: list.filter((p) => p.looks === 0).map((p) => p.email),
-    scanned_no_lineup: list.filter((p) => p.looks > 0 && p.in_lineup === 0).map((p) => p.email),
-    lineup_not_shared: list.filter((p) => p.in_lineup > 0 && !p.is_public).map((p) => p.email),
-  };
 
   const mine = looks.filter((look) => showInternal || !isInternal(look.email));
   const byInput = {};
@@ -271,26 +279,42 @@ export default async function handler(req, res) {
   const errorsByKind = {};
   for (const e of errors) errorsByKind[e.kind || "unknown"] = (errorsByKind[e.kind || "unknown"] || 0) + 1;
 
+  if (String(parseCsv(req)) === "1") {
+    const head = "email,name,source,campaign,first_seen,looks,in_lineup,public";
+    const body = list
+      .map((p) =>
+        [p.email, p.name, p.source, p.campaign, p.first_seen, p.looks, p.in_lineup, p.is_public ? "yes" : ""]
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="yom-people.csv"`);
+    res.end(`${head}\n${body}\n`);
+    return;
+  }
+
   json(res, 200, {
     ok: true,
+    window: windowKey,
     funnel,
     stuck,
     activity,
     errors: errorsOut,
     errors_by_kind: errorsByKind,
-    errors_today: errors.filter((e) => dayKey(e.at) === today).length,
+    errors_recent: errors.filter((e) => inWindow(e.at)).length,
     error_log_missing: !Array.isArray(errorsRes?.data),
     by_input: byInput,
     by_round: byRound,
     avg_score: scored ? Math.round((scoreSum / scored) * 10) / 10 : null,
     totals: {
       people: list.length,
-      people_today: list.filter((p) => dayKey(p.first_seen) === today).length,
+      people_in_window: peopleIn.length,
+      opened_no_email: Math.max(0, opened - peopleIn.length),
       with_looks: list.filter((p) => p.looks > 0).length,
       with_lineup: list.filter((p) => p.in_lineup > 0).length,
       public_lineups: list.filter((p) => p.is_public).length,
-      visitors_no_email_today: anonToday.size,
-      looks_total: looks.filter((look) => !isInternal(look.email)).length,
+      looks_total: mine.length,
       internal_hidden: showInternal ? 0 : internal.length,
     },
     by_campaign: byCampaign,

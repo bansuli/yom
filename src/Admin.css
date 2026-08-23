@@ -370,3 +370,27 @@
   font-size: 0.74rem;
   color: #8a8a8a;
 }
+
+.yom-admin-range {
+  display: inline-flex;
+  border: 1px solid #e8e8e8;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.yom-admin-range button {
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0.3rem 0.75rem !important;
+  font-size: 0.76rem !important;
+  font-weight: 500 !important;
+}
+
+.yom-admin-range button + button {
+  border-left: 1px solid #e8e8e8 !important;
+}
+
+.yom-admin-tabs .yom-admin-range + .yom-admin-toggle {
+  margin-left: 0.4rem;
+}

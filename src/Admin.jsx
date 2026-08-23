@@ -67,6 +67,7 @@ export default function Admin() {
   const [useSecret, setUseSecret] = useState(false);
   const [showInternal, setShowInternal] = useState(false);
   const [tab, setTab] = useState("overview");
+  const [range, setRange] = useState("all");
   const [open, setOpen] = useState(null);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -81,12 +82,14 @@ export default function Admin() {
       setErr("");
       try {
         const withInternal = creds?.internal ?? showInternal;
-        const res = await fetch(`/api/admin${withInternal ? "?internal=1" : ""}`, {
+        const win = creds?.range ?? range;
+        const qs = `?window=${encodeURIComponent(win)}${withInternal ? "&internal=1" : ""}`;
+        const res = await fetch(`/api/admin${qs}`, {
           headers: bearer ? { authorization: `Bearer ${bearer}` } : { "x-yom-admin": pass },
         });
         const body = await res.json().catch(() => null);
         if (!res.ok || !body?.ok) {
-          setErr(res.status === 401 ? "that login didn’t work." : body?.error || "could not load.");
+          setErr(res.status === 401 ? "That login didn’t work." : body?.error || "Could not load.");
           setData(null);
           if (res.status === 401 && bearer) {
             setToken("");
@@ -106,11 +109,11 @@ export default function Admin() {
           }
         }
       } catch {
-        setErr("could not reach the api.");
+        setErr("Could not reach the API.");
       }
       setBusy(false);
     },
-    [secret, token, showInternal]
+    [secret, token, showInternal, range]
   );
 
   const logIn = async (e) => {
@@ -126,7 +129,7 @@ export default function Admin() {
       .catch(() => null);
     setBusy(false);
     if (!res?.ok || !res.access_token) {
-      setErr(res?.error || "could not log in.");
+      setErr(res?.error || "Could not log in.");
       return;
     }
     setPassword("");
@@ -141,10 +144,11 @@ export default function Admin() {
   }, []);
 
   const totals = data?.totals;
+  const rangeLabel = { "24h": "last 24h", "7d": "last 7 days", all: "all time" }[range] || "all time";
   const person = open ? (data?.people || []).find((p) => p.email === open) : null;
 
   const downloadCsv = async () => {
-    const res = await fetch(`/api/admin?csv=1${showInternal ? "&internal=1" : ""}`, {
+    const res = await fetch(`/api/admin?csv=1&window=${range}${showInternal ? "&internal=1" : ""}`, {
       headers: token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret },
     });
     const blob = await res.blob();
@@ -160,22 +164,22 @@ export default function Admin() {
     <div className="yom-admin">
       <header className="yom-admin-head">
         <Link to="/looks" className="pnm-back">
-          ← app
+          ← App
         </Link>
-        <b>yom · who we have</b>
+        <b>yom admin</b>
         {data && (
           <button type="button" onClick={downloadCsv}>
-            csv
+            Export CSV
           </button>
         )}
         <button type="button" onClick={() => load()} disabled={busy}>
-          {busy ? "…" : "refresh"}
+          {busy ? "…" : "Refresh"}
         </button>
       </header>
 
       {!data && !useSecret && (
         <form className="yom-admin-gate" onSubmit={logIn}>
-          <label htmlFor="admin-email">email</label>
+          <label htmlFor="admin-email">Email</label>
           <input
             id="admin-email"
             type="email"
@@ -184,7 +188,7 @@ export default function Admin() {
             autoComplete="username"
             autoFocus
           />
-          <label htmlFor="admin-password">password</label>
+          <label htmlFor="admin-password">Password</label>
           <input
             id="admin-password"
             type="password"
@@ -193,11 +197,11 @@ export default function Admin() {
             autoComplete="current-password"
           />
           <button type="submit" disabled={busy}>
-            {busy ? "checking…" : "log in"}
+            {busy ? "Checking…" : "Log in"}
           </button>
           {err && <p className="yom-admin-err">{err}</p>}
           <button type="button" className="yom-admin-alt" onClick={() => setUseSecret(true)}>
-            use the shared secret instead
+            Use the shared secret instead
           </button>
         </form>
       )}
@@ -210,7 +214,7 @@ export default function Admin() {
             load({ secret });
           }}
         >
-          <label htmlFor="admin-secret">admin secret</label>
+          <label htmlFor="admin-secret">Admin secret</label>
           <input
             id="admin-secret"
             type="password"
@@ -220,11 +224,11 @@ export default function Admin() {
             autoFocus
           />
           <button type="submit" disabled={busy}>
-            {busy ? "checking…" : "open"}
+            {busy ? "Checking…" : "Open"}
           </button>
           {err && <p className="yom-admin-err">{err}</p>}
           <button type="button" className="yom-admin-alt" onClick={() => setUseSecret(false)}>
-            ← log in with my email
+            ← Log in with my email
           </button>
         </form>
       )}
@@ -233,10 +237,10 @@ export default function Admin() {
         <>
           <nav className="yom-admin-tabs">
             {[
-              ["overview", "overview"],
-              ["people", `people · ${totals.people}`],
-              ["activity", "activity"],
-              ["issues", `issues${data.errors_today ? ` · ${data.errors_today}` : ""}`],
+              ["overview", "Overview"],
+              ["people", `People · ${totals.people}`],
+              ["activity", "Activity"],
+              ["issues", `Issues${data.errors_recent ? ` · ${data.errors_recent}` : ""}`],
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -250,6 +254,25 @@ export default function Admin() {
                 {label}
               </button>
             ))}
+            <span className="yom-admin-range">
+              {[
+                ["24h", "Last 24h"],
+                ["7d", "Last 7 days"],
+                ["all", "All time"],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={range === id ? "on" : ""}
+                  onClick={() => {
+                    setRange(id);
+                    load({ range: id });
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
             <button
               type="button"
               className="yom-admin-toggle"
@@ -260,8 +283,8 @@ export default function Admin() {
               }}
             >
               {showInternal
-                ? "hide you + mal"
-                : `real signups${totals.internal_hidden ? ` · ${totals.internal_hidden} hidden` : ""}`}
+                ? "Hide internal"
+                : `Real signups${totals.internal_hidden ? ` · ${totals.internal_hidden} hidden` : ""}`}
             </button>
           </nav>
 
@@ -272,36 +295,36 @@ export default function Admin() {
               <div className="yom-admin-tiles">
                 <article>
                   <b>{totals.people}</b>
-                  <span>people with an email</span>
+                  <span>People (all time)</span>
                 </article>
                 <article>
-                  <b>{totals.people_today}</b>
-                  <span>joined today</span>
+                  <b>{totals.people_in_window}</b>
+                  <span>Signed up · {rangeLabel}</span>
                 </article>
                 <article>
-                  <b>{totals.visitors_no_email_today}</b>
-                  <span>opened today, no email</span>
+                  <b>{totals.opened_no_email}</b>
+                  <span>Opened, no email · {rangeLabel}</span>
                 </article>
                 <article>
                   <b>{totals.with_lineup}</b>
-                  <span>built a lineup</span>
+                  <span>Built a lineup</span>
                 </article>
                 <article>
                   <b>{totals.public_lineups}</b>
-                  <span>shared it</span>
+                  <span>Shared a lineup</span>
                 </article>
                 <article>
                   <b>{totals.looks_total}</b>
-                  <span>looks scanned</span>
+                  <span>Looks scanned</span>
                 </article>
               </div>
 
-              <h2 className="yom-admin-h">where they drop off</h2>
+              <h2 className="yom-admin-h">Funnel · {rangeLabel}</h2>
               <Funnel steps={data.funnel || []} />
 
               <div className="yom-admin-split">
                 <section>
-                  <h2 className="yom-admin-h">stuck right now</h2>
+                  <h2 className="yom-admin-h">Stuck</h2>
                   <ul className="yom-admin-stuck">
                     <li>
                       <b>{data.stuck?.no_scan?.length || 0}</b> gave an email, never scanned
@@ -315,7 +338,7 @@ export default function Admin() {
                   </ul>
                 </section>
                 <section>
-                  <h2 className="yom-admin-h">how they scan</h2>
+                  <h2 className="yom-admin-h">Input method (all time)</h2>
                   <div className="yom-admin-campaigns">
                     {Object.entries(data.by_input || {}).map(([name, count]) => (
                       <span key={name}>
@@ -324,11 +347,11 @@ export default function Admin() {
                     ))}
                     {data.avg_score != null && (
                       <span>
-                        avg score <b>{data.avg_score}</b>
+                        Avg score <b>{data.avg_score}</b>
                       </span>
                     )}
                   </div>
-                  <h2 className="yom-admin-h">rounds</h2>
+                  <h2 className="yom-admin-h">Rounds (all time)</h2>
                   <div className="yom-admin-campaigns">
                     {Object.entries(data.by_round || {}).map(([name, count]) => (
                       <span key={name}>
@@ -339,7 +362,7 @@ export default function Admin() {
                 </section>
               </div>
 
-              <h2 className="yom-admin-h">where they came from</h2>
+              <h2 className="yom-admin-h">Campaign (all time)</h2>
               <div className="yom-admin-campaigns">
                 {Object.entries(data.by_campaign || {}).map(([name, count]) => (
                   <span key={name}>
@@ -355,12 +378,12 @@ export default function Admin() {
               <table>
                 <thead>
                   <tr>
-                    <th>email</th>
-                    <th>name</th>
-                    <th>campaign</th>
-                    <th>first seen</th>
-                    <th>looks</th>
-                    <th>lineup</th>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Campaign</th>
+                    <th>First seen</th>
+                    <th>Looks</th>
+                    <th>Lineup</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -375,7 +398,7 @@ export default function Admin() {
                       <td>{p.campaign || "—"}</td>
                       <td>{when(p.first_seen)}</td>
                       <td>{p.looks || 0}</td>
-                      <td>{p.is_public ? "public" : p.in_lineup ? `${p.in_lineup}` : "—"}</td>
+                      <td>{p.is_public ? "Public" : p.in_lineup ? `${p.in_lineup}` : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -388,13 +411,13 @@ export default function Admin() {
               <table>
                 <thead>
                   <tr>
-                    <th>when</th>
-                    <th>who</th>
-                    <th>scanned</th>
-                    <th>how</th>
-                    <th>round</th>
-                    <th>score</th>
-                    <th>kept</th>
+                    <th>When</th>
+                    <th>Who</th>
+                    <th>Scanned</th>
+                    <th>Input</th>
+                    <th>Round</th>
+                    <th>Score</th>
+                    <th>Kept</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -406,12 +429,12 @@ export default function Admin() {
                       <td>{a.input || "—"}</td>
                       <td>{a.round || "—"}</td>
                       <td>{a.score ?? "—"}</td>
-                      <td>{a.in_lineup ? "yes" : "—"}</td>
+                      <td>{a.in_lineup ? "Yes" : "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {!(data.activity || []).length && <p className="pnm-sub">nothing scanned yet.</p>}
+              {!(data.activity || []).length && <p className="pnm-sub">No scans yet.</p>}
             </div>
           )}
 
@@ -419,7 +442,7 @@ export default function Admin() {
             <>
               {data.error_log_missing && (
                 <p className="yom-admin-err">
-                  the error log table doesn’t exist yet — run supabase/errors.sql and failures will land here.
+                  The error log table does not exist yet — run supabase/errors.sql and failures will appear here.
                 </p>
               )}
               <div className="yom-admin-campaigns">
@@ -433,12 +456,12 @@ export default function Admin() {
                 <table>
                   <thead>
                     <tr>
-                      <th>when</th>
-                      <th>kind</th>
-                      <th>what broke</th>
-                      <th>status</th>
-                      <th>page</th>
-                      <th>who</th>
+                      <th>When</th>
+                      <th>Kind</th>
+                      <th>What broke</th>
+                      <th>Status</th>
+                      <th>Page</th>
+                      <th>Who</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -455,7 +478,7 @@ export default function Admin() {
                   </tbody>
                 </table>
                 {!(data.errors || []).length && !data.error_log_missing && (
-                  <p className="pnm-sub">nothing has broken since the log was turned on.</p>
+                  <p className="pnm-sub">Nothing has failed since the log was switched on.</p>
                 )}
               </div>
             </>
@@ -476,19 +499,19 @@ export default function Admin() {
           </header>
           <div className="yom-admin-campaigns">
             <span>
-              first seen <b>{when(person.first_seen)}</b>
+              First seen <b>{when(person.first_seen)}</b>
             </span>
             <span>
-              last seen <b>{ago(person.last_seen || person.first_seen)}</b>
+              Last seen <b>{ago(person.last_seen || person.first_seen)}</b>
             </span>
             <span>
-              checks <b>{person.checks || 0}</b>
+              Checks <b>{person.checks || 0}</b>
             </span>
             <span>
-              devices <b>{person.anon_ids?.length || 0}</b>
+              Devices <b>{person.anon_ids?.length || 0}</b>
             </span>
             <span>
-              lineup <b>{person.is_public ? "public" : person.in_lineup || 0}</b>
+              Lineup <b>{person.is_public ? "Public" : person.in_lineup || 0}</b>
             </span>
           </div>
           {person.scans?.length ? (
@@ -509,7 +532,7 @@ export default function Admin() {
               ))}
             </ol>
           ) : (
-            <p className="pnm-sub">she gave an email but hasn’t scanned anything.</p>
+            <p className="pnm-sub">Gave an email, has not scanned anything.</p>
           )}
         </aside>
       )}
