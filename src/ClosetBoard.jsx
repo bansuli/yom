@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import YomNav from "./components/YomNav.jsx";
 import { EVERYONE_FILTERS, LINEUP_DAYS, wearLabel } from "./lib/contexts.js";
-import { closetLooks, loadPublicState } from "./lib/pipeline-store.js";
+import { closetLooks, lookImage, loadPublicState } from "./lib/pipeline-store.js";
 import { unlockIfTest } from "./lib/join-store.js";
 import { yomEveryone } from "./lib/yom-api.js";
 import "./Pipeline.css";
@@ -18,7 +18,7 @@ function localFeed() {
     day_id: look.dayId,
     round_id: look.roundId,
     score: pub.show_ratings === false ? null : look.score,
-    image_url: look.preview || "",
+    image_url: lookImage(look),
     chip: LINEUP_DAYS.find((day) => day.id === look.dayId)?.chip || wearLabel(look.roundId),
   }));
 }

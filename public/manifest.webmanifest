@@ -1,8 +1,8 @@
 {
   "name": "yom",
   "short_name": "yom",
-  "description": "your shopping companion",
-  "start_url": "/join?source=pwa",
+  "description": "your second opinion on what to wear",
+  "start_url": "/looks?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#111111",
@@ -19,5 +19,6 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ]
+  ],
+  "scope": "/"
 }

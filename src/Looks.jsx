@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import YomNav from "./components/YomNav.jsx";
+import AddToHomeScreen from "./components/AddToHomeScreen.jsx";
 import { LINEUP_DAYS, pieceSlotFor, wearLabel } from "./lib/contexts.js";
-import { addLookToLineup, loadLooks, lookInLineup, loadLineupMap, syncPipeline } from "./lib/pipeline-store.js";
+import { addLookToLineup, loadLooks, lookImage, lookInLineup, loadLineupMap, syncPipeline } from "./lib/pipeline-store.js";
 import { unlockIfTest } from "./lib/join-store.js";
 import "./Pipeline.css";
 
@@ -106,8 +107,8 @@ export default function Looks() {
             const saved = inLineup(look);
             return (
               <li key={look.id} className="pnm-look">
-                {look.preview ? (
-                  <img src={look.preview} alt="" referrerPolicy="no-referrer" />
+                {lookImage(look) ? (
+                  <img src={lookImage(look)} alt="" referrerPolicy="no-referrer" />
                 ) : (
                   <div className="pnm-thumb empty" />
                 )}
@@ -153,6 +154,7 @@ export default function Looks() {
         </ul>
       )}
 
+      <AddToHomeScreen when={looks.length > 0} />
       <YomNav active="y" />
     </div>
   );

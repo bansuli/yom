@@ -10,6 +10,7 @@ import {
   lineupSlots,
   loadLooks,
   loadPublicState,
+  lookImage,
   syncPipeline,
   removePieceFromDay,
   savePublicState,
@@ -117,8 +118,8 @@ export default function Lineup() {
                   {day.pieces?.length ? (
                     day.pieces.map((piece) => (
                       <figure key={`${piece.lookId}-${piece.slot}`} className="pnm-piece">
-                        {piece.look?.preview ? (
-                          <img src={piece.look.preview} alt="" referrerPolicy="no-referrer" />
+                        {lookImage(piece.look) ? (
+                          <img src={lookImage(piece.look)} alt="" referrerPolicy="no-referrer" />
                         ) : (
                           <div className="pnm-thumb empty hanger" aria-hidden="true" />
                         )}

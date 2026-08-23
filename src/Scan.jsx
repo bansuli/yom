@@ -664,6 +664,10 @@ export default function Scan() {
   const addToCloset = async () => {
     if (!result || closetSaved || !pickDay) return;
     const existing = lookId ? { id: lookId } : null;
+    // Made here, while the full photo is still in hand: a camera shot can be too
+    // large to keep in localStorage at all, and this is the copy that travels to
+    // the server and to her other devices.
+    const thumb = preview ? await thumbForSheet(preview) : "";
     const look = lookFromScan({
       preview,
       sourceUrl: link || result.source_url || "",
@@ -673,7 +677,7 @@ export default function Scan() {
       note,
     });
     addLookToLineup(
-      { ...look, id: existing?.id || look.id, inCloset: true, slot: pickSlot || look.slot },
+      { ...look, id: existing?.id || look.id, thumb, inCloset: true, slot: pickSlot || look.slot },
       pickDay,
       pickSlot || look.slot
     );

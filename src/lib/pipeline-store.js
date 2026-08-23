@@ -282,10 +282,16 @@ const THUMB_STEPS = [
 
 function uploadPreview(look) {
   const preview = String(look.preview || "");
+  const thumb = String(look.thumb || "");
+  if (!preview) return thumb && thumb.length <= UPLOAD_MAX ? thumb : "";
   if (!preview.startsWith("data:image/")) return preview;
   if (preview.length <= UPLOAD_MAX) return preview;
-  const thumb = String(look.thumb || "");
   return thumb && thumb.length <= UPLOAD_MAX ? thumb : "";
+}
+
+/** What to show her: the full photo when we kept it, the small copy otherwise. */
+export function lookImage(look) {
+  return String(look?.preview || look?.thumb || "");
 }
 
 /**
@@ -365,7 +371,11 @@ export async function restorePipeline() {
   const local = loadLooks();
   const known = new Set(local.map((look) => look.id));
   const gone = new Set(deletedLookIds());
-  const missing = res.looks.filter((look) => look.id && !known.has(look.id) && !gone.has(look.id));
+  const missing = res.looks
+    .filter((look) => look.id && !known.has(look.id) && !gone.has(look.id))
+    // A restored look only ever has the small copy; treat it as the thumb so a
+    // later sync never mistakes it for a full-size preview.
+    .map((look) => ({ ...look, thumb: look.preview || "", at: look.at || 0 }));
 
   // Deleting on her phone has to empty the look from her laptop too. Anything
   // the account no longer holds goes — but only if it had been synced, so a
