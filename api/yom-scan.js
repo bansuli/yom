@@ -7,7 +7,8 @@ import { fetchImageAsDataUrl, fetchLinkPreview } from "../lib/link-preview.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "../lib/product-link.js";
 import { accountFromToken } from "../lib/profile.js";
 import { supabaseConfigured } from "../lib/supabase.js";
-import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "../lib/scan-score.js";
+import { capRunningTrainerVerdict, capOutfitShoeVerdict, emptyClothingVerdict, isNonClothingScan } from "../lib/scan-score.js";
+import { attachReviews, researchProductReviews, shouldResearchReviews } from "../lib/review-research.js";
 
 export const config = { maxDuration: 60 };
 
@@ -120,6 +121,52 @@ function ensureSimilar(product, name, similar) {
   );
 }
 
+const PIECE_SLOTS = new Set([
+  "top",
+  "bottom",
+  "dress",
+  "shoes",
+  "bag",
+  "jewelry",
+  "outerwear",
+  "accessory",
+]);
+
+function normalizePieces(raw) {
+  const list = Array.isArray(raw) ? raw : [];
+  const seen = new Set();
+  const out = [];
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const slot = PIECE_SLOTS.has(String(item.slot || "").trim())
+      ? String(item.slot).trim()
+      : "accessory";
+    const name = asText(item.name, 90).toLowerCase();
+    if (!name || seen.has(`${slot}:${name}`)) continue;
+    seen.add(`${slot}:${name}`);
+    out.push({
+      slot,
+      name,
+      brand: asText(item.brand, 60).toLowerCase() || null,
+      color: asText(item.color, 40).toLowerCase() || null,
+      category: asText(item.category, 40).toLowerCase() || null,
+      feedback: humanizeVerdictText(asText(item.feedback, 220).toLowerCase()),
+      note: item.note ? humanizeVerdictText(asText(item.note, 160).toLowerCase()) : null,
+    });
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+
+function inferScanMode(parsed = {}, pieces = []) {
+  const mode = String(parsed.scan_mode || "").trim();
+  if (mode === "outfit" || mode === "single") return mode;
+  if (pieces.length >= 2) return "outfit";
+  const name = asText(parsed.product?.name, 120).toLowerCase();
+  if (/\+\s|with | and |full look|full outfit|look\b/.test(name)) return "outfit";
+  return "single";
+}
+
 function salvageScan(parsed) {
   if (!parsed || typeof parsed !== "object") return null;
   const product = parsed.product && typeof parsed.product === "object" ? parsed.product : {};
@@ -188,7 +235,10 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
     GENERIC_VERDICT.test(`${title} ${body}`) || /option$/.test(title) || parrot;
   const label = [product.brand, product.name || product.guess].filter(Boolean).join(" ") || "this piece";
   const cousins = (similar || []).map((s) => s.name).filter(Boolean).slice(0, 3);
-  const extra = capRunningTrainerVerdict(product, { ...verdict, ...analysisFields(verdict, context) });
+  const extra = capOutfitShoeVerdict(
+    capRunningTrainerVerdict(product, { ...verdict, ...analysisFields(verdict, context) }),
+    context.pieces || []
+  );
   if (!generic && title && !/^this /.test(title)) {
     return {
       quiet: Boolean(verdict.quiet),
@@ -266,7 +316,7 @@ async function openaiMessages(key, messages) {
     body: JSON.stringify({
       model: OPENAI_SCAN_MODEL,
       temperature: 0.2,
-      max_tokens: 1400,
+      max_tokens: 2200,
       response_format: { type: "json_object" },
       messages,
     }),
@@ -320,7 +370,7 @@ async function callAnthropicVision(key, imageUrl, context) {
     },
     body: JSON.stringify({
       model: ANTHROPIC_SCAN_MODEL,
-      max_tokens: 1200,
+      max_tokens: 2000,
       temperature: 0.2,
       system,
       messages: [
@@ -461,6 +511,20 @@ export default async function handler(req, res) {
     context.memory = `${context.memory} recent scans: ${context.scan_memory}`;
   }
 
+  const earlyQuery = note || "";
+  const earlyReviews =
+    (sourceUrl || earlyQuery) && openai
+      ? researchProductReviews({
+          product: { name: earlyQuery, brand: null },
+          sourceUrl,
+          openaiKey: openai,
+          timeoutMs: 14000,
+        }).catch((err) => {
+          console.warn("early review research", err?.message || err);
+          return null;
+        })
+      : null;
+
   let result = null;
   if (textOnly) {
     if (!openai) {
@@ -483,6 +547,9 @@ export default async function handler(req, res) {
   const data = salvageScan(result.data) || result.data;
   const product = data.product || {};
   const verdict = data.verdict || {};
+  const rawPieces = normalizePieces(data.pieces);
+  const scanMode = inferScanMode(data, rawPieces);
+  const pieces = scanMode === "outfit" && rawPieces.length >= 2 ? rawPieces : [];
   const category = product.category ? String(product.category).toLowerCase() : null;
   const name = normalizeGarmentName(visualName(product), category);
   const brand = asText(product.brand, 60).toLowerCase() || null;
@@ -495,7 +562,7 @@ export default async function handler(req, res) {
     { ...product, name, brand, guess },
     normalizeSimilar(data.similar || product.similar),
     verdict,
-    context
+    { ...context, pieces, scan_mode: scanMode }
   );
   const similar = analysis.quiet
     ? []
@@ -508,11 +575,62 @@ export default async function handler(req, res) {
     (imageUrl && imageUrl.startsWith("data:image/") && imageUrl.length < 900_000 && imageUrl) ||
     guessListingImage(sourceUrl) ||
     undefined;
+
+  let reviews = null;
+  if (!analysis.quiet) {
+    try {
+      const identifiedProduct = {
+        name,
+        brand,
+        category,
+        color: product.color,
+        sku: product.sku,
+        guess,
+      };
+      if (shouldResearchReviews(identifiedProduct, sourceUrl)) {
+        const early = earlyReviews ? await earlyReviews : null;
+        const earlyName = String(earlyQuery || "").toLowerCase();
+        const nowName = [brand, name].filter(Boolean).join(" ").toLowerCase();
+        const reuse =
+          early &&
+          (early.summary || early.highlights?.length) &&
+          earlyName &&
+          nowName &&
+          (nowName.includes(earlyName.slice(0, 10)) ||
+            earlyName.includes(nowName.slice(0, 10)) ||
+            (brand && earlyName.includes(String(brand).toLowerCase())));
+        reviews = reuse
+          ? early
+          : await researchProductReviews({
+              product: identifiedProduct,
+              sourceUrl,
+              openaiKey: openai,
+              timeoutMs: 12000,
+            });
+      }
+    } catch (err) {
+      console.warn("review research", err?.message || err);
+    }
+  }
+
+  const verdictOut = analysis.quiet
+    ? analysis
+    : attachReviews(
+        mergeDetailsIntoVerdict(
+          { ...product, name, brand, guess },
+          analysis,
+          verdict.style_notes || data.style_notes
+        ),
+        reviews
+      );
+
   json(res, 200, {
     ok: true,
     brain: result.brain,
+    scan_mode: scanMode,
     source_url: sourceUrl || null,
     image: previewImage,
+    pieces: analysis.quiet ? [] : pieces,
     product: {
       name,
       brand,
@@ -529,13 +647,8 @@ export default async function handler(req, res) {
       similar,
     },
     similar,
+    reviews: verdictOut.reviews || reviews || null,
     ocr: data.ocr || null,
-    verdict: analysis.quiet
-      ? analysis
-      : mergeDetailsIntoVerdict(
-          { ...product, name, brand, guess },
-          analysis,
-          verdict.style_notes || data.style_notes
-        ),
+    verdict: verdictOut,
   });
 }

@@ -11,7 +11,7 @@ import { loadBetaSession, yomLinkPreview, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
-import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel } from "./lib/contexts.js";
+import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceLabel, pieceSlotFor, wearLabel } from "./lib/contexts.js";
 import { addLookToLineup, loadLooks, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
 import { thumbFrom as thumbForSheet } from "./lib/image.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
@@ -253,13 +253,13 @@ export default function Scan() {
       setProgress(12);
       return;
     }
-    setProgress(18);
-    const ticks = [28, 42, 55, 67, 76, 84];
+    setProgress(16);
+    const ticks = [24, 36, 48, 58, 68, 76, 84];
     let i = 0;
     const timer = window.setInterval(() => {
       setProgress(ticks[Math.min(i, ticks.length - 1)]);
       i += 1;
-    }, 450);
+    }, 700);
     return () => window.clearInterval(timer);
   }, [phase]);
 
@@ -499,6 +499,7 @@ export default function Scan() {
         similar: cleaned.similar || cleaned.product?.similar,
         preview: sheetThumb || shown,
         mode: nextMode,
+        reviews: cleaned.reviews || cleaned.verdict?.reviews || null,
       });
       appendScanHistory({
         product: cleaned.product,
@@ -514,6 +515,7 @@ export default function Scan() {
             product: cleaned.product,
             verdict: cleaned.verdict,
             note: nextNote,
+            reviews: cleaned.reviews || cleaned.verdict?.reviews || null,
           })
         );
         setLookId(savedLook.id);
@@ -684,6 +686,7 @@ export default function Scan() {
       product: result.product,
       verdict: result.verdict,
       note,
+      reviews: result.reviews || result.verdict?.reviews || null,
     });
     addLookToLineup(
       { ...look, id: existing?.id || look.id, thumb, inCloset: true, slot: pickSlot || look.slot },
@@ -711,6 +714,8 @@ export default function Scan() {
 
   const product = result?.product || {};
   const verdict = result?.verdict || {};
+  const outfitPieces = Array.isArray(result?.pieces) ? result.pieces.filter((p) => p?.feedback) : [];
+  const isOutfit = result?.scan_mode === "outfit" && outfitPieces.length >= 2;
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
   const wearRound =
@@ -722,6 +727,12 @@ export default function Scan() {
     verdict.berkeley ||
     verdict.spotting ||
     (cousins.length ? cousins.map((item) => item.name).join(" · ") : "");
+  const peopleTalk =
+    result?.reviews?.summary || result?.reviews?.highlights?.length
+      ? result.reviews
+      : verdict.reviews?.summary || verdict.reviews?.highlights?.length
+        ? verdict.reviews
+        : null;
 
   const noClothes = Boolean(verdict.quiet) || isNonClothingScan(product, verdict);
 
@@ -738,7 +749,7 @@ export default function Scan() {
         </header>
         <div className="pnm-looking">
           <h1>taking a look...</h1>
-          <p className="pnm-sub">yom’s looking at the details.</p>
+          <p className="pnm-sub">checking reviews, fit, and the look.</p>
           <div className="pnm-progress" aria-label="progress">
             <i style={{ width: `${progress}%` }} />
           </div>
@@ -795,7 +806,7 @@ export default function Scan() {
           </Link>
         </header>
         <h1 className="pnm-title pnm-wear">
-          i’d wear this for
+          {isOutfit ? "the full look for" : "i’d wear this for"}
           <em>{wearRound}.</em>
         </h1>
         <div className="pnm-result-body">
@@ -815,6 +826,47 @@ export default function Scan() {
               <h3>why it works</h3>
               <p>{why || verdict.title}</p>
             </article>
+            {peopleTalk ? (
+              <article className="pnm-block pnm-reviews">
+                <h3>what people say</h3>
+                {peopleTalk.summary ? <p>{peopleTalk.summary}</p> : null}
+                {peopleTalk.fit_note ? <p className="pnm-review-fit">{peopleTalk.fit_note}</p> : null}
+                {Array.isArray(peopleTalk.highlights) && peopleTalk.highlights.length ? (
+                  <ul className="pnm-review-quotes">
+                    {peopleTalk.highlights.slice(0, 3).map((hit, i) => (
+                      <li key={`${hit.channel}-${i}`}>
+                        <em>{hit.channel}</em>
+                        {hit.url ? (
+                          <a href={hit.url} target="_blank" rel="noreferrer">
+                            {hit.text}
+                          </a>
+                        ) : (
+                          <span>{hit.text}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {Array.isArray(peopleTalk.channels) && peopleTalk.channels.length ? (
+                  <p className="pnm-review-channels">{peopleTalk.channels.join(" · ")}</p>
+                ) : null}
+              </article>
+            ) : null}
+            {isOutfit ? (
+              <article className="pnm-block pnm-piece-breakdown">
+                <h3>piece by piece</h3>
+                <ul className="pnm-piece-notes">
+                  {outfitPieces.map((piece) => (
+                    <li key={`${piece.slot}-${piece.name}`}>
+                      <strong>{pieceLabel(piece.slot)}</strong>
+                      <span>{piece.name}</span>
+                      <p>{piece.feedback}</p>
+                      {piece.note ? <p className="pnm-piece-tweak">{piece.note}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
             <article className="pnm-block">
               <h3>one thing i’d change</h3>
               <p>{change || "swap the shoes for something you’ll actually be comfortable walking and standing in."}</p>
