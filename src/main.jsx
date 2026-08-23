@@ -17,12 +17,28 @@ import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
-import { syncPipelineOnce } from './lib/pipeline-store.js'
+import { bootPipeline } from './lib/pipeline-store.js'
+import { adoptAccountKey } from './lib/account.js'
 
+// A transfer link carries the account key in the fragment, which browsers keep
+// out of referrers and server logs. Adopt it before anything reads the store.
+function claimAccountFromUrl() {
+  try {
+    const match = (window.location.hash || '').match(/(?:^#|&)key=([^&]+)/)
+    if (!match) return
+    if (adoptAccountKey(decodeURIComponent(match[1]))) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+claimAccountFromUrl()
 initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
-syncPipelineOnce()
+bootPipeline()
 
 function PageHits() {
   const location = useLocation()

@@ -1,13 +1,17 @@
 import { getAnonId } from "./analytics.js";
 import { LINEUP_DAYS, guessDayForRound, pieceSlotFor } from "./contexts.js";
 import { loadJoinEmail, loadJoinProfile } from "./join-store.js";
-import { yomLineup } from "./yom-api.js";
+import { yomLineup, yomMyPipeline } from "./yom-api.js";
 import { thumbFrom } from "./image.js";
+import { getAccountKey } from "./account.js";
 
 const LOOKS_KEY = "yom_pipeline_looks";
 const LINEUP_KEY = "yom_pipeline_lineup";
 const PUBLIC_KEY = "yom_pipeline_public";
 const SYNC_KEY = "yom_pipeline_synced";
+const DELETED_KEY = "yom_pipeline_deleted";
+const SYNCED_AT_KEY = "yom_pipeline_synced_at";
+const TOMBSTONE_DAYS = 60;
 
 function newId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -31,6 +35,44 @@ function write(key, value) {
   } catch {
     /* quota */
   }
+}
+
+function loadDeleted() {
+  const list = read(DELETED_KEY, []);
+  if (!Array.isArray(list)) return [];
+  const cutoff = Date.now() - TOMBSTONE_DAYS * 24 * 60 * 60 * 1000;
+  return list.filter((row) => row?.id && Number(row.at) > cutoff);
+}
+
+/**
+ * Remembering what she deleted matters as much as remembering what she saved:
+ * restore pulls her looks back from the server, and without this it would hand
+ * back the one she just threw away.
+ */
+function rememberDeleted(ids = []) {
+  const add = ids.filter(Boolean).map((id) => ({ id, at: Date.now() }));
+  if (!add.length) return;
+  const have = new Set(loadDeleted().map((row) => row.id));
+  write(DELETED_KEY, [...loadDeleted(), ...add.filter((row) => !have.has(row.id))].slice(-200));
+}
+
+export function deletedLookIds() {
+  return loadDeleted().map((row) => row.id);
+}
+
+/** Throw a look away for good — here, on the server, and on her other devices. */
+export function deleteLook(id) {
+  const lookId = String(id || "");
+  if (!lookId) return loadLooks();
+  const kept = loadLooks().filter((look) => look.id !== lookId);
+  saveLooks(kept);
+  const map = { ...loadLineupMap() };
+  for (const dayId of Object.keys(map)) {
+    map[dayId] = piecesForDay(dayId, map).filter((piece) => piece.lookId !== lookId);
+  }
+  saveLineupMap(map);
+  rememberDeleted([lookId]);
+  return kept;
 }
 
 export function loadLooks() {
@@ -285,19 +327,91 @@ export async function ensureThumbs() {
 
 export function pipelinePayload() {
   return {
+    account_key: getAccountKey(),
     anon_id: getAnonId(),
     email: loadJoinEmail() || loadJoinProfile().email || "",
     name: loadJoinProfile().name || "",
     looks: loadLooks().map((look) => ({ ...look, preview: uploadPreview(look) })),
     lineup: loadLineupMap(),
     public: loadPublicState(),
+    deleted_ids: deletedLookIds(),
   };
 }
 
 /** Thumbnail first, then send — used everywhere the payload goes to the server. */
 export async function syncPipeline() {
   await ensureThumbs();
-  return yomLineup(pipelinePayload());
+  const res = await yomLineup(pipelinePayload());
+  // Stamped only on success: it marks which looks the server has definitely
+  // seen, which is what makes pruning below safe.
+  if (res?.ok) write(SYNCED_AT_KEY, Date.now());
+  return res;
+}
+
+/**
+ * Pull back whatever this account holds on the server. A yom belongs to the
+ * person, so a device that has her key should show her looks even if this
+ * browser has never seen them — a new phone, cleared storage, a transfer link.
+ * Only adds what is missing: a look she deleted is deleted server-side too, so
+ * there is nothing here to resurrect it.
+ */
+export async function restorePipeline() {
+  const key = getAccountKey();
+  if (!key) return { ok: false, restored: 0 };
+
+  const res = await yomMyPipeline(key);
+  if (!res?.ok || !Array.isArray(res.looks)) return { ok: false, restored: 0 };
+
+  const local = loadLooks();
+  const known = new Set(local.map((look) => look.id));
+  const gone = new Set(deletedLookIds());
+  const missing = res.looks.filter((look) => look.id && !known.has(look.id) && !gone.has(look.id));
+
+  // Deleting on her phone has to empty the look from her laptop too. Anything
+  // the account no longer holds goes — but only if it had been synced, so a
+  // look she just made on this device is never mistaken for a deleted one.
+  const syncedAt = Number(read(SYNCED_AT_KEY, 0)) || 0;
+  const onServer = new Set(res.looks.map((look) => look.id));
+  const kept = local.filter((look) => onServer.has(look.id) || Number(look.at || 0) >= syncedAt);
+  const dropped = local.length - kept.length;
+
+  if (missing.length || dropped) saveLooks([...kept, ...missing]);
+  if (dropped) {
+    const live = new Set([...kept, ...missing].map((look) => look.id));
+    const map = { ...loadLineupMap() };
+    for (const dayId of Object.keys(map)) {
+      map[dayId] = piecesForDay(dayId, map).filter((piece) => live.has(piece.lookId));
+    }
+    saveLineupMap(map);
+  }
+
+  // Her lineup and sharing choice only come down when this device has none of
+  // its own, so a restore can never undo something she just did here.
+  if (!Object.keys(loadLineupMap()).length && res.lineup && Object.keys(res.lineup).length) {
+    saveLineupMap(res.lineup);
+  }
+  if (res.public && loadPublicState().updated_at === 0) {
+    savePublicState({
+      id: res.public.id || "",
+      is_public: Boolean(res.public.is_public),
+      sisterhood: Boolean(res.public.sisterhood),
+      display_name: res.public.display_name || "",
+      last_name: res.public.last_name || "",
+      show_last_name: res.public.show_last_name !== false,
+      show_ratings: res.public.show_ratings !== false,
+    });
+  }
+  return { ok: true, restored: missing.length };
+}
+
+/** Boot order: take what the server has for this account, then send ours back. */
+export async function bootPipeline() {
+  try {
+    await restorePipeline();
+  } catch {
+    /* offline — local still works, and the next load tries again */
+  }
+  return syncPipelineOnce();
 }
 
 /**

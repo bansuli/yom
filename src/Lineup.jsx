@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import YomNav, { PnmPeople } from "./components/YomNav.jsx";
 import { LINEUP_DAYS, LINEUP_PIECES, pieceLabel } from "./lib/contexts.js";
 import { loadJoinProfile, unlockIfTest } from "./lib/join-store.js";
+import { getAccountKey } from "./lib/account.js";
 import {
   addLookToLineup,
   closetLooks,
@@ -24,6 +25,7 @@ export default function Lineup() {
   const [assignDay, setAssignDay] = useState("");
   const [assignSlot, setAssignSlot] = useState("top");
   const [busy, setBusy] = useState(false);
+  const [moved, setMoved] = useState("");
   const closet = useMemo(() => closetLooks(), [slots]);
   const ready = unlockIfTest();
 
@@ -73,6 +75,18 @@ export default function Lineup() {
   };
 
   const isPublic = Boolean(pub.is_public);
+
+  // Her yom lives in this browser. The key is what makes it hers rather than
+  // this phone's, so handing it to another device hands over the whole lineup.
+  const moveToDevice = async () => {
+    const link = `${window.location.origin}/looks#key=${encodeURIComponent(getAccountKey())}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setMoved("link copied. open it on your other device.");
+    } catch {
+      setMoved(link);
+    }
+  };
 
   return (
     <div className="pnm-page is-app">
@@ -179,6 +193,11 @@ export default function Lineup() {
             make my lineup public →
           </button>
         )}
+        <button type="button" className="pnm-ghost" onClick={moveToDevice}>
+          use my yom on another device →
+        </button>
+        {moved && <p className="pnm-sub pnm-moved">{moved}</p>}
+
         <p className="pnm-lock">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             {isPublic ? (

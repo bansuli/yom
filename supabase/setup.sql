@@ -10,6 +10,8 @@
 
 
 -- ============================================================
+
+-- ============================================================
 -- schema.sql
 -- ============================================================
 
@@ -385,6 +387,13 @@ create table if not exists public.lineups (
 create index if not exists lineups_email_idx on public.lineups (email);
 create index if not exists lineups_anon_idx on public.lineups (anon_id);
 alter table public.lineups add column if not exists show_ratings boolean default true;
+
+-- A yom belongs to the person, not the browser: the account key is the secret
+-- her device holds and the only thing the server trusts to hand her looks back.
+alter table public.pipeline_looks add column if not exists account_key text;
+alter table public.lineups add column if not exists account_key text;
+create index if not exists pipeline_looks_account_idx on public.pipeline_looks (account_key);
+create index if not exists lineups_account_idx on public.lineups (account_key);
 
 alter table public.pipeline_looks enable row level security;
 alter table public.lineups enable row level security;

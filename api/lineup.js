@@ -31,6 +31,22 @@ function publicView(row, looks = []) {
   };
 }
 
+function clientLook(row) {
+  return {
+    id: row.id,
+    title: row.title || "",
+    preview: row.image_url || "",
+    sourceUrl: row.source_url || "",
+    inputMethod: row.input_method || "photo",
+    roundId: row.round_id || "",
+    dayId: row.day_id || "",
+    score: row.score == null ? null : Number(row.score),
+    product: row.product || {},
+    verdict: row.verdict || {},
+    inCloset: Boolean(row.in_closet),
+  };
+}
+
 function parseQuery(req) {
   const q = req.query || {};
   let urlQ = {};
@@ -96,6 +112,37 @@ export default async function handler(req, res) {
       });
       return;
     }
+    if (String(q.mine || "") === "1") {
+      const key = asText(q.key || "", 80);
+      if (!key) {
+        json(res, 400, { ok: false, error: "need an account key." });
+        return;
+      }
+      const enc = encodeURIComponent(key);
+      const [looksRes, lineRes] = await Promise.all([
+        sbAdmin(rest("pipeline_looks", `account_key=eq.${enc}&order=created_at.desc&limit=120`)),
+        sbAdmin(rest("lineups", `account_key=eq.${enc}&select=*&limit=1`)),
+      ]);
+      const row = Array.isArray(lineRes.data) ? lineRes.data[0] : null;
+      json(res, 200, {
+        ok: true,
+        looks: (Array.isArray(looksRes.data) ? looksRes.data : []).map(clientLook),
+        lineup: row?.days && typeof row.days === "object" ? row.days : {},
+        public: row
+          ? {
+              id: row.id,
+              is_public: Boolean(row.is_public),
+              sisterhood: Boolean(row.sisterhood),
+              display_name: row.display_name || "",
+              last_name: row.last_name || "",
+              show_last_name: row.show_last_name !== false,
+              show_ratings: row.show_ratings !== false,
+            }
+          : null,
+      });
+      return;
+    }
+
     const id = asText(q.id || "", 36);
     if (!id) {
       json(res, 400, { ok: false, error: "need a lineup id." });
@@ -122,15 +169,32 @@ export default async function handler(req, res) {
   const body = readJson(req);
   const email = asText(body.email, 180).toLowerCase();
   const anonId = asText(body.anon_id, 80);
+  const accountKey = asText(body.account_key, 80);
   if (!email && !anonId) {
     json(res, 400, { ok: false, error: "need an email or anon id." });
     return;
+  }
+
+  // Deleting her last look leaves nothing to reconcile against, so she tells us
+  // outright what is gone.
+  const deletedIds = (Array.isArray(body.deleted_ids) ? body.deleted_ids : [])
+    .filter((id) => /^[0-9a-f-]{36}$/i.test(String(id)))
+    .slice(0, 200);
+  if (accountKey && deletedIds.length) {
+    await sbAdmin(
+      rest(
+        "pipeline_looks",
+        `account_key=eq.${encodeURIComponent(accountKey)}&id=in.(${deletedIds.join(",")})`
+      ),
+      { method: "DELETE" }
+    );
   }
 
   const looks = Array.isArray(body.looks) ? body.looks.slice(0, 40) : [];
   if (looks.length) {
     const rows = looks.map((look) => ({
       id: look.id && /^[0-9a-f-]{36}$/i.test(look.id) ? look.id : undefined,
+      account_key: accountKey || null,
       anon_id: anonId || null,
       email: email || null,
       title: asText(look.title, 120),
@@ -151,15 +215,39 @@ export default async function handler(req, res) {
       body: rows,
       prefer: "resolution=merge-duplicates,return=representation",
     });
+
+    // Removing a look has to mean removing it. The payload is this account's
+    // whole store, so anything of hers the client no longer has is gone. Only
+    // when she sent looks — a device with an empty store is a device that has
+    // not loaded yet, not a lineup she emptied.
+    const keep = rows.map((row) => row.id).filter(Boolean);
+    if (accountKey && keep.length === rows.length) {
+      await sbAdmin(
+        rest(
+          "pipeline_looks",
+          `account_key=eq.${encodeURIComponent(accountKey)}&id=not.in.(${keep.join(",")})`
+        ),
+        { method: "DELETE" }
+      );
+    }
   }
 
   const pub = body.public || {};
-  const existingQ = email
-    ? `email=eq.${encodeURIComponent(email)}`
-    : `anon_id=eq.${encodeURIComponent(anonId)}`;
-  const existing = await sbAdmin(rest("lineups", `${existingQ}&select=*&limit=1`));
-  const current = Array.isArray(existing.data) ? existing.data[0] : null;
+  const byKey = accountKey
+    ? await sbAdmin(rest("lineups", `account_key=eq.${encodeURIComponent(accountKey)}&select=*&limit=1`))
+    : null;
+  let current = Array.isArray(byKey?.data) ? byKey.data[0] : null;
+  if (!current) {
+    // Rows written before accounts existed are matched the old way, then stamped
+    // with the key so this device owns them from here on.
+    const existingQ = email
+      ? `email=eq.${encodeURIComponent(email)}`
+      : `anon_id=eq.${encodeURIComponent(anonId)}`;
+    const existing = await sbAdmin(rest("lineups", `${existingQ}&select=*&limit=1`));
+    current = Array.isArray(existing.data) ? existing.data[0] : null;
+  }
   const payload = {
+    account_key: accountKey || current?.account_key || null,
     anon_id: anonId || current?.anon_id || null,
     email: email || current?.email || null,
     display_name: asText(pub.display_name || body.name, 80) || current?.display_name || null,
@@ -168,7 +256,10 @@ export default async function handler(req, res) {
     show_ratings: pub.show_ratings !== false,
     is_public: Boolean(pub.is_public),
     sisterhood: Boolean(pub.sisterhood || pub.is_public),
-    days: body.lineup && typeof body.lineup === "object" ? body.lineup : current?.days || {},
+    days:
+      body.lineup && typeof body.lineup === "object" && Object.keys(body.lineup).length
+        ? body.lineup
+        : current?.days || {},
     updated_at: new Date().toISOString(),
   };
 

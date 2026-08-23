@@ -130,6 +130,10 @@ export function yomGetLineup(id) {
   return get(`/api/lineup?id=${encodeURIComponent(id)}`);
 }
 
+export function yomMyPipeline(accountKey) {
+  return get(`/api/lineup?mine=1&key=${encodeURIComponent(accountKey)}`);
+}
+
 export function yomEveryone() {
   return get("/api/lineup?feed=1");
 }
