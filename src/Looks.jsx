@@ -2,9 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import YomNav from "./components/YomNav.jsx";
 import { LINEUP_DAYS, pieceSlotFor, wearLabel } from "./lib/contexts.js";
-import { addLookToLineup, loadLooks, lookInLineup, loadLineupMap, pipelinePayload } from "./lib/pipeline-store.js";
+import { addLookToLineup, loadLooks, lookInLineup, loadLineupMap, syncPipeline } from "./lib/pipeline-store.js";
 import { unlockIfTest } from "./lib/join-store.js";
-import { yomLineup } from "./lib/yom-api.js";
 import "./Pipeline.css";
 
 function lookDayId(look) {
@@ -45,7 +44,7 @@ export default function Looks() {
     setLooks(loadLooks());
     setLineup(loadLineupMap());
     setPlacing(null);
-    yomLineup(pipelinePayload());
+    syncPipeline();
   };
 
   return (

@@ -9,11 +9,10 @@ import {
   lineupSlots,
   loadLooks,
   loadPublicState,
-  pipelinePayload,
+  syncPipeline,
   removePieceFromDay,
   savePublicState,
 } from "./lib/pipeline-store.js";
-import { yomLineup } from "./lib/yom-api.js";
 import "./Pipeline.css";
 
 export default function Lineup() {
@@ -39,7 +38,7 @@ export default function Lineup() {
   const persist = async (nextPublic) => {
     const saved = savePublicState(nextPublic);
     setPub(saved);
-    const res = await yomLineup(pipelinePayload());
+    const res = await syncPipeline();
     if (res?.ok && res.lineup_id) savePublicState({ ...saved, id: res.lineup_id });
     return res;
   };

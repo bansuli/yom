@@ -2,6 +2,7 @@ import { getAnonId } from "./analytics.js";
 import { LINEUP_DAYS, guessDayForRound, pieceSlotFor } from "./contexts.js";
 import { loadJoinEmail, loadJoinProfile } from "./join-store.js";
 import { yomLineup } from "./yom-api.js";
+import { thumbFrom } from "./image.js";
 
 const LOOKS_KEY = "yom_pipeline_looks";
 const LINEUP_KEY = "yom_pipeline_lineup";
@@ -229,18 +230,72 @@ export function addLookToLineup(look, dayId, slot) {
   return saved;
 }
 
+/** api/lineup.js stores image_url up to this; anything longer arrives truncated. */
+const UPLOAD_MAX = 180_000;
+const THUMB_STEPS = [
+  [720, 0.55],
+  [520, 0.5],
+  [360, 0.45],
+];
+
+function uploadPreview(look) {
+  const preview = String(look.preview || "");
+  if (!preview.startsWith("data:image/")) return preview;
+  if (preview.length <= UPLOAD_MAX) return preview;
+  const thumb = String(look.thumb || "");
+  return thumb && thumb.length <= UPLOAD_MAX ? thumb : "";
+}
+
+/**
+ * A scan preview is ~1400px at q0.82, which base64s past what the server keeps,
+ * so it used to upload as "" and every other device saw a grey card. Render a
+ * small copy for the looks that need one. Idempotent, so it doubles as a
+ * backfill for looks saved before this existed.
+ */
+export async function ensureThumbs() {
+  if (typeof window === "undefined") return { ok: false, made: 0 };
+  const needs = loadLooks().filter((look) => {
+    const preview = String(look.preview || "");
+    return preview.startsWith("data:image/") && preview.length > UPLOAD_MAX && !look.thumb;
+  });
+  if (!needs.length) return { ok: true, made: 0 };
+
+  const made = new Map();
+  for (const look of needs) {
+    // A busy photo still base64s big at 720px, so step down until one fits
+    // rather than giving up and shipping a grey card.
+    for (const [maxEdge, quality] of THUMB_STEPS) {
+      const thumb = await thumbFrom(look.preview, maxEdge, quality);
+      if (!thumb) break;
+      if (thumb.length <= UPLOAD_MAX) {
+        made.set(look.id, thumb);
+        break;
+      }
+    }
+  }
+  if (!made.size) return { ok: true, made: 0 };
+
+  // Re-read rather than reuse the list above: thumbs take a moment to render and
+  // she may have saved or removed a look while they did.
+  saveLooks(loadLooks().map((look) => (made.has(look.id) ? { ...look, thumb: made.get(look.id) } : look)));
+  return { ok: true, made: made.size };
+}
+
 export function pipelinePayload() {
   return {
     anon_id: getAnonId(),
     email: loadJoinEmail() || loadJoinProfile().email || "",
     name: loadJoinProfile().name || "",
-    looks: loadLooks().map((look) => ({
-      ...look,
-      preview: String(look.preview || "").startsWith("data:image/") && look.preview.length > 180_000 ? "" : look.preview,
-    })),
+    looks: loadLooks().map((look) => ({ ...look, preview: uploadPreview(look) })),
     lineup: loadLineupMap(),
     public: loadPublicState(),
   };
+}
+
+/** Thumbnail first, then send — used everywhere the payload goes to the server. */
+export async function syncPipeline() {
+  await ensureThumbs();
+  return yomLineup(pipelinePayload());
 }
 
 /**
@@ -269,7 +324,7 @@ export function syncPipelineOnce() {
     /* ignore */
   }
 
-  Promise.resolve(yomLineup(pipelinePayload()))
+  syncPipeline()
     .then((res) => {
       if (res?.ok && res.lineup_id && !pub.id) savePublicState({ id: res.lineup_id });
     })

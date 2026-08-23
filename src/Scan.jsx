@@ -5,12 +5,13 @@ import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail, loadJoinProfile, loadLastCheck, saveJoinProfile, saveLastCheck, unlockIfTest } from "./lib/join-store.js";
 import { appendScanHistory, formatScanHistoryForPrompt } from "./lib/scan-history.js";
-import { loadBetaSession, yomLineup, yomLinkPreview, yomShare } from "./lib/yom-api.js";
+import { loadBetaSession, yomLinkPreview, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
 import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel } from "./lib/contexts.js";
-import { addLookToLineup, lookFromScan, pipelinePayload, upsertLook } from "./lib/pipeline-store.js";
+import { addLookToLineup, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
+import { thumbFrom as thumbForSheet } from "./lib/image.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
 import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "./lib/scan-score.js";
 import "./Scan.css";
@@ -41,43 +42,6 @@ function compressImage(fileOrBlob, maxEdge = 1400, quality = 0.82) {
       reject(new Error("could not read image"));
     };
     img.src = url;
-  });
-}
-
-/** Smaller JPEG for Google Sheet / Drive (keeps webhook under size limits). */
-function thumbForSheet(src, maxEdge = 720, quality = 0.55) {
-  return new Promise((resolve) => {
-    const s = String(src || "");
-    if (!s) {
-      resolve("");
-      return;
-    }
-    if (!s.startsWith("data:image/") && !/^https?:\/\//i.test(s)) {
-      resolve("");
-      return;
-    }
-    const img = new Image();
-    img.referrerPolicy = "no-referrer";
-    if (/^https?:\/\//i.test(s)) img.crossOrigin = "anonymous";
-    img.onload = () => {
-      try {
-        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext("2d");
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      } catch {
-        resolve(/^https?:\/\//i.test(s) ? s : "");
-      }
-    };
-    img.onerror = () => resolve(/^https?:\/\//i.test(s) ? s : "");
-    img.src = s;
   });
 }
 
@@ -715,7 +679,7 @@ export default function Scan() {
     );
     setClosetSaved(true);
     decide("save");
-    yomLineup(pipelinePayload());
+    syncPipeline();
     navigate("/lineup");
   };
 
