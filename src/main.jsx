@@ -16,9 +16,10 @@ import Lineup from './Lineup.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
-import { startLeadFlush } from './lib/lead-queue.js'
+import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 
 initAnalytics()
+recoverLocalLeads()
 startLeadFlush()
 
 function PageHits() {

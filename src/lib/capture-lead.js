@@ -1,4 +1,5 @@
 import { getAnonId, getSurface, loadAcquisition } from "./analytics.js";
+import { queueLead } from "./lead-queue.js";
 import { yomCaptureLead, yomScanVisit } from "./yom-api.js";
 
 export function leadPayload(extra = {}) {
@@ -17,10 +18,16 @@ export function leadPayload(extra = {}) {
   };
 }
 
-/** Fire-and-forget email → leads + auto allowlist */
+/** Capture email → sheet. On failure, keep it in the on-device retry queue. */
 export async function captureLead({ email, name, channel, ...rest }) {
   if (!email) return { ok: false };
-  return yomCaptureLead(leadPayload({ email, name, channel, ...rest }));
+  const payload = leadPayload({ email, name, channel, ...rest });
+  const res = await yomCaptureLead(payload);
+  if (res?.ok) return res;
+  // Never drop an email because the network blipped — join/scan already queue;
+  // waitlist + survey used to fire-and-forget.
+  queueLead(payload);
+  return { ok: false, queued: true, error: res?.error || "queued for retry" };
 }
 
 /** Record /scan visitor; optional email */
