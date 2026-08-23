@@ -659,8 +659,12 @@
   background: #f3f3f3;
 }
 
+/* An actual hanger. The old path was a lidded box, which read as a trash can —
+   an empty day looked like somewhere her look had been thrown away. */
 .pnm-thumb.empty.hanger {
-  background: #f3f3f3 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='none' stroke='%23b0b0b0' stroke-width='1.6' stroke-linecap='round' d='M6 9h12M8 9v10h8V9M10 6.5L12 9l2-2.5'/></svg>") center/18px no-repeat;
+  background: #f3f3f3
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b4b4b4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M12 10.4V8.6a1.9 1.9 0 1 0-1.9-1.9'/><path d='M12 10.4 4 17a.9.9 0 0 0 .6 1.6h14.8A.9.9 0 0 0 20 17l-8-6.6Z'/></svg>")
+    center/22px no-repeat;
 }
 
 .pnm-status {
