@@ -23,6 +23,33 @@ function ago(value) {
   return `${Math.round(mins / 1440)}d ago`;
 }
 
+/** A heading over an empty box is noise; a section with nothing in it hides. */
+function Section({ title, note, children, show = true }) {
+  if (!show) return null;
+  return (
+    <section className="yom-admin-section">
+      <h2 className="yom-admin-h">{title}</h2>
+      {note && <p className="yom-admin-note">{note}</p>}
+      {children}
+    </section>
+  );
+}
+
+function Chips({ data, extra }) {
+  const entries = Object.entries(data || {}).filter(([, count]) => count);
+  if (!entries.length && !extra) return null;
+  return (
+    <div className="yom-admin-campaigns">
+      {entries.map(([name, count]) => (
+        <span key={name}>
+          {name} <b>{count}</b>
+        </span>
+      ))}
+      {extra}
+    </div>
+  );
+}
+
 /** The gap between two steps is the thing worth fixing, so show the gap. */
 function Funnel({ steps }) {
   const top = steps[0]?.people || 0;
@@ -145,6 +172,14 @@ export default function Admin() {
 
   const totals = data?.totals;
   const rangeLabel = { "24h": "last 24h", "7d": "last 7 days", all: "all time" }[range] || "all time";
+  const some = (obj) => Object.values(obj || {}).some(Boolean);
+  const hasInputs = some(data?.by_input) || data?.avg_score != null;
+  const hasRounds = some(data?.by_round);
+  const hasCampaigns = some(data?.by_campaign);
+  const stuckTotal =
+    (data?.stuck?.no_scan?.length || 0) +
+    (data?.stuck?.scanned_no_lineup?.length || 0) +
+    (data?.stuck?.lineup_not_shared?.length || 0);
   const person = open ? (data?.people || []).find((p) => p.email === open) : null;
 
   const downloadCsv = async () => {
@@ -319,61 +354,68 @@ export default function Admin() {
                 </article>
               </div>
 
-              <h2 className="yom-admin-h">Funnel · {rangeLabel}</h2>
-              <Funnel steps={data.funnel || []} />
+              <Section title={`Funnel · ${rangeLabel}`} show={(data.funnel || []).some((f) => f.people)}>
+                <Funnel steps={data.funnel || []} />
+              </Section>
 
               <div className="yom-admin-split">
-                <section>
-                  <h2 className="yom-admin-h">Stuck</h2>
+                <Section title="Stuck" show={stuckTotal > 0}>
                   <ul className="yom-admin-stuck">
-                    <li>
-                      <b>{data.stuck?.no_scan?.length || 0}</b> gave an email, never scanned
-                    </li>
-                    <li>
-                      <b>{data.stuck?.scanned_no_lineup?.length || 0}</b> scanned, no lineup
-                    </li>
-                    <li>
-                      <b>{data.stuck?.lineup_not_shared?.length || 0}</b> have a lineup, not shared
-                    </li>
+                    {data.stuck?.no_scan?.length ? (
+                      <li>
+                        <b>{data.stuck.no_scan.length}</b> gave an email, never scanned
+                      </li>
+                    ) : null}
+                    {data.stuck?.scanned_no_lineup?.length ? (
+                      <li>
+                        <b>{data.stuck.scanned_no_lineup.length}</b> scanned, no lineup
+                      </li>
+                    ) : null}
+                    {data.stuck?.lineup_not_shared?.length ? (
+                      <li>
+                        <b>{data.stuck.lineup_not_shared.length}</b> have a lineup, not shared
+                      </li>
+                    ) : null}
                   </ul>
-                </section>
-                <section>
-                  <h2 className="yom-admin-h">Input method (all time)</h2>
-                  <div className="yom-admin-campaigns">
-                    {Object.entries(data.by_input || {}).map(([name, count]) => (
-                      <span key={name}>
-                        {name} <b>{count}</b>
-                      </span>
-                    ))}
-                    {data.avg_score != null && (
-                      <span>
-                        Avg score <b>{data.avg_score}</b>
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="yom-admin-h">Rounds (all time)</h2>
-                  <div className="yom-admin-campaigns">
-                    {Object.entries(data.by_round || {}).map(([name, count]) => (
-                      <span key={name}>
-                        {name} <b>{count}</b>
-                      </span>
-                    ))}
-                  </div>
-                </section>
+                </Section>
+
+                <Section title="Input method" show={hasInputs}>
+                  <Chips
+                    data={data.by_input}
+                    extra={
+                      data.avg_score != null ? (
+                        <span key="avg">
+                          Avg score <b>{data.avg_score}</b>
+                        </span>
+                      ) : null
+                    }
+                  />
+                </Section>
+
+                <Section title="Rounds" show={hasRounds}>
+                  <Chips data={data.by_round} />
+                </Section>
+
+                <Section title="Campaign" show={hasCampaigns}>
+                  <Chips data={data.by_campaign} />
+                </Section>
               </div>
 
-              <h2 className="yom-admin-h">Campaign (all time)</h2>
-              <div className="yom-admin-campaigns">
-                {Object.entries(data.by_campaign || {}).map(([name, count]) => (
-                  <span key={name}>
-                    {name} <b>{count}</b>
-                  </span>
-                ))}
-              </div>
+              {!totals.looks_total && (
+                <p className="yom-admin-note">
+                  Nobody has scanned a look yet, so there is nothing to break down by input method or round.
+                </p>
+              )}
             </>
           )}
 
-          {tab === "people" && (
+          {tab === "people" && !(data.people || []).length && (
+            <p className="yom-admin-empty">
+              No one has given an email yet{showInternal ? "." : ", or everyone so far is internal."}
+            </p>
+          )}
+
+          {tab === "people" && !!(data.people || []).length && (
             <div className="yom-admin-table">
               <table>
                 <thead>
@@ -406,7 +448,11 @@ export default function Admin() {
             </div>
           )}
 
-          {tab === "activity" && (
+          {tab === "activity" && !(data.activity || []).length && (
+            <p className="yom-admin-empty">No scans yet. Every look anyone checks will appear here.</p>
+          )}
+
+          {tab === "activity" && !!(data.activity || []).length && (
             <div className="yom-admin-table">
               <table>
                 <thead>
@@ -434,7 +480,6 @@ export default function Admin() {
                   ))}
                 </tbody>
               </table>
-              {!(data.activity || []).length && <p className="pnm-sub">No scans yet.</p>}
             </div>
           )}
 
@@ -445,13 +490,14 @@ export default function Admin() {
                   The error log table does not exist yet — run supabase/errors.sql and failures will appear here.
                 </p>
               )}
-              <div className="yom-admin-campaigns">
-                {Object.entries(data.errors_by_kind || {}).map(([name, count]) => (
-                  <span key={name}>
-                    {name} <b>{count}</b>
-                  </span>
-                ))}
-              </div>
+              <Chips data={data.errors_by_kind} />
+              {!data.error_log_missing && !(data.errors || []).length && (
+                <p className="yom-admin-empty">
+                  Nothing has failed since the log was switched on. Failed scans, API errors and page crashes
+                  land here with the person who hit them.
+                </p>
+              )}
+              {!!(data.errors || []).length && (
               <div className="yom-admin-table">
                 <table>
                   <thead>
@@ -477,10 +523,8 @@ export default function Admin() {
                     ))}
                   </tbody>
                 </table>
-                {!(data.errors || []).length && !data.error_log_missing && (
-                  <p className="pnm-sub">Nothing has failed since the log was switched on.</p>
-                )}
               </div>
+              )}
             </>
           )}
         </>
