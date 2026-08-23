@@ -131,6 +131,9 @@ export default function Lineup() {
                           onClick={() => {
                             removePieceFromDay(day.id, piece.lookId);
                             refresh();
+                            // Tell the server straight away, or it stays on the
+                            // board until she happens to do something else.
+                            syncPipeline();
                           }}
                         >
                           ×

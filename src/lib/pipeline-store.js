@@ -236,10 +236,16 @@ export function assignLookToDay(dayId, lookId, slot) {
   return map;
 }
 
+/**
+ * Taking a piece out of a day takes it off the everyone board too. The board
+ * publishes whatever is in her lineup, so leaving the flag set meant a look she
+ * had visibly removed was still public with nothing to say so.
+ */
 export function removePieceFromDay(dayId, lookId) {
   const map = { ...loadLineupMap() };
   map[dayId] = piecesForDay(dayId, map).filter((piece) => piece.lookId !== lookId);
   saveLineupMap(map);
+  if (!lookInLineup(lookId, map)) markLookInCloset(lookId, false);
   return map;
 }
 
@@ -380,9 +386,15 @@ export async function restorePipeline() {
   // Deleting on her phone has to empty the look from her laptop too. Anything
   // the account no longer holds goes — but only if it had been synced, so a
   // look she just made on this device is never mistaken for a deleted one.
+  //
+  // An empty answer never prunes. It means the account is new, or the server
+  // had a bad day, and neither is a reason to clear her phone; a real deletion
+  // travels as a tombstone from the device that made it.
   const syncedAt = Number(read(SYNCED_AT_KEY, 0)) || 0;
   const onServer = new Set(res.looks.map((look) => look.id));
-  const kept = local.filter((look) => onServer.has(look.id) || Number(look.at || 0) >= syncedAt);
+  const kept = res.looks.length
+    ? local.filter((look) => onServer.has(look.id) || Number(look.at || 0) >= syncedAt)
+    : local;
   const dropped = local.length - kept.length;
 
   if (missing.length || dropped) saveLooks([...kept, ...missing]);
