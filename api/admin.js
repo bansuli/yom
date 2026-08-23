@@ -26,6 +26,31 @@ async function authed(req) {
   return "";
 }
 
+/**
+ * You and mal use yom constantly, so your rows would sit at the top of every
+ * count forever. Filtered rather than deleted — testing keeps recreating them,
+ * and the data is still worth having.
+ */
+function isInternal(email) {
+  const value = String(email || "").trim().toLowerCase();
+  if (!value) return true;
+  if (value.endsWith("@youryom.com")) return true;
+  if (/^test@|@example\.com$|@randomemail\.com$/.test(value)) return true;
+  return String(process.env.YOM_INTERNAL_EMAILS || "bansuleimann@gmail.com,bsuleiman.22@acsamman.edu.jo,bsuleiman.26@berkeley.edu")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(value);
+}
+
+function query(req, key) {
+  try {
+    return new URL(req.url, "http://localhost").searchParams.get(key) || "";
+  } catch {
+    return "";
+  }
+}
+
 function parseCsv(req) {
   try {
     return new URL(req.url, "http://localhost").searchParams.get("csv") || "";
@@ -116,19 +141,22 @@ export default async function handler(req, res) {
   for (const p of people.values()) for (const id of p.anon_ids) byAnon.set(id, p);
 
   for (const look of looks) {
-    const p = touch(look.email) || byAnon.get(look.anon_id);
+    const p = (look.email ? people.get(String(look.email).trim().toLowerCase()) : null) || byAnon.get(look.anon_id);
     if (!p) continue;
     p.looks += 1;
     if (look.in_closet) p.in_lineup += 1;
   }
 
   for (const row of lineups) {
-    const p = touch(row.email) || byAnon.get(row.anon_id);
+    const p = (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id);
     if (!p) continue;
     if (row.is_public) p.is_public = true;
   }
 
-  const list = [...people.values()].sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
+  const everyone = [...people.values()].sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
+  const showInternal = query(req, "internal") === "1";
+  const internal = everyone.filter((p) => isInternal(p.email));
+  const list = showInternal ? everyone : everyone.filter((p) => !isInternal(p.email));
   const today = new Date().toISOString().slice(0, 10);
   const byCampaign = {};
   for (const p of list) {
@@ -164,7 +192,8 @@ export default async function handler(req, res) {
       with_lineup: list.filter((p) => p.in_lineup > 0).length,
       public_lineups: list.filter((p) => p.is_public).length,
       visitors_no_email_today: anonToday.size,
-      looks_total: looks.length,
+      looks_total: looks.filter((look) => !isInternal(look.email)).length,
+      internal_hidden: showInternal ? 0 : internal.length,
     },
     by_campaign: byCampaign,
     people: list.slice(0, 500),

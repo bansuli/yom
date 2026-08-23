@@ -156,3 +156,15 @@
   cursor: pointer;
   padding: 0.2rem !important;
 }
+
+.yom-admin-toggle {
+  appearance: none;
+  border: 1px solid #d8d8d8;
+  border-radius: 999px;
+  background: #fafafa;
+  padding: 0.25rem 0.7rem;
+  font: inherit;
+  font-size: 0.74rem;
+  color: #6a6a6a;
+  cursor: pointer;
+}

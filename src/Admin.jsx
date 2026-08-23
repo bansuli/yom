@@ -31,6 +31,7 @@ export default function Admin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [useSecret, setUseSecret] = useState(false);
+  const [showInternal, setShowInternal] = useState(false);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -43,7 +44,8 @@ export default function Admin() {
       setBusy(true);
       setErr("");
       try {
-        const res = await fetch("/api/admin", {
+        const withInternal = creds?.internal ?? showInternal;
+        const res = await fetch(`/api/admin${withInternal ? "?internal=1" : ""}`, {
           headers: bearer ? { authorization: `Bearer ${bearer}` } : { "x-yom-admin": pass },
         });
         const body = await res.json().catch(() => null);
@@ -72,7 +74,7 @@ export default function Admin() {
       }
       setBusy(false);
     },
-    [secret, token]
+    [secret, token, showInternal]
   );
 
   const logIn = async (e) => {
@@ -221,6 +223,19 @@ export default function Admin() {
           </div>
 
           <div className="yom-admin-campaigns">
+            <button
+              type="button"
+              className="yom-admin-toggle"
+              onClick={() => {
+                const next = !showInternal;
+                setShowInternal(next);
+                load({ internal: next });
+              }}
+            >
+              {showInternal
+                ? "hide you + mal"
+                : `showing real signups${totals.internal_hidden ? ` · ${totals.internal_hidden} of yours hidden` : ""}`}
+            </button>
             {Object.entries(data.by_campaign || {}).map(([name, count]) => (
               <span key={name}>
                 {name} <b>{count}</b>
