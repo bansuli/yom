@@ -455,7 +455,10 @@ export default async function handler(req, res) {
     }
     const g = groups.get(key);
     g.count += 1;
+    // Anyone the row can name. Before she gives an email that is her anon id,
+    // and counting only emails made a fault look like it hit fewer people.
     if (e.email) g.people.add(e.email);
+    else if (e.anon_id) g.people.add(`anon:${e.anon_id}`);
     if (e.at && e.at < g.first_at) g.first_at = e.at;
     if (e.at && e.at > g.last_at) g.last_at = e.at;
     if (e.resolved_at && (!g.resolved_at || e.resolved_at > g.resolved_at)) {
