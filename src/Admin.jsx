@@ -88,21 +88,21 @@ function Funnel({ steps }) {
   const top = steps[0]?.people || 0;
   return (
     <div className="yom-funnel">
-      {steps.map((step) => {
-        const width = top ? Math.max(3, Math.round((step.people / top) * 100)) : 3;
-        return (
-          <div className="yom-funnel-row" key={step.step}>
-            <span className="yom-funnel-label">{step.step}</span>
-            <span className="yom-funnel-bar">
-              <i style={{ width: `${width}%` }} />
-            </span>
-            <b>{step.people}</b>
-            <em title={step.pct == null ? "" : `${step.pct}% of the step above carried on`}>
-              {step.pct == null ? "" : step.lost ? `${step.pct}% · ${step.lost} dropped` : `${step.pct}%`}
-            </em>
-          </div>
-        );
-      })}
+      {steps.map((step) => (
+        <div className="yom-funnel-row" key={step.step}>
+          <span className="yom-funnel-label">{step.step}</span>
+          <b className="yom-funnel-count">{step.people}</b>
+          <span className="yom-funnel-bar">
+            {/* No fill at all at zero — a coloured stub reads as "some". */}
+            {step.people > 0 && (
+              <i style={{ width: `${Math.max(2, Math.round((step.people / (top || 1)) * 100))}%` }} />
+            )}
+          </span>
+          <span className="yom-funnel-meta">
+            {step.pct == null ? "" : step.lost ? `${step.pct}% · ${step.lost} dropped` : `${step.pct}% carried on`}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -411,7 +411,7 @@ export default function Admin() {
                 show={(data.funnel || []).some((f) => f.people)}
                 note={
                   data.opens_untracked
-                    ? `${data.opens_untracked} of these have no visit record — restored from the sheet, or lost while visit tracking was broken — so opens are undercounted.`
+                    ? `Real opens are higher than this. ${data.opens_untracked} of these people have no visit recorded — they came from the spreadsheet, or their visit was dropped before tonight's fix — so they are counted from their signup instead. Anyone who opened yom and never gave an email is missing entirely.`
                     : ""
                 }
               >
