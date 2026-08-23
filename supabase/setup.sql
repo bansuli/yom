@@ -1,0 +1,455 @@
+-- yom: full database setup. Run once in the Supabase SQL editor on a new project.
+--
+-- This is schema.sql + leads.sql + lineup.sql + shares.sql concatenated in
+-- dependency order. Every statement is idempotent (create ... if not exists,
+-- policies dropped before create), so re-running it after a pull is safe.
+--
+-- Optional extras, run separately if you need them:
+--   analytics.sql  acquisition/event columns
+--   google.sql     Google Calendar + Gmail tokens
+
+
+-- ============================================================
+-- schema.sql
+-- ============================================================
+
+-- yom user store. Paste into Supabase → SQL editor → Run.
+-- Auth users live in auth.users. This file adds the app tables on top.
+
+create table if not exists public.allowlist (
+  email text primary key,
+  name text,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users (id) on delete cascade,
+  email text unique not null,
+  name text,
+  trait text,
+  pre_buy text,
+  keep_lean text,
+  yom_read text,
+  headline text,
+  memory text,
+  sizes jsonb default '{}'::jsonb,
+  style jsonb default '[]'::jsonb,
+  source_note text default 'beta',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.closet_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  purchased_at text,
+  item text not null,
+  note text,
+  kept boolean default true,
+  href text,
+  site text,
+  brand text,
+  kind text,
+  color text,
+  price numeric,
+  return_reason text,
+  image_url text,
+  created_at timestamptz default now()
+);
+
+alter table public.closet_items add column if not exists href text;
+alter table public.closet_items add column if not exists site text;
+alter table public.closet_items add column if not exists brand text;
+alter table public.closet_items add column if not exists kind text;
+alter table public.closet_items add column if not exists color text;
+alter table public.closet_items add column if not exists price numeric;
+alter table public.closet_items add column if not exists return_reason text;
+alter table public.closet_items add column if not exists image_url text;
+
+create table if not exists public.saved_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  name text not null,
+  href text,
+  price numeric,
+  note text,
+  site text,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  mode text,
+  purpose text,
+  budget numeric,
+  spent numeric default 0,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  label text not null,
+  when_text text,
+  kind text,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.takes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  product_key text not null,
+  site text,
+  surface text,
+  stamp text,
+  kind text,
+  title text,
+  regret integer,
+  mode text,
+  purpose text,
+  created_at timestamptz default now()
+);
+
+create table if not exists public.outcomes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  product_key text not null,
+  take_id uuid references public.takes (id) on delete set null,
+  action text not null,
+  reason text,
+  name text,
+  href text,
+  site text,
+  brand text,
+  kind text,
+  color text,
+  price numeric,
+  created_at timestamptz default now()
+);
+
+create index if not exists closet_items_user_id_idx on public.closet_items (user_id);
+create index if not exists closet_items_user_kind_idx on public.closet_items (user_id, kind);
+create index if not exists saved_items_user_id_idx on public.saved_items (user_id);
+create index if not exists sessions_user_id_idx on public.sessions (user_id);
+create index if not exists events_user_id_idx on public.events (user_id);
+create index if not exists takes_user_id_idx on public.takes (user_id);
+create index if not exists takes_user_product_idx on public.takes (user_id, product_key);
+create index if not exists outcomes_user_id_idx on public.outcomes (user_id);
+create index if not exists outcomes_user_product_idx on public.outcomes (user_id, product_key);
+create unique index if not exists saved_items_user_href_idx
+  on public.saved_items (user_id, href)
+  where href is not null and href <> '';
+
+create or replace function public.set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists profiles_updated_at on public.profiles;
+create trigger profiles_updated_at
+  before update on public.profiles
+  for each row execute procedure public.set_updated_at();
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, email, name)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1))
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure public.handle_new_user();
+
+alter table public.allowlist enable row level security;
+alter table public.profiles enable row level security;
+alter table public.closet_items enable row level security;
+alter table public.saved_items enable row level security;
+alter table public.sessions enable row level security;
+alter table public.events enable row level security;
+alter table public.takes enable row level security;
+alter table public.outcomes enable row level security;
+
+drop policy if exists profiles_select_own on public.profiles;
+create policy profiles_select_own on public.profiles
+  for select using (auth.uid() = id);
+
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own on public.profiles
+  for update using (auth.uid() = id);
+
+drop policy if exists closet_own on public.closet_items;
+create policy closet_own on public.closet_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists saved_own on public.saved_items;
+create policy saved_own on public.saved_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists sessions_own on public.sessions;
+create policy sessions_own on public.sessions
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists events_own on public.events;
+create policy events_own on public.events
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists takes_own on public.takes;
+create policy takes_own on public.takes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists outcomes_own on public.outcomes;
+create policy outcomes_own on public.outcomes
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+insert into public.allowlist (email, name) values
+  ('mal@youryom.com', 'mal'),
+  ('ban@youryom.com', 'ban')
+on conflict (email) do nothing;
+
+-- Cohort 1 acquisition fields (also in analytics.sql for existing projects)
+alter table public.profiles
+  add column if not exists acquisition_source text,
+  add column if not exists acquisition_campaign text,
+  add column if not exists activation_date text,
+  add column if not exists referrer_user_id uuid,
+  add column if not exists utm_source text,
+  add column if not exists utm_medium text,
+  add column if not exists utm_campaign text,
+  add column if not exists first_surface text,
+  add column if not exists onboarding_version text;
+
+-- Leads + scan visitors (also in leads.sql)
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  name text,
+  source text,
+  campaign text,
+  surface text,
+  path text,
+  anon_id text,
+  referrer_user_id uuid,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  channel text,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create unique index if not exists leads_email_idx on public.leads (email);
+
+create table if not exists public.scan_visitors (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text not null,
+  email text,
+  source text,
+  campaign text,
+  surface text,
+  path text default '/scan',
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  referrer_user_id uuid,
+  checks_count integer default 0,
+  last_seen_at timestamptz default now(),
+  created_at timestamptz default now(),
+  metadata jsonb default '{}'::jsonb
+);
+
+create unique index if not exists scan_visitors_anon_id_idx on public.scan_visitors (anon_id);
+
+alter table public.leads enable row level security;
+alter table public.scan_visitors enable row level security;
+
+-- ============================================================
+-- leads.sql
+-- ============================================================
+
+-- Leads + scan visitors. Run in Supabase SQL editor after schema.sql.
+-- Automates Cohort 1: every captured email is also upserted into allowlist.
+
+create table if not exists public.leads (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  name text,
+  source text,
+  campaign text,
+  surface text,
+  path text,
+  anon_id text,
+  referrer_user_id uuid,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  channel text,
+  metadata jsonb default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create unique index if not exists leads_email_idx on public.leads (email);
+create index if not exists leads_anon_id_idx on public.leads (anon_id);
+create index if not exists leads_campaign_idx on public.leads (campaign);
+create index if not exists leads_created_at_idx on public.leads (created_at desc);
+
+create table if not exists public.scan_visitors (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text not null,
+  email text,
+  source text,
+  campaign text,
+  surface text,
+  path text default '/scan',
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  referrer_user_id uuid,
+  checks_count integer default 0,
+  last_seen_at timestamptz default now(),
+  created_at timestamptz default now(),
+  metadata jsonb default '{}'::jsonb
+);
+
+create unique index if not exists scan_visitors_anon_id_idx on public.scan_visitors (anon_id);
+create index if not exists scan_visitors_email_idx on public.scan_visitors (email);
+create index if not exists scan_visitors_last_seen_idx on public.scan_visitors (last_seen_at desc);
+
+alter table public.leads enable row level security;
+alter table public.scan_visitors enable row level security;
+-- service role writes from /api/*; no anon policies (intentional)
+
+-- ============================================================
+-- lineup.sql
+-- ============================================================
+
+-- PNM recruitment pipeline: looks, closet flags, public lineups.
+-- Run after schema.sql + leads.sql.
+
+create table if not exists public.pipeline_looks (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text,
+  email text,
+  user_id uuid,
+  title text,
+  image_url text,
+  source_url text,
+  input_method text,
+  round_id text,
+  day_id text,
+  score numeric,
+  product jsonb default '{}'::jsonb,
+  verdict jsonb default '{}'::jsonb,
+  in_closet boolean default false,
+  created_at timestamptz default now()
+);
+
+create index if not exists pipeline_looks_email_idx on public.pipeline_looks (email);
+create index if not exists pipeline_looks_anon_idx on public.pipeline_looks (anon_id);
+create index if not exists pipeline_looks_created_at_idx on public.pipeline_looks (created_at desc);
+
+create table if not exists public.lineups (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text,
+  email text,
+  user_id uuid,
+  display_name text,
+  last_name text,
+  show_last_name boolean default true,
+  show_ratings boolean default true,
+  is_public boolean default false,
+  sisterhood boolean default false,
+  days jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists lineups_email_idx on public.lineups (email);
+create index if not exists lineups_anon_idx on public.lineups (anon_id);
+alter table public.lineups add column if not exists show_ratings boolean default true;
+
+alter table public.pipeline_looks enable row level security;
+alter table public.lineups enable row level security;
+
+-- ============================================================
+-- shares.sql
+-- ============================================================
+
+-- Shares for Cohort 1. Run after leads.sql.
+
+create table if not exists public.shares (
+  id uuid primary key default gen_random_uuid(),
+  sender_anon_id text,
+  sender_email text,
+  sender_user_id uuid,
+  product jsonb not null default '{}'::jsonb,
+  verdict jsonb not null default '{}'::jsonb,
+  decision text,
+  preview_note text,
+  opens_count integer default 0,
+  votes_count integer default 0,
+  campaign text,
+  source text,
+  created_at timestamptz default now()
+);
+
+create index if not exists shares_sender_email_idx on public.shares (sender_email);
+create index if not exists shares_sender_anon_idx on public.shares (sender_anon_id);
+create index if not exists shares_created_at_idx on public.shares (created_at desc);
+
+create table if not exists public.share_votes (
+  id uuid primary key default gen_random_uuid(),
+  share_id uuid not null references public.shares (id) on delete cascade,
+  voter_anon_id text,
+  voter_name text,
+  voter_email text,
+  vote text not null,
+  reason text,
+  created_at timestamptz default now()
+);
+
+alter table public.share_votes add column if not exists voter_name text;
+
+create index if not exists share_votes_share_id_idx on public.share_votes (share_id);
+
+create table if not exists public.scan_checks (
+  id uuid primary key default gen_random_uuid(),
+  anon_id text,
+  email text,
+  user_id uuid,
+  product jsonb not null default '{}'::jsonb,
+  verdict jsonb not null default '{}'::jsonb,
+  decision text,
+  input_method text,
+  share_id uuid references public.shares (id) on delete set null,
+  campaign text,
+  source text,
+  surface text,
+  created_at timestamptz default now()
+);
+
+create index if not exists scan_checks_anon_id_idx on public.scan_checks (anon_id);
+create index if not exists scan_checks_email_idx on public.scan_checks (email);
+create index if not exists scan_checks_created_at_idx on public.scan_checks (created_at desc);
+
+alter table public.shares enable row level security;
+alter table public.share_votes enable row level security;
+alter table public.scan_checks enable row level security;
