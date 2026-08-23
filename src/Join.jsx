@@ -156,7 +156,8 @@ export default function Join() {
 
   // A new phone has none of her looks, and her old browser held the only key.
   // Mail it to the address already on the account — the one place we know is hers.
-  const restore = async () => {
+  const restore = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
     if (!isValidEmail(email)) {
       setErr("type the email you joined with first.");
       return;
@@ -167,7 +168,7 @@ export default function Join() {
     setRestoring(false);
     setRestored(
       res?.ok
-        ? "sent. check your email and open the link on this phone."
+        ? "sent. open the link from your email on this phone."
         : "couldn’t send that right now — try again in a minute."
     );
   };
@@ -194,7 +195,7 @@ export default function Join() {
         <Link to="/" className="pnm-brand">
           yom
         </Link>
-        <p className="pnm-kicker">create your yom</p>
+        <p className="pnm-kicker">{step === "login" ? "welcome back" : "create your yom"}</p>
       </header>
 
       {err && <p className="scan-err">{err}</p>}
@@ -268,12 +269,57 @@ export default function Join() {
             required
           />
           <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
-          {restored && <p className="pnm-sub pnm-moved">{restored}</p>}
           <button type="submit" className="pnm-cta" style={{ marginTop: "1.1rem" }}>
             plan my outfits →
           </button>
-          <button type="button" className="pnm-ghost" disabled={restoring} onClick={restore}>
-            {restoring ? "sending…" : "already have a yom? email me my link"}
+          <button
+            type="button"
+            className="pnm-ghost"
+            onClick={() => {
+              setErr("");
+              setRestored("");
+              setStep("login");
+            }}
+          >
+            already have a yom? log in →
+          </button>
+        </form>
+      )}
+
+      {step === "login" && (
+        <form onSubmit={restore}>
+          <h1 className="pnm-title">log in.</h1>
+          <p className="pnm-sub pnm-lede">
+            we’ll email you a link. tap it and your <em>lineup</em> is back.
+          </p>
+          <label className="pnm-field" htmlFor="login-email">
+            email
+          </label>
+          <input
+            id="login-email"
+            type="email"
+            className="pnm-input yom-mask"
+            placeholder="you@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            autoFocus
+            required
+          />
+          {restored && <p className="pnm-sub pnm-moved">{restored}</p>}
+          <button type="submit" className="pnm-cta" disabled={restoring} style={{ marginTop: "1.1rem" }}>
+            {restoring ? "sending…" : "send my link →"}
+          </button>
+          <button
+            type="button"
+            className="pnm-ghost"
+            onClick={() => {
+              setErr("");
+              setRestored("");
+              setStep("create");
+            }}
+          >
+            ← back to creating one
           </button>
         </form>
       )}
