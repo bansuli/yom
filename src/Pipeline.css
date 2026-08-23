@@ -505,6 +505,44 @@
   font-style: italic;
 }
 
+.pnm-review-fit {
+  margin-top: 0.32rem !important;
+  color: #444;
+}
+
+.pnm-review-quotes {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.pnm-review-quotes li {
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.pnm-review-quotes em {
+  display: block;
+  font-style: normal;
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #666;
+}
+
+.pnm-review-quotes a {
+  color: inherit;
+}
+
+.pnm-review-channels {
+  margin-top: 0.4rem !important;
+  font-size: 0.58rem !important;
+  letter-spacing: 0.04em;
+  color: #777 !important;
+}
+
 .pnm-result-cta {
   margin-top: auto;
 }

@@ -144,16 +144,22 @@ export function enrichScanTake(data) {
     WEAR_BY_TYPE[category] ||
     WEAR_BY_TYPE.piece;
 
+  const keep = (verdict.details || []).filter((d) => d.key === "reviews" || d.key === "fit");
   const details = [];
   if (colorText) details.push({ key: "color", label: "color", text: colorText.toLowerCase() });
   if (styleText) details.push({ key: "style", label: "style", text: styleText.toLowerCase() });
   if (wearText) details.push({ key: "wear", label: "how to wear", text: wearText.toLowerCase() });
+  details.push(...keep);
+
+  const reviews = data.reviews || verdict.reviews || null;
 
   return {
     ...data,
+    reviews,
     verdict: {
       ...verdict,
       details,
+      reviews,
     },
   };
 }

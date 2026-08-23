@@ -23,7 +23,7 @@ const STEPS = [
     num: '3.',
     title: 'yom researches for you',
     lead: "while you're looking at a product, yom gets to work.",
-    body: "it reads reviews, checks sizing, compares alternatives, finds shipping information, and searches the web—automatically.",
+    body: "it reads reviews from reddit, amazon, tiktok, the brand, and sizing forums, then checks fit, alternatives, and shipping—automatically.",
     footer: 'no extra tabs.',
   },
   {

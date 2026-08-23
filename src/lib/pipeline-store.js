@@ -180,6 +180,7 @@ export function lookFromScan({
   product = {},
   verdict = {},
   note = "",
+  reviews = null,
 } = {}) {
   const roundId = String(verdict.round || loadJoinProfile().round || "").trim();
   const day = guessDayForRound(roundId);
@@ -215,6 +216,7 @@ export function lookFromScan({
       berkeley: verdict.berkeley || verdict.spotting || "",
     },
     inCloset: false,
+    reviews: reviews || verdict.reviews || null,
     at: Date.now(),
   };
 }

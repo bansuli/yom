@@ -3,6 +3,7 @@ import { loadStylistContext } from "../lib/google-context.js";
 import { accountFromToken } from "../lib/profile.js";
 import { STYLIST_VOICE } from "../lib/stylist.js";
 import { supabaseConfigured } from "../lib/supabase.js";
+import { formatReviewsForPrompt, researchProductReviews } from "../lib/review-research.js";
 
 const SYSTEM = `${STYLIST_VOICE}
 
@@ -12,7 +13,7 @@ Anchor every take in at least one concrete thing:
 - silhouette / fabric / color on the listing
 - exact price / remaining budget
 - size or fit note (page or their sizes)
-- review pattern from page_reviews (do not invent quotes)
+- review pattern from page_reviews AND web_reviews (reddit, amazon, tiktok, brand site, clothing/sizing forums). do not invent quotes or sources.
 - shipping vs a named calendar date
 - closet / gmail orders / returns
 - a learned behavior (impulse, panic before events, etc.)
@@ -74,7 +75,7 @@ If surface is pdp or check, also return:
 Check / PDP rules:
 - continue prior_take. deepen it; don't replace a closet warning with generic "reviews are good"
 - size: one line for THIS person's sizes vs how this piece runs
-- reviews: 1–2 lines from page_reviews only
+- reviews: 1–2 lines from page_reviews + web_reviews (name the channel: "reddit says…", "amazon reviewers…")
 - shipping: one line from page_shipping plus a named calendar date when you have one
 - regret: 0–100 whether THIS person keeps it
 - regretLabel: 2–4 words ("you'd keep it", "low regret", "could go either way", "likely regret")
@@ -156,6 +157,7 @@ function userBlock(payload) {
       ? `prior_take: ${JSON.stringify(profile.prior)} — continue this. do not overwrite it.`
       : "prior_take: none",
     `page_reviews: ${profile.facts?.reviews || "none scraped"}`,
+    `web_reviews: ${formatReviewsForPrompt(payload.web_reviews) || "none found"}`,
     `page_shipping: ${profile.facts?.shipping || "none scraped"}`,
     `page_size_note: ${profile.facts?.sizeNote || "none scraped"}`,
     "this is the hovered/open product. name it or a trait unique to it. do not describe the listing page.",
@@ -268,8 +270,22 @@ export default async function handler(req, res) {
     }
   }
 
-  const user = userBlock(payload);
   const surface = payload.surface || "pdp";
+  if (surface !== "tile") {
+    try {
+      payload.web_reviews = await researchProductReviews({
+        product: payload.product || {},
+        sourceUrl: payload.product?.href || payload.product?.url || "",
+        openaiKey: openai,
+        pageReviews: payload.profile?.facts?.reviews || "",
+        timeoutMs: 9000,
+      });
+    } catch (e) {
+      console.warn("advise review research", e?.message || e);
+    }
+  }
+
+  const user = userBlock(payload);
 
   let advice = null;
   let brain = null;
