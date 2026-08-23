@@ -68,9 +68,11 @@ export default async function handler(req, res) {
       let looks = [];
       if (clauses.length) {
         const found = await sbAdmin(
-          rest("pipeline_looks", `or=(${clauses.join(",")})&order=created_at.desc&limit=120`)
+          rest("pipeline_looks", `in_closet=eq.true&or=(${clauses.join(",")})&order=created_at.desc&limit=120`)
         );
-        looks = Array.isArray(found.data) ? found.data : [];
+        // Only looks a pnm put in her lineup are public. The query filters them;
+        // this guards the board if that filter ever stops being applied.
+        looks = (Array.isArray(found.data) ? found.data : []).filter((look) => look.in_closet);
       }
       const byEmail = new Map(rows.filter((row) => row.email).map((row) => [row.email, row]));
       const byAnon = new Map(rows.filter((row) => row.anon_id).map((row) => [row.anon_id, row]));
