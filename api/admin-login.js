@@ -1,5 +1,6 @@
 import { json, preflight, readJson } from "../lib/http.js";
 import { signIn, supabaseConfigured } from "../lib/supabase.js";
+import { adminEmails } from "../lib/admin-auth.js";
 
 /**
  * Log in to /admin. Deliberately separate from /beta: that is the founder
@@ -8,13 +9,6 @@ import { signIn, supabaseConfigured } from "../lib/supabase.js";
  * Passwords are supabase auth's problem, not ours — nothing here stores or
  * hashes anything. Only the two founder addresses may pass.
  */
-
-export function adminEmails() {
-  return String(process.env.YOM_ADMINS || "ban@youryom.com,mal@youryom.com")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 export default async function handler(req, res) {
   if (preflight(req, res)) return;

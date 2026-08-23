@@ -16,12 +16,21 @@ create table if not exists public.app_errors (
   email text,
   account_key text,
   detail jsonb default '{}'::jsonb,
-  user_agent text
+  user_agent text,
+  -- Ticked off on /admin. Stamped per occurrence rather than per fault, so the
+  -- same thing happening again after a fix comes back as unresolved.
+  resolved_at timestamptz,
+  resolved_by text
 );
 
 create index if not exists app_errors_at_idx on public.app_errors (at desc);
 create index if not exists app_errors_kind_idx on public.app_errors (kind);
 create index if not exists app_errors_anon_idx on public.app_errors (anon_id);
+create index if not exists app_errors_resolved_idx on public.app_errors (resolved_at);
+
+-- Existing tables pick the columns up here.
+alter table public.app_errors add column if not exists resolved_at timestamptz;
+alter table public.app_errors add column if not exists resolved_by text;
 
 alter table public.app_errors enable row level security;
 -- written by /api/log-error with the service role; no anon policies on purpose

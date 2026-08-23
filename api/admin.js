@@ -1,6 +1,6 @@
 import { json, preflight } from "../lib/http.js";
-import { getAuthUser, rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
-import { adminEmails } from "./admin-login.js";
+import { rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
+import { adminIdentity } from "../lib/admin-auth.js";
 
 /**
  * One place that answers "how many people does yom actually have", read
@@ -8,23 +8,6 @@ import { adminEmails } from "./admin-login.js";
  * quietly. Everything here is derived — nothing is written — so it can be
  * refreshed as often as it takes to trust the number.
  */
-
-/**
- * Either a founder logged in with her own email, or the shared secret — which
- * exists so the numbers were reachable the night this was built, and can be
- * dropped by unsetting YOM_ADMIN_SECRET once both accounts exist.
- */
-async function authed(req) {
-  const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  if (token) {
-    const who = await getAuthUser(token);
-    const email = String(who.data?.email || "").trim().toLowerCase();
-    if (who.ok && email && adminEmails().includes(email)) return email;
-  }
-  const secret = process.env.YOM_ADMIN_SECRET || "";
-  if (secret && String(req.headers["x-yom-admin"] || "") === secret) return "secret";
-  return "";
-}
 
 /**
  * You and mal use yom constantly, so your rows would sit at the top of every
@@ -65,7 +48,7 @@ function rows(res) {
 
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
-  const who = await authed(req);
+  const who = await adminIdentity(req);
   if (!who) {
     json(res, 401, { ok: false, error: "nope." });
     return;
@@ -267,17 +250,63 @@ export default async function handler(req, res) {
     in_lineup: Boolean(look.in_closet),
   }));
 
-  const errorsOut = errors.slice(0, 60).map((e) => ({
-    at: e.at,
-    kind: e.kind || "",
-    message: e.message || "",
-    status: e.status,
-    path: e.path || "",
-    email: e.email || "",
-    surface: e.surface || "",
-  }));
+  // The same fault fifty times is one issue, not fifty rows. Group by what
+  // broke, and treat a group as resolved only while nothing newer has happened
+  // since it was ticked off.
+  const groups = new Map();
+  for (const e of errors) {
+    const kind = e.kind || "unknown";
+    const message = e.message || "";
+    const key = `${kind}::${message}`;
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        kind,
+        message,
+        status: e.status ?? null,
+        path: e.path || "",
+        count: 0,
+        people: new Set(),
+        first_at: e.at,
+        last_at: e.at,
+        resolved_at: null,
+        resolved_by: "",
+      });
+    }
+    const g = groups.get(key);
+    g.count += 1;
+    if (e.email) g.people.add(e.email);
+    if (e.at && e.at < g.first_at) g.first_at = e.at;
+    if (e.at && e.at > g.last_at) g.last_at = e.at;
+    if (e.resolved_at && (!g.resolved_at || e.resolved_at > g.resolved_at)) {
+      g.resolved_at = e.resolved_at;
+      g.resolved_by = e.resolved_by || "";
+    }
+    if (!e.resolved_at) g.unresolved = true;
+  }
+
+  const issues = [...groups.values()]
+    .map((g) => ({
+      key: g.key,
+      kind: g.kind,
+      message: g.message,
+      status: g.status,
+      path: g.path,
+      count: g.count,
+      people: g.people.size,
+      first_at: g.first_at,
+      last_at: g.last_at,
+      resolved: !g.unresolved && Boolean(g.resolved_at),
+      resolved_by: g.resolved_by,
+      resolved_at: g.resolved_at,
+    }))
+    .sort((a, b) => Number(a.resolved) - Number(b.resolved) || String(b.last_at).localeCompare(String(a.last_at)));
+
   const errorsByKind = {};
-  for (const e of errors) errorsByKind[e.kind || "unknown"] = (errorsByKind[e.kind || "unknown"] || 0) + 1;
+  for (const g of issues) {
+    if (g.resolved) continue;
+    errorsByKind[g.kind] = (errorsByKind[g.kind] || 0) + g.count;
+  }
 
   if (String(parseCsv(req)) === "1") {
     const head = "email,name,source,campaign,first_seen,looks,in_lineup,public";
@@ -300,9 +329,9 @@ export default async function handler(req, res) {
     funnel,
     stuck,
     activity,
-    errors: errorsOut,
+    issues,
     errors_by_kind: errorsByKind,
-    errors_recent: errors.filter((e) => inWindow(e.at)).length,
+    errors_recent: issues.filter((g) => !g.resolved && inWindow(g.last_at)).length,
     error_log_missing: !Array.isArray(errorsRes?.data),
     by_input: byInput,
     by_round: byRound,

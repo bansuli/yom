@@ -50,6 +50,39 @@ function Chips({ data, extra }) {
   );
 }
 
+/**
+ * One issue, however many times it happened. Resolving is about this fault
+ * rather than this occurrence, so the count and who it hit sit on the same row.
+ */
+function IssueRow({ issue, busy, onAction }) {
+  return (
+    <li className={issue.resolved ? "is-done" : ""}>
+      <div className="yom-issue-main">
+        <b>{issue.message}</b>
+        <span>
+          {[
+            issue.kind,
+            issue.status ? `status ${issue.status}` : "",
+            issue.path,
+            `${issue.count}×`,
+            issue.people ? `${issue.people} ${issue.people === 1 ? "person" : "people"}` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+        <span className="yom-issue-when">
+          {issue.resolved
+            ? `Resolved by ${issue.resolved_by || "someone"} · last seen ${ago(issue.last_at)}`
+            : `Last ${ago(issue.last_at)} · first ${ago(issue.first_at)}`}
+        </span>
+      </div>
+      <button type="button" onClick={onAction} disabled={busy}>
+        {busy ? "…" : issue.resolved ? "Reopen" : "Resolve"}
+      </button>
+    </li>
+  );
+}
+
 /** The gap between two steps is the thing worth fixing, so show the gap. */
 function Funnel({ steps }) {
   const top = steps[0]?.people || 0;
@@ -95,6 +128,8 @@ export default function Admin() {
   const [showInternal, setShowInternal] = useState(false);
   const [tab, setTab] = useState("overview");
   const [range, setRange] = useState("all");
+  const [showResolved, setShowResolved] = useState(false);
+  const [working, setWorking] = useState("");
   const [open, setOpen] = useState(null);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -181,6 +216,23 @@ export default function Admin() {
     (data?.stuck?.scanned_no_lineup?.length || 0) +
     (data?.stuck?.lineup_not_shared?.length || 0);
   const person = open ? (data?.people || []).find((p) => p.email === open) : null;
+  const issues = data?.issues || [];
+  const openIssues = issues.filter((i) => !i.resolved);
+  const resolvedIssues = issues.filter((i) => i.resolved);
+
+  const act = async (issue, action) => {
+    setWorking(issue.key);
+    await fetch("/api/admin-issues", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret }),
+      },
+      body: JSON.stringify({ action, kind: issue.kind, message: issue.message }),
+    }).catch(() => null);
+    setWorking("");
+    load();
+  };
 
   const downloadCsv = async () => {
     const res = await fetch(`/api/admin?csv=1&window=${range}${showInternal ? "&internal=1" : ""}`, {
@@ -486,44 +538,60 @@ export default function Admin() {
           {tab === "issues" && (
             <>
               {data.error_log_missing && (
-                <p className="yom-admin-err">
+                <p className="yom-admin-empty">
                   The error log table does not exist yet — run supabase/errors.sql and failures will appear here.
                 </p>
               )}
-              <Chips data={data.errors_by_kind} />
-              {!data.error_log_missing && !(data.errors || []).length && (
+
+              {!data.error_log_missing && !openIssues.length && !resolvedIssues.length && (
                 <p className="yom-admin-empty">
                   Nothing has failed since the log was switched on. Failed scans, API errors and page crashes
                   land here with the person who hit them.
                 </p>
               )}
-              {!!(data.errors || []).length && (
-              <div className="yom-admin-table">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>When</th>
-                      <th>Kind</th>
-                      <th>What broke</th>
-                      <th>Status</th>
-                      <th>Page</th>
-                      <th>Who</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(data.errors || []).map((e, i) => (
-                      <tr key={`${e.at}-${i}`}>
-                        <td>{ago(e.at)}</td>
-                        <td>{e.kind}</td>
-                        <td className="is-wide">{e.message}</td>
-                        <td>{e.status || "—"}</td>
-                        <td>{e.path || "—"}</td>
-                        <td>{e.email || "—"}</td>
-                      </tr>
+
+              {!!openIssues.length && (
+                <>
+                  <Chips data={data.errors_by_kind} />
+                  <ul className="yom-issues">
+                    {openIssues.map((issue) => (
+                      <IssueRow
+                        key={issue.key}
+                        issue={issue}
+                        busy={working === issue.key}
+                        onAction={() => act(issue, "resolve")}
+                      />
                     ))}
-                  </tbody>
-                </table>
-              </div>
+                  </ul>
+                </>
+              )}
+
+              {!openIssues.length && !!resolvedIssues.length && !data.error_log_missing && (
+                <p className="yom-admin-empty">Nothing open. {resolvedIssues.length} resolved.</p>
+              )}
+
+              {!!resolvedIssues.length && (
+                <Section title={`Resolved · ${resolvedIssues.length}`}>
+                  <button
+                    type="button"
+                    className="yom-admin-toggle"
+                    onClick={() => setShowResolved(!showResolved)}
+                  >
+                    {showResolved ? "Hide" : "Show"}
+                  </button>
+                  {showResolved && (
+                    <ul className="yom-issues is-resolved">
+                      {resolvedIssues.map((issue) => (
+                        <IssueRow
+                          key={issue.key}
+                          issue={issue}
+                          busy={working === issue.key}
+                          onAction={() => act(issue, "reopen")}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </Section>
               )}
             </>
           )}
