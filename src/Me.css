@@ -1,0 +1,287 @@
+/* /me — who she is, what she has, and the switches that belong to her. */
+
+.me-card {
+  margin: 0.9rem 0 0.4rem;
+  padding: 0.95rem 1rem 0.8rem;
+  border: 1px solid var(--scan-line);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.me-id {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.me-avatar {
+  flex: none;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--scan-lime);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--scan-ink);
+}
+
+.me-who {
+  min-width: 0;
+}
+
+.me-who h1 {
+  margin: 0;
+  font-family: "Instrument Serif", Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.me-email {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  color: var(--scan-muted);
+  overflow-wrap: anywhere;
+}
+
+.me-signed {
+  margin: 0.28rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--scan-olive);
+}
+
+.me-signed i {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--scan-olive);
+}
+
+.me-stats {
+  margin: 0.85rem 0 0;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--scan-line);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.me-stats dt {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: #8a8a8a;
+}
+
+.me-stats dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.me-week {
+  list-style: none;
+  margin: 0.3rem 0 0.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.me-week li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--scan-line);
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.me-week li.has-look {
+  border-color: #d8d8d8;
+}
+
+.me-week li > b {
+  flex: none;
+  width: 5.6rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.me-week-pieces {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow-x: auto;
+  min-width: 0;
+}
+
+.me-week-pieces figure {
+  margin: 0;
+  width: 2.6rem;
+  flex: none;
+}
+
+.me-week-pieces img,
+.me-week-pieces .pnm-thumb {
+  width: 2.6rem;
+  height: 3.2rem;
+  object-fit: cover;
+  border-radius: 0.4rem;
+  display: block;
+  background: var(--scan-cream);
+}
+
+.me-week-pieces figcaption {
+  margin-top: 0.15rem;
+  font-size: 0.55rem;
+  color: #8a8a8a;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.me-week-empty {
+  font-size: 0.72rem;
+  color: #9a9a9a;
+}
+
+.me-looks {
+  list-style: none;
+  margin: 0.3rem 0 0.6rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.me-looks li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--scan-line);
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.me-looks img,
+.me-looks .pnm-thumb {
+  flex: none;
+  width: 3rem;
+  height: 3.7rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  display: block;
+  background: var(--scan-cream);
+}
+
+.me-look-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.me-look-copy h3 {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.me-look-meta {
+  margin: 0.2rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.68rem;
+  color: var(--scan-muted);
+}
+
+.me-remove {
+  appearance: none;
+  flex: none;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: 1px solid var(--scan-line);
+  border-radius: 50%;
+  background: #fff;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  color: #7a7a7a;
+  cursor: pointer;
+}
+
+.me-confirm {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.me-confirm button {
+  appearance: none;
+  border: 1.4px solid var(--scan-ink);
+  border-radius: 999px;
+  background: var(--scan-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.28rem 0.6rem;
+  cursor: pointer;
+}
+
+.me-confirm button.is-ghost {
+  background: #fff;
+  color: var(--scan-ink);
+}
+
+.me-account {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin: 0.3rem 0 0.4rem;
+}
+
+.me-row {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--scan-line);
+  border-radius: 0.8rem;
+  background: #fff;
+  font: inherit;
+  color: var(--scan-ink);
+  cursor: pointer;
+}
+
+.me-row b {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.me-row span {
+  display: block;
+  margin-top: 0.12rem;
+  font-size: 0.7rem;
+  color: var(--scan-muted);
+}
+
+.me-row.is-quiet b {
+  color: #8a3a3a;
+}

@@ -56,6 +56,17 @@ export function unlockIfTest(search = typeof window !== "undefined" ? window.loc
   }
 }
 
+/** Forget who is signed in here. Her yom itself lives on her account, not here. */
+export function clearJoinLocal() {
+  for (const key of [SCAN_EMAIL_KEY, YOM_READY_KEY, YOM_PROFILE_KEY, LAST_CHECK_KEY, "yom-survey"]) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 export function saveJoinProfile({
   name = "",
   trait = "",

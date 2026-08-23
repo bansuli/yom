@@ -13,6 +13,7 @@ import Create from './Create.jsx'
 import Join from './Join.jsx'
 import Looks from './Looks.jsx'
 import Lineup from './Lineup.jsx'
+import Me from './Me.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import Admin from './Admin.jsx'
@@ -65,6 +66,8 @@ function BetaCorner() {
     pathname === '/join' ||
     pathname === '/looks' ||
     pathname === '/lineup' ||
+    pathname === '/me' ||
+    pathname === '/profile' ||
     pathname === '/closet' ||
     pathname === '/everyone' ||
     pathname === '/admin' ||
@@ -96,6 +99,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/join" element={<Join />} />
         <Route path="/looks" element={<Looks />} />
         <Route path="/lineup" element={<Lineup />} />
+        <Route path="/me" element={<Me />} />
+        <Route path="/profile" element={<Me />} />
         <Route path="/closet" element={<ClosetBoard />} />
         <Route path="/everyone" element={<ClosetBoard />} />
         <Route path="/create" element={<Create />} />

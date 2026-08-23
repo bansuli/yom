@@ -38,6 +38,18 @@ export function adoptAccountKey(key) {
   }
 }
 
+/**
+ * Let go of the account on this device. Nothing on the server changes — the key
+ * is the only way back in, which is why /me makes her copy her link first.
+ */
+export function clearAccountKey() {
+  try {
+    localStorage.removeItem(ACCOUNT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function hasAccountKey() {
   if (typeof window === "undefined") return false;
   try {

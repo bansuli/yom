@@ -48,6 +48,20 @@ export default function YomNav({ active = "y" }) {
         <span className="yom-nav-y-mark">y</span>
         yom
       </NavLink>
+      <NavLink to="/me" className={({ isActive }) => (isActive || active === "me" ? "on" : "")}>
+        <span className="yom-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8.4" r="3.4" stroke="currentColor" strokeWidth="1.7" />
+            <path
+              d="M5.2 19.5c0-3.4 3-5.6 6.8-5.6s6.8 2.2 6.8 5.6"
+              stroke="currentColor"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+            />
+          </svg>
+        </span>
+        you
+      </NavLink>
     </nav>
   );
 }

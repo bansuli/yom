@@ -1,6 +1,13 @@
 import { getAnonId } from "./analytics.js";
 import { LINEUP_DAYS, guessDayForRound, pieceSlotFor } from "./contexts.js";
-import { loadJoinEmail, loadJoinProfile } from "./join-store.js";
+import {
+  isYomReady,
+  loadJoinEmail,
+  loadJoinProfile,
+  markYomReady,
+  saveJoinEmail,
+  saveJoinProfile,
+} from "./join-store.js";
 import { yomLineup, yomMyPipeline } from "./yom-api.js";
 import { thumbFrom } from "./image.js";
 import { getAccountKey } from "./account.js";
@@ -73,6 +80,17 @@ export function deleteLook(id) {
   saveLineupMap(map);
   rememberDeleted([lookId]);
   return kept;
+}
+
+/** Wipe this device's copy on log out. The account keeps everything server-side. */
+export function clearPipelineLocal() {
+  for (const key of [LOOKS_KEY, LINEUP_KEY, PUBLIC_KEY, SYNC_KEY, DELETED_KEY, SYNCED_AT_KEY]) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export function loadLooks() {
@@ -373,6 +391,17 @@ export async function restorePipeline() {
 
   const res = await yomMyPipeline(key);
   if (!res?.ok || !Array.isArray(res.looks)) return { ok: false, restored: 0 };
+
+  // A transfer link is a login. The key is the proof, so a device holding it
+  // gets her name and email too — otherwise it arrives with all of her looks and
+  // still sends her to /join to sign up as if she were new.
+  const account = res.account || {};
+  if (account.email && !isYomReady()) {
+    const profile = loadJoinProfile();
+    saveJoinEmail(account.email);
+    saveJoinProfile({ ...profile, name: profile.name || account.name || "", email: account.email });
+    markYomReady();
+  }
 
   const local = loadLooks();
   const known = new Set(local.map((look) => look.id));

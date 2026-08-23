@@ -127,6 +127,10 @@ export default async function handler(req, res) {
       json(res, 200, {
         ok: true,
         looks: (Array.isArray(looksRes.data) ? looksRes.data : []).map(clientLook),
+        // Who the account belongs to. Holding the key already means holding the
+        // account, and without this a transfer link lands on a device that has
+        // her looks but no idea who she is — so it asks her to sign up again.
+        account: { email: row?.email || "", name: row?.display_name || "" },
         lineup: row?.days && typeof row.days === "object" ? row.days : {},
         public: row
           ? {

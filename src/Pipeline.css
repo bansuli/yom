@@ -980,7 +980,7 @@
   transform: translateX(-50%);
   width: min(100%, 420px);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   align-items: end;
   gap: 0.35rem;
   padding: 0.5rem 0.6rem max(0.62rem, env(safe-area-inset-bottom));
