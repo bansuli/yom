@@ -510,7 +510,14 @@ export default function Admin() {
             </div>
           )}
 
-          {tab === "activity" && !(data.activity || []).length && (
+          {tab === "activity" && totals.checks_missing && (
+            <p className="yom-admin-empty">
+              Only saved looks appear here. Run supabase/shares.sql and every check will be recorded — including
+              the ones she looked at and walked away from.
+            </p>
+          )}
+
+          {tab === "activity" && !(data.activity || []).length && !totals.checks_missing && (
             <p className="yom-admin-empty">No scans yet. Every look anyone checks will appear here.</p>
           )}
 
@@ -522,6 +529,7 @@ export default function Admin() {
                     <th>When</th>
                     <th>Who</th>
                     <th>Scanned</th>
+                    <th>yom said</th>
                     <th>Input</th>
                     <th>Round</th>
                     <th>Score</th>
@@ -534,10 +542,11 @@ export default function Admin() {
                       <td>{ago(a.at)}</td>
                       <td>{a.email || "—"}</td>
                       <td>{[a.brand, a.title].filter(Boolean).join(" · ") || "—"}</td>
+                      <td className="is-wide">{a.verdict || "—"}</td>
                       <td>{a.input || "—"}</td>
                       <td>{a.round || "—"}</td>
                       <td>{a.score ?? "—"}</td>
-                      <td>{a.in_lineup ? "Yes" : "—"}</td>
+                      <td>{a.in_lineup ? "Kept" : "—"}</td>
                     </tr>
                   ))}
                 </tbody>

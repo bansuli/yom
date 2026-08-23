@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const [leadsRes, visitorsRes, lineupsRes, looksRes, errorsRes] = await Promise.all([
+  const [leadsRes, visitorsRes, lineupsRes, looksRes, errorsRes, checksRes] = await Promise.all([
     sbAdmin(rest("leads", "select=*&order=created_at.desc&limit=1000")),
     sbAdmin(rest("scan_visitors", "select=*&order=created_at.desc&limit=2000")),
     sbAdmin(rest("lineups", "select=*&limit=1000")),
@@ -69,6 +69,14 @@ export default async function handler(req, res) {
       )
     ),
     sbAdmin(rest("app_errors", "select=*&order=at.desc&limit=200")),
+    // Every check she ran, not just the ones she kept. A scan she looked at and
+    // walked away from is the most interesting row on this page.
+    sbAdmin(
+      rest(
+        "scan_checks",
+        "select=id,anon_id,email,product,verdict,decision,input_method,created_at&order=created_at.desc&limit=2000"
+      )
+    ),
   ]);
 
   const leads = rows(leadsRes);
@@ -77,6 +85,7 @@ export default async function handler(req, res) {
   const looks = rows(looksRes);
   // The table may not exist yet; a missing error log must not break the page.
   const errors = rows(errorsRes);
+  const checks = rows(checksRes);
 
   // One row per person. Email is the handle she gave us; anon ids are the
   // browsers she used, and are what tie a visit to a lead to a lineup.
@@ -190,14 +199,26 @@ export default async function handler(req, res) {
   const untracked = peopleIn.filter((p) => !(p.anon_ids || []).some((id) => trackedAnons.has(id))).length;
   const opened = trackedAnons.size + untracked;
 
+  const whose = (row) =>
+    (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id) || null;
+
   const looksIn = looks.filter(
     (look) => inWindow(look.created_at) && (showInternal || !isInternal(look.email))
   );
+  const checksIn = checks.filter(
+    (check) => inWindow(check.created_at) && (showInternal || !isInternal(check.email))
+  );
+
   const scannedKeys = new Set();
   const lineupKeys = new Set();
+  for (const check of checksIn) {
+    const p = whose(check);
+    if (p && peopleInKeys.has(keyOf(p))) scannedKeys.add(keyOf(p));
+  }
   for (const look of looksIn) {
-    const p = (look.email ? people.get(String(look.email).trim().toLowerCase()) : null) || byAnon.get(look.anon_id);
+    const p = whose(look);
     if (!p || !peopleInKeys.has(keyOf(p))) continue;
+    // A saved look is a scan too, for anyone whose checks predate this table.
     scannedKeys.add(keyOf(p));
     if (look.in_closet) lineupKeys.add(keyOf(p));
   }
@@ -250,16 +271,32 @@ export default async function handler(req, res) {
     }
   }
 
-  const activity = mine.slice(0, 60).map((look) => ({
-    at: look.created_at,
-    email: look.email || "",
-    title: look.title || "",
-    brand: look.product?.brand || "",
-    input: look.input_method || "",
-    round: look.round_id || "",
-    score: look.score == null ? null : Number(look.score),
-    in_lineup: Boolean(look.in_closet),
-  }));
+  const myChecks = checks.filter((check) => showInternal || !isInternal(check.email));
+  const activity = (myChecks.length ? myChecks : mine).slice(0, 80).map((row) =>
+    row.product !== undefined
+      ? {
+          at: row.created_at,
+          email: row.email || "",
+          title: row.product?.name || row.verdict?.title || "",
+          brand: row.product?.brand || "",
+          input: row.input_method || "",
+          round: row.verdict?.round || "",
+          score: row.verdict?.score == null ? null : Number(row.verdict.score),
+          verdict: String(row.verdict?.title || "").slice(0, 90),
+          in_lineup: row.decision === "save",
+        }
+      : {
+          at: row.created_at,
+          email: row.email || "",
+          title: row.title || "",
+          brand: row.product?.brand || "",
+          input: row.input_method || "",
+          round: row.round_id || "",
+          score: row.score == null ? null : Number(row.score),
+          verdict: String(row.verdict?.title || "").slice(0, 90),
+          in_lineup: Boolean(row.in_closet),
+        }
+  );
 
   // The same fault fifty times is one issue, not fifty rows. Group by what
   // broke, and treat a group as resolved only while nothing newer has happened
@@ -357,7 +394,8 @@ export default async function handler(req, res) {
       with_looks: list.filter((p) => p.looks > 0).length,
       with_lineup: list.filter((p) => p.in_lineup > 0).length,
       public_lineups: list.filter((p) => p.is_public).length,
-      looks_total: mine.length,
+      looks_total: myChecks.length || mine.length,
+      checks_missing: !Array.isArray(checksRes?.data),
       internal_hidden: showInternal ? 0 : internal.length,
     },
     by_campaign: byCampaign,
