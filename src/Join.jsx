@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { queueLead, startLeadFlush } from "./lib/lead-queue.js";
+import { yomRestore } from "./lib/yom-api.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
 import {
   ONBOARDING_VERSION,
@@ -41,6 +42,8 @@ export default function Join() {
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
   const [err, setErr] = useState("");
+  const [restoring, setRestoring] = useState(false);
+  const [restored, setRestored] = useState("");
 
   useEffect(() => {
     const acq = captureAcquisitionFromUrl(search);
@@ -151,6 +154,24 @@ export default function Join() {
     }
   };
 
+  // A new phone has none of her looks, and her old browser held the only key.
+  // Mail it to the address already on the account — the one place we know is hers.
+  const restore = async () => {
+    if (!isValidEmail(email)) {
+      setErr("type the email you joined with first.");
+      return;
+    }
+    setErr("");
+    setRestoring(true);
+    const res = await yomRestore(email.trim().toLowerCase());
+    setRestoring(false);
+    setRestored(
+      res?.ok
+        ? "sent. check your email and open the link on this phone."
+        : "couldn’t send that right now — try again in a minute."
+    );
+  };
+
   const showOutfit = () => {
     if (!isYomReady()) {
       setStep("create");
@@ -247,8 +268,12 @@ export default function Join() {
             required
           />
           <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
+          {restored && <p className="pnm-sub pnm-moved">{restored}</p>}
           <button type="submit" className="pnm-cta" style={{ marginTop: "1.1rem" }}>
             plan my outfits →
+          </button>
+          <button type="button" className="pnm-ghost" disabled={restoring} onClick={restore}>
+            {restoring ? "sending…" : "already have a yom? email me my link"}
           </button>
         </form>
       )}
