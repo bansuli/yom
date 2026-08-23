@@ -587,3 +587,90 @@
 .yom-admin-drawer {
   width: min(100%, 520px);
 }
+
+.yom-scan-row {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.yom-scan-photo {
+  flex: none;
+  width: 4.4rem;
+  height: 5.6rem;
+  object-fit: cover;
+  border-radius: 0.45rem;
+  background: #f2f2f2;
+  border: 1px solid #ececec;
+}
+
+.yom-scan-photo.is-empty {
+  display: block;
+}
+
+.yom-scan-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.yom-lineup {
+  margin: 1rem 0 0.5rem;
+}
+
+.yom-lineup-days {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.yom-lineup-day {
+  display: grid;
+  grid-template-columns: 5.2rem 1fr;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.yom-lineup-day > span {
+  font-size: 0.74rem;
+  color: #6a6a6a;
+}
+
+.yom-lineup-pieces {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.yom-lineup-pieces figure {
+  margin: 0;
+  width: 3rem;
+}
+
+.yom-lineup-pieces img {
+  width: 3rem;
+  height: 3.8rem;
+  object-fit: cover;
+  border-radius: 0.35rem;
+  border: 1px solid #ececec;
+  display: block;
+}
+
+.yom-lineup-pieces figcaption {
+  font-size: 0.62rem;
+  color: #9a9a9a;
+  text-align: center;
+  margin-top: 0.1rem;
+}
+
+.yom-thumb-empty {
+  width: 3rem;
+  height: 3.8rem;
+  border-radius: 0.35rem;
+  background: #f4f4f4;
+  border: 1px dashed #e2e2e2;
+}
+
+.yom-thumb-empty.is-blank {
+  opacity: 0.6;
+}

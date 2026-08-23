@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { LINEUP_DAYS } from "./lib/contexts.js";
 import "./Pipeline.css";
 import "./Admin.css";
 
@@ -140,6 +141,8 @@ export default function Admin() {
   const [range, setRange] = useState("all");
   const [showResolved, setShowResolved] = useState(false);
   const [working, setWorking] = useState("");
+  const [detail, setDetail] = useState(null);
+  const [detailBusy, setDetailBusy] = useState(false);
   const [open, setOpen] = useState(null);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -226,6 +229,24 @@ export default function Admin() {
     (data?.stuck?.scanned_no_lineup?.length || 0) +
     (data?.stuck?.lineup_not_shared?.length || 0);
   const person = open ? (data?.people || []).find((p) => p.email === open) : null;
+
+  const openPerson = async (email) => {
+    if (!email || open === email) {
+      setOpen(null);
+      setDetail(null);
+      return;
+    }
+    setOpen(email);
+    setDetail(null);
+    setDetailBusy(true);
+    const res = await fetch(`/api/admin?person=${encodeURIComponent(email)}`, {
+      headers: token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret },
+    })
+      .then((r) => r.json())
+      .catch(() => null);
+    setDetailBusy(false);
+    if (res?.ok) setDetail(res.person);
+  };
   const issues = data?.issues || [];
   const openIssues = issues.filter((i) => !i.resolved);
   const resolvedIssues = issues.filter((i) => i.resolved);
@@ -495,7 +516,7 @@ export default function Admin() {
                     <tr
                       key={p.email}
                       className={`is-clickable${open === p.email ? " is-open" : ""}`}
-                      onClick={() => setOpen(open === p.email ? null : p.email)}
+                      onClick={() => openPerson(p.email)}
                     >
                       <td>{p.email}</td>
                       <td>{p.name || "—"}</td>
@@ -624,7 +645,14 @@ export default function Admin() {
               <b>{person.name || person.email}</b>
               <span>{person.email}</span>
             </div>
-            <button type="button" onClick={() => setOpen(null)} aria-label="close">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(null);
+                setDetail(null);
+              }}
+              aria-label="close"
+            >
               ×
             </button>
           </header>
@@ -636,13 +664,13 @@ export default function Admin() {
               Last seen <b>{ago(person.last_seen || person.first_seen)}</b>
             </span>
             <span>
-              Checks <b>{person.checks || 0}</b>
+              Checks <b>{detail?.checks ?? person.checks ?? 0}</b>
             </span>
             <span>
               Devices <b>{person.anon_ids?.length || 0}</b>
             </span>
             <span>
-              Scans <b>{person.scans?.length || 0}</b>
+              Scans <b>{detail?.scans?.length ?? person.scans?.length ?? 0}</b>
             </span>
             <span>
               Kept <b>{person.in_lineup || 0}</b>
@@ -651,32 +679,72 @@ export default function Admin() {
               Lineup <b>{person.is_public ? "Public" : "Private"}</b>
             </span>
           </div>
-          {person.scans?.length ? (
+          {detailBusy && <p className="yom-admin-note">Loading her record…</p>}
+
+          {detail?.lineup?.some((day) => day.pieces.length) && (
+            <div className="yom-lineup">
+              <h3 className="yom-admin-h">Her lineup</h3>
+              <div className="yom-lineup-days">
+                {LINEUP_DAYS.map((day) => {
+                  const row = detail.lineup.find((d) => d.day === day.id);
+                  return (
+                    <div className="yom-lineup-day" key={day.id}>
+                      <span>{day.chip}</span>
+                      <div className="yom-lineup-pieces">
+                        {row?.pieces.length ? (
+                          row.pieces.map((piece, i) => (
+                            <figure key={`${piece.title}-${i}`}>
+                              {piece.image ? (
+                                <img src={piece.image} alt="" referrerPolicy="no-referrer" />
+                              ) : (
+                                <div className="yom-thumb-empty" />
+                              )}
+                              <figcaption>{piece.slot}</figcaption>
+                            </figure>
+                          ))
+                        ) : (
+                          <div className="yom-thumb-empty is-blank" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {(detail?.scans?.length || person.scans?.length) ? (
             <ol className="yom-admin-scans">
-              {person.scans.map((scan) => (
+              {(detail?.scans?.length ? detail.scans : person.scans).map((scan) => (
                 <li key={scan.id}>
-                  <div className="yom-scan-head">
-                    <span className="yom-scan-when">{when(scan.at)}</span>
-                    {scan.kept && <span className="yom-scan-kept">Kept</span>}
-                    {scan.decision && !scan.kept && <span className="yom-scan-tag">{scan.decision}</span>}
+                  <div className="yom-scan-row">
+                    {scan.image ? (
+                      <img className="yom-scan-photo" src={scan.image} alt="" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="yom-scan-photo is-empty" />
+                    )}
+                    <div className="yom-scan-text">
+                      <div className="yom-scan-head">
+                        <span className="yom-scan-when">{when(scan.at)}</span>
+                        {scan.kept && <span className="yom-scan-kept">Kept</span>}
+                      </div>
+                      <b className="yom-scan-title">
+                        {[scan.brand, scan.title].filter(Boolean).join(" · ") || "a look"}
+                      </b>
+                      <span className="yom-scan-meta">
+                        {[
+                          scan.input,
+                          scan.category,
+                          scan.color,
+                          scan.price ? `$${scan.price}` : "",
+                          scan.round,
+                          scan.score != null ? `${scan.score}/10` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </div>
                   </div>
-
-                  <b className="yom-scan-title">
-                    {[scan.brand, scan.title].filter(Boolean).join(" · ") || "a look"}
-                  </b>
-
-                  <span className="yom-scan-meta">
-                    {[
-                      scan.input,
-                      scan.category,
-                      scan.color,
-                      scan.price ? `$${scan.price}` : "",
-                      scan.round,
-                      scan.score != null ? `${scan.score}/10` : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </span>
 
                   {scan.verdict_title && <p className="yom-scan-verdict">“{scan.verdict_title}”</p>}
                   {scan.verdict_body && <p className="yom-scan-body">{scan.verdict_body}</p>}
@@ -695,16 +763,11 @@ export default function Admin() {
                       <em>Berkeley</em> {scan.berkeley}
                     </p>
                   )}
-                  {scan.source_url && (
-                    <a className="yom-scan-line" href={scan.source_url} target="_blank" rel="noreferrer">
-                      {scan.source_url.slice(0, 70)}
-                    </a>
-                  )}
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="yom-admin-empty">Gave an email, has not scanned anything.</p>
+            !detailBusy && <p className="yom-admin-empty">Gave an email, has not scanned anything.</p>
           )}
         </aside>
       )}

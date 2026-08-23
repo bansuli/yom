@@ -51,6 +51,8 @@ create table if not exists public.scan_checks (
   created_at timestamptz default now()
 );
 
+alter table public.scan_checks add column if not exists image_url text;
+
 create index if not exists scan_checks_anon_id_idx on public.scan_checks (anon_id);
 create index if not exists scan_checks_email_idx on public.scan_checks (email);
 create index if not exists scan_checks_created_at_idx on public.scan_checks (created_at desc);

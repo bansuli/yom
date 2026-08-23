@@ -58,6 +58,94 @@ export default async function handler(req, res) {
     return;
   }
 
+  // One person, in full, with the photos. Kept off the list payload on purpose:
+  // a couple of hundred data-url images is megabytes nobody asked for.
+  const only = query(req, "person").trim().toLowerCase();
+  if (only) {
+    const enc = encodeURIComponent(only);
+    const [visitorRows, checkRows, lookRows, lineRows] = await Promise.all([
+      sbAdmin(rest("scan_visitors", `email=eq.${enc}&select=anon_id,checks_count,created_at,last_seen_at,source,campaign`)),
+      sbAdmin(
+        rest(
+          "scan_checks",
+          `email=eq.${enc}&select=id,product,verdict,decision,input_method,image_url,created_at&order=created_at.desc&limit=60`
+        )
+      ),
+      sbAdmin(
+        rest(
+          "pipeline_looks",
+          `email=eq.${enc}&select=id,title,image_url,source_url,input_method,round_id,day_id,score,product,verdict,in_closet,created_at&order=created_at.desc&limit=80`
+        )
+      ),
+      sbAdmin(rest("lineups", `email=eq.${enc}&select=*&limit=1`)),
+    ]);
+
+    const herLooks = rows(lookRows);
+    const byId = new Map(herLooks.map((look) => [look.id, look]));
+    const lineRow = rows(lineRows)[0] || null;
+    const days = lineRow?.days && typeof lineRow.days === "object" ? lineRow.days : {};
+
+    json(res, 200, {
+      ok: true,
+      person: {
+        email: only,
+        name: lineRow?.display_name || "",
+        is_public: Boolean(lineRow?.is_public),
+        visits: rows(visitorRows).length,
+        checks: rows(visitorRows).reduce((n, v) => n + (Number(v.checks_count) || 0), 0),
+        scans: rows(checkRows).map((check) => ({
+          id: check.id,
+          at: check.created_at,
+          image: check.image_url || "",
+          title: check.product?.name || check.verdict?.title || "a look",
+          brand: check.product?.brand || "",
+          category: check.product?.category || "",
+          color: check.product?.color || "",
+          price: check.product?.price ?? null,
+          input: check.input_method || "",
+          decision: check.decision || "",
+          kept: check.decision === "save",
+          score: check.verdict?.score == null ? null : Number(check.verdict.score),
+          round: check.verdict?.round || "",
+          verdict_title: String(check.verdict?.title || ""),
+          verdict_body: String(check.verdict?.body || ""),
+          why: String(check.verdict?.why_it_works || check.verdict?.why || ""),
+          change: String(check.verdict?.change || check.verdict?.resolve || ""),
+          berkeley: String(check.verdict?.berkeley || check.verdict?.spotting || ""),
+        })),
+        saved: herLooks.map((look) => ({
+          id: look.id,
+          at: look.created_at,
+          image: look.image_url || "",
+          title: look.title || "",
+          brand: look.product?.brand || "",
+          round: look.round_id || "",
+          day: look.day_id || "",
+          score: look.score == null ? null : Number(look.score),
+          verdict_title: String(look.verdict?.title || ""),
+          in_lineup: Boolean(look.in_closet),
+        })),
+        // Her lineup as she sees it: each day, each piece, with the photo.
+        lineup: Object.entries(days).map(([day, pieces]) => ({
+          day,
+          pieces: (Array.isArray(pieces) ? pieces : [])
+            .map((piece) => {
+              const look = byId.get(piece?.lookId || piece);
+              if (!look) return null;
+              return {
+                slot: piece?.slot || "look",
+                title: look.title || "",
+                image: look.image_url || "",
+                score: look.score == null ? null : Number(look.score),
+              };
+            })
+            .filter(Boolean),
+        })),
+      },
+    });
+    return;
+  }
+
   const [leadsRes, visitorsRes, lineupsRes, looksRes, errorsRes, checksRes] = await Promise.all([
     sbAdmin(rest("leads", "select=*&order=created_at.desc&limit=1000")),
     sbAdmin(rest("scan_visitors", "select=*&order=created_at.desc&limit=2000")),
