@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import YomNav from "./components/YomNav.jsx";
-import { pieceLabel, wearLabel } from "./lib/contexts.js";
+import { wearLabel } from "./lib/contexts.js";
 import { clearJoinLocal, loadJoinEmail, loadJoinProfile, unlockIfTest } from "./lib/join-store.js";
 import { clearAccountKey, getAccountKey } from "./lib/account.js";
 import {
@@ -20,6 +20,11 @@ import "./Me.css";
 function initialOf(name, email) {
   const source = String(name || email || "").trim();
   return source ? source[0].toUpperCase() : "y";
+}
+
+/** Pieces actually sitting in her week, ignoring any whose look has gone. */
+function countPlaced() {
+  return lineupSlots().reduce((total, day) => total + (day.pieces?.length || 0), 0);
 }
 
 function whenText(at) {
@@ -41,7 +46,9 @@ export default function Me() {
   const navigate = useNavigate();
   const ready = unlockIfTest();
   const [looks, setLooks] = useState(() => loadLooks());
-  const [slots, setSlots] = useState(() => lineupSlots());
+  // Only the count: her week itself lives on /lineup, and one of them has to
+  // be the place she edits it.
+  const [placed, setPlaced] = useState(() => countPlaced());
   const [pub, setPub] = useState(() => loadPublicState());
   const [pending, setPending] = useState("");
   const [modal, setModal] = useState("");
@@ -57,7 +64,6 @@ export default function Me() {
   const profile = loadJoinProfile();
   const email = loadJoinEmail() || profile.email || "";
   const name = String(profile.name || pub.display_name || "").trim();
-  const inLineup = slots.reduce((total, day) => total + (day.pieces?.length || 0), 0);
   const link = `${window.location.origin}/looks#key=${encodeURIComponent(getAccountKey())}`;
 
   const copyLink = async () => {
@@ -72,7 +78,7 @@ export default function Me() {
   const removeLook = async (id) => {
     setBusy(true);
     setLooks(deleteLook(id));
-    setSlots(lineupSlots());
+    setPlaced(countPlaced());
     setPending("");
     // Straight to the server: a look she deleted should not sit on the everyone
     // board waiting for her to do something else.
@@ -121,7 +127,7 @@ export default function Me() {
           </div>
           <div>
             <dt>in your lineup</dt>
-            <dd>{inLineup}</dd>
+            <dd>{placed}</dd>
           </div>
           <div>
             <dt>everyone board</dt>
@@ -129,37 +135,6 @@ export default function Me() {
           </div>
         </dl>
       </section>
-
-      <div className="pnm-section-head">
-        <h2>your week</h2>
-        <Link to="/lineup" className="pnm-viewall">
-          edit lineup &gt;
-        </Link>
-      </div>
-
-      <ul className="me-week">
-        {slots.map((day) => (
-          <li key={day.id} className={day.pieces?.length ? "has-look" : ""}>
-            <b>{day.chip || day.weekday}</b>
-            <div className="me-week-pieces">
-              {day.pieces?.length ? (
-                day.pieces.map((piece) => (
-                  <figure key={`${piece.lookId}-${piece.slot}`}>
-                    {lookImage(piece.look) ? (
-                      <img src={lookImage(piece.look)} alt="" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="pnm-thumb empty hanger" aria-hidden="true" />
-                    )}
-                    <figcaption>{pieceLabel(piece.slot)}</figcaption>
-                  </figure>
-                ))
-              ) : (
-                <span className="me-week-empty">nothing yet</span>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
 
       <div className="pnm-section-head" id="looks">
         <h2>
