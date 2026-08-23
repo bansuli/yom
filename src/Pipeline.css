@@ -644,15 +644,18 @@
   background: #eee;
 }
 
-.pnm-thumb img,
-.pnm-thumb.empty {
+.pnm-thumb img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
+/* Sized by whatever context it sits in — filling the parent collapsed it to
+   nothing inside a lineup piece, so a look with no photo sat on top of the
+   day it belonged to. */
 .pnm-thumb.empty {
+  display: block;
   background: #f3f3f3;
 }
 

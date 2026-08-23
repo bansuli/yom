@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import YomNav, { PnmPeople } from "./components/YomNav.jsx";
 import { LINEUP_DAYS, LINEUP_PIECES, pieceLabel } from "./lib/contexts.js";
 import { loadJoinProfile, unlockIfTest } from "./lib/join-store.js";
-import { getAccountKey } from "./lib/account.js";
 import {
   addLookToLineup,
   closetLooks,
@@ -26,7 +25,6 @@ export default function Lineup() {
   const [assignDay, setAssignDay] = useState("");
   const [assignSlot, setAssignSlot] = useState("top");
   const [busy, setBusy] = useState(false);
-  const [moved, setMoved] = useState("");
   const closet = useMemo(() => closetLooks(), [slots]);
   const ready = unlockIfTest();
 
@@ -63,31 +61,7 @@ export default function Lineup() {
     navigate("/looks#looks");
   };
 
-  const makePrivate = async () => {
-    setBusy(true);
-    await persist({
-      ...pub,
-      is_public: false,
-      sisterhood: false,
-    });
-    setBusy(false);
-    setModal("");
-    setPub(loadPublicState());
-  };
-
   const isPublic = Boolean(pub.is_public);
-
-  // Her yom lives in this browser. The key is what makes it hers rather than
-  // this phone's, so handing it to another device hands over the whole lineup.
-  const moveToDevice = async () => {
-    const link = `${window.location.origin}/looks#key=${encodeURIComponent(getAccountKey())}`;
-    try {
-      await navigator.clipboard.writeText(link);
-      setMoved("link copied. open it on your other device.");
-    } catch {
-      setMoved(link);
-    }
-  };
 
   return (
     <div className="pnm-page is-app">
@@ -169,53 +143,29 @@ export default function Lineup() {
         ))}
       </div>
 
-      <section className="pnm-status">
-        <div className="pnm-status-row">
-          <PnmPeople />
-          <div className="pnm-status-copy">
-            <h2>
-              {isPublic ? "your lineup is public." : "wondering what everyone else is wearing?"}
-            </h2>
-            <p>
-              {isPublic
-                ? "other girls at berkeley can see your first name and looks. you can switch this off anytime."
-                : "share your lineup to see what other girls at Berkeley are putting together."}
-            </p>
+      {/* The ask, once. Once she has said yes, sharing is a setting on her
+          profile rather than a pitch she has to scroll past every visit. */}
+      {isPublic ? null : (
+        <section className="pnm-status">
+          <div className="pnm-status-row">
+            <PnmPeople />
+            <div className="pnm-status-copy">
+              <h2>wondering what everyone else is wearing?</h2>
+              <p>share your lineup to see what other girls at Berkeley are putting together.</p>
+            </div>
           </div>
-        </div>
-        {isPublic ? (
-          <>
-            <button type="button" className="pnm-cta" disabled={busy} onClick={makePrivate}>
-              {busy ? "updating…" : "make my lineup private →"}
-            </button>
-            <button type="button" className="pnm-ghost" onClick={() => setModal("public")}>
-              edit sharing
-            </button>
-          </>
-        ) : (
           <button type="button" className="pnm-cta" onClick={() => setModal("public")}>
             make my lineup public →
           </button>
-        )}
-        <button type="button" className="pnm-ghost" onClick={moveToDevice}>
-          use my yom on another device →
-        </button>
-        {moved && <p className="pnm-sub pnm-moved">{moved}</p>}
-
-        <p className="pnm-lock">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            {isPublic ? (
-              <path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0" stroke="currentColor" strokeWidth="1.8" />
-            ) : (
+          <p className="pnm-lock">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11" stroke="currentColor" strokeWidth="1.8" />
-            )}
-            <rect x="6" y="11" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
-          </svg>
-          {isPublic
-            ? "right now anyone with the everyone board can see it."
-            : "your lineup stays private unless you choose to share it."}
-        </p>
-      </section>
+              <rect x="6" y="11" width="12" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.8" />
+            </svg>
+            your lineup stays private unless you choose to share it.
+          </p>
+        </section>
+      )}
 
       {modal === "public" && (
         <div className="pnm-modal-scrim" onClick={() => setModal("")}>
@@ -255,17 +205,11 @@ export default function Lineup() {
               />
             </div>
             <button type="button" className="pnm-cta" disabled={busy} onClick={makePublic}>
-              {busy ? "sharing…" : isPublic ? "save sharing →" : "make my lineup public →"}
+              {busy ? "sharing…" : "make my lineup public →"}
             </button>
-            {isPublic ? (
-              <button type="button" className="pnm-ghost" disabled={busy} onClick={makePrivate}>
-                make it private instead
-              </button>
-            ) : (
-              <p className="pnm-sub" style={{ margin: "0.75rem 0 0" }}>
-                you can make it private again anytime.
-              </p>
-            )}
+            <p className="pnm-sub" style={{ margin: "0.75rem 0 0" }}>
+              you can switch this off anytime from your profile.
+            </p>
           </div>
         </div>
       )}

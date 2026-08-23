@@ -12,6 +12,7 @@ import {
   loadPublicState,
   lookImage,
   lookInLineup,
+  savePublicState,
   syncPipeline,
 } from "./lib/pipeline-store.js";
 import "./Pipeline.css";
@@ -54,6 +55,7 @@ export default function Me() {
   const [modal, setModal] = useState("");
   const [copied, setCopied] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     if (!ready) navigate("/join", { replace: true });
@@ -73,6 +75,30 @@ export default function Me() {
     } catch {
       setCopied(link);
     }
+  };
+
+  /**
+   * Sharing lives here now. /lineup asks once, and after she says yes this is
+   * the only switch — so it has to work without her retyping anything, which
+   * means falling back to the name she gave when she joined.
+   */
+  const toggleSharing = async () => {
+    const shown = String(pub.display_name || name).trim().split(/\s+/)[0];
+    if (!pub.is_public && !shown) {
+      navigate("/lineup");
+      return;
+    }
+    setSharing(true);
+    const next = savePublicState({
+      ...pub,
+      display_name: shown,
+      is_public: !pub.is_public,
+      sisterhood: !pub.is_public,
+    });
+    setPub(next);
+    const res = await syncPipeline();
+    if (res?.ok && res.lineup_id) setPub(savePublicState({ id: res.lineup_id }));
+    setSharing(false);
   };
 
   const removeLook = async (id) => {
@@ -199,14 +225,26 @@ export default function Me() {
           <span>copies a link that carries this account</span>
         </button>
         {copied && <p className="pnm-sub pnm-moved">{copied}</p>}
-        <Link to="/lineup" className="me-row">
-          <b>{pub.is_public ? "sharing is on" : "sharing is off"}</b>
-          <span>
-            {pub.is_public
-              ? "other girls can see your first name and your lineup"
-              : "nobody can see your lineup on the everyone board"}
-          </span>
-        </Link>
+        <div className="me-row is-toggle">
+          <div>
+            <b>{pub.is_public ? "your lineup is public" : "your lineup is private"}</b>
+            <span>
+              {sharing
+                ? "saving…"
+                : pub.is_public
+                  ? "other girls at berkeley can see your first name and your looks"
+                  : "nobody can see your lineup on the everyone board"}
+            </span>
+          </div>
+          <button
+            type="button"
+            className={`pnm-switch${pub.is_public ? " on" : ""}`}
+            aria-label="share my lineup"
+            aria-pressed={pub.is_public}
+            disabled={sharing}
+            onClick={toggleSharing}
+          />
+        </div>
         <button type="button" className="me-row is-quiet" onClick={() => setModal("out")}>
           <b>log out on this device</b>
           <span>copy your link first — it is how you get back in</span>
