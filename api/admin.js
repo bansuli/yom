@@ -104,6 +104,7 @@ export default async function handler(req, res) {
         anon_ids: [],
         checks: 0,
         scans: [],
+        saved: [],
         looks: 0,
         in_lineup: 0,
         is_public: false,
@@ -141,22 +142,24 @@ export default async function handler(req, res) {
     if (!p) continue;
     p.looks += 1;
     if (look.in_closet) p.in_lineup += 1;
-    if (p.scans.length < 40) {
-      p.scans.push({
-        id: look.id,
-        at: look.created_at,
-        title: look.title || "",
-        brand: look.product?.brand || "",
-        piece: look.product?.name || look.product?.category || "",
-        input: look.input_method || "",
-        round: look.round_id || "",
-        day: look.day_id || "",
-        score: look.score == null ? null : Number(look.score),
-        verdict: String(look.verdict?.title || "").slice(0, 120),
-        source_url: look.source_url || "",
-        in_lineup: Boolean(look.in_closet),
-      });
-    }
+    p.saved.push({
+      id: look.id,
+      at: look.created_at,
+      title: look.title || "",
+      brand: look.product?.brand || "",
+      input: look.input_method || "",
+      round: look.round_id || "",
+      day: look.day_id || "",
+      score: look.score == null ? null : Number(look.score),
+      verdict_title: String(look.verdict?.title || ""),
+      verdict_body: String(look.verdict?.body || ""),
+      why: String(look.verdict?.why || ""),
+      change: String(look.verdict?.change || ""),
+      source_url: look.source_url || "",
+      image_url: look.image_url || "",
+      kept: Boolean(look.in_closet),
+      from: "saved",
+    });
   }
 
   for (const row of lineups) {
@@ -166,6 +169,47 @@ export default async function handler(req, res) {
     // Her name reaches us on the lead row, which is exactly what the sheet was
     // dropping — so fall back to the one she typed into her lineup.
     if (!p.name && row.display_name) p.name = String(row.display_name).trim();
+  }
+
+  for (const check of checks) {
+    const p =
+      (check.email ? people.get(String(check.email).trim().toLowerCase()) : null) || byAnon.get(check.anon_id);
+    if (!p) continue;
+    const product = check.product || {};
+    const verdict = check.verdict || {};
+    p.scans.push({
+      id: check.id,
+      at: check.created_at,
+      title: product.name || verdict.title || "a look",
+      brand: product.brand || "",
+      category: product.category || "",
+      color: product.color || "",
+      price: product.price ?? null,
+      input: check.input_method || "",
+      decision: check.decision || "",
+      score: verdict.score == null ? null : Number(verdict.score),
+      round: verdict.round || "",
+      verdict_title: String(verdict.title || ""),
+      verdict_body: String(verdict.body || "").slice(0, 400),
+      why: String(verdict.why_it_works || verdict.why || "").slice(0, 300),
+      change: String(verdict.change || verdict.resolve || "").slice(0, 300),
+      berkeley: String(verdict.berkeley || verdict.spotting || "").slice(0, 300),
+      kept: check.decision === "save",
+      from: "check",
+    });
+  }
+
+  // Checks are the full record; saved looks fill in anything from before that
+  // table existed, so her history has no hole in the middle.
+  for (const p of people.values()) {
+    const seenAt = new Set(p.scans.map((row) => String(row.at).slice(0, 16) + row.title));
+    for (const row of p.saved) {
+      if (!seenAt.has(String(row.at).slice(0, 16) + row.title)) p.scans.push(row);
+    }
+    p.scans.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    p.scans = p.scans.slice(0, 200);
+    p.saved_count = p.saved.length;
+    delete p.saved;
   }
 
   const everyone = [...people.values()].sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));

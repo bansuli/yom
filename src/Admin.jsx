@@ -642,28 +642,69 @@ export default function Admin() {
               Devices <b>{person.anon_ids?.length || 0}</b>
             </span>
             <span>
-              Lineup <b>{person.is_public ? "Public" : person.in_lineup || 0}</b>
+              Scans <b>{person.scans?.length || 0}</b>
+            </span>
+            <span>
+              Kept <b>{person.in_lineup || 0}</b>
+            </span>
+            <span>
+              Lineup <b>{person.is_public ? "Public" : "Private"}</b>
             </span>
           </div>
           {person.scans?.length ? (
             <ol className="yom-admin-scans">
-              {person.scans.map((s) => (
-                <li key={s.id}>
-                  <span className="yom-scan-when">{when(s.at)}</span>
-                  <span className="yom-scan-what">
-                    <b>{[s.brand, s.title].filter(Boolean).join(" · ") || "a look"}</b>
-                    {s.verdict && <em>{s.verdict}</em>}
-                  </span>
+              {person.scans.map((scan) => (
+                <li key={scan.id}>
+                  <div className="yom-scan-head">
+                    <span className="yom-scan-when">{when(scan.at)}</span>
+                    {scan.kept && <span className="yom-scan-kept">Kept</span>}
+                    {scan.decision && !scan.kept && <span className="yom-scan-tag">{scan.decision}</span>}
+                  </div>
+
+                  <b className="yom-scan-title">
+                    {[scan.brand, scan.title].filter(Boolean).join(" · ") || "a look"}
+                  </b>
+
                   <span className="yom-scan-meta">
-                    {[s.input, s.round, s.score != null ? `${s.score}/10` : "", s.in_lineup ? "in lineup" : ""]
+                    {[
+                      scan.input,
+                      scan.category,
+                      scan.color,
+                      scan.price ? `$${scan.price}` : "",
+                      scan.round,
+                      scan.score != null ? `${scan.score}/10` : "",
+                    ]
                       .filter(Boolean)
                       .join(" · ")}
                   </span>
+
+                  {scan.verdict_title && <p className="yom-scan-verdict">“{scan.verdict_title}”</p>}
+                  {scan.verdict_body && <p className="yom-scan-body">{scan.verdict_body}</p>}
+                  {scan.why && (
+                    <p className="yom-scan-line">
+                      <em>Why</em> {scan.why}
+                    </p>
+                  )}
+                  {scan.change && (
+                    <p className="yom-scan-line">
+                      <em>Change</em> {scan.change}
+                    </p>
+                  )}
+                  {scan.berkeley && (
+                    <p className="yom-scan-line">
+                      <em>Berkeley</em> {scan.berkeley}
+                    </p>
+                  )}
+                  {scan.source_url && (
+                    <a className="yom-scan-line" href={scan.source_url} target="_blank" rel="noreferrer">
+                      {scan.source_url.slice(0, 70)}
+                    </a>
+                  )}
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="pnm-sub">Gave an email, has not scanned anything.</p>
+            <p className="yom-admin-empty">Gave an email, has not scanned anything.</p>
           )}
         </aside>
       )}
