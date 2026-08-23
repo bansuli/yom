@@ -11,7 +11,7 @@ import { loadBetaSession, yomLinkPreview, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
-import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel } from "./lib/contexts.js";
+import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceLabel, pieceSlotFor, wearLabel } from "./lib/contexts.js";
 import { addLookToLineup, loadLooks, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
 import { thumbFrom as thumbForSheet } from "./lib/image.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
@@ -711,6 +711,8 @@ export default function Scan() {
 
   const product = result?.product || {};
   const verdict = result?.verdict || {};
+  const outfitPieces = Array.isArray(result?.pieces) ? result.pieces.filter((p) => p?.feedback) : [];
+  const isOutfit = result?.scan_mode === "outfit" && outfitPieces.length >= 2;
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
   const wearRound =
@@ -795,7 +797,7 @@ export default function Scan() {
           </Link>
         </header>
         <h1 className="pnm-title pnm-wear">
-          i’d wear this for
+          {isOutfit ? "the full look for" : "i’d wear this for"}
           <em>{wearRound}.</em>
         </h1>
         <div className="pnm-result-body">
@@ -815,6 +817,21 @@ export default function Scan() {
               <h3>why it works</h3>
               <p>{why || verdict.title}</p>
             </article>
+            {isOutfit ? (
+              <article className="pnm-block pnm-piece-breakdown">
+                <h3>piece by piece</h3>
+                <ul className="pnm-piece-notes">
+                  {outfitPieces.map((piece) => (
+                    <li key={`${piece.slot}-${piece.name}`}>
+                      <strong>{pieceLabel(piece.slot)}</strong>
+                      <span>{piece.name}</span>
+                      <p>{piece.feedback}</p>
+                      {piece.note ? <p className="pnm-piece-tweak">{piece.note}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ) : null}
             <article className="pnm-block">
               <h3>one thing i’d change</h3>
               <p>{change || "swap the shoes for something you’ll actually be comfortable walking and standing in."}</p>

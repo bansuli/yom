@@ -459,6 +459,52 @@
   color: #2a2a2a;
 }
 
+.pnm-piece-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.pnm-piece-notes li {
+  margin: 0;
+  padding: 0.45rem 0 0.5rem;
+  border-top: 1px solid #ececec;
+}
+
+.pnm-piece-notes li:first-child {
+  border-top: 0;
+  padding-top: 0.15rem;
+}
+
+.pnm-piece-notes strong {
+  display: block;
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #666;
+  margin-bottom: 0.12rem;
+}
+
+.pnm-piece-notes span {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 0.18rem;
+}
+
+.pnm-piece-notes p {
+  margin: 0;
+}
+
+.pnm-piece-tweak {
+  margin-top: 0.2rem !important;
+  color: #555 !important;
+  font-style: italic;
+}
+
 .pnm-result-cta {
   margin-top: auto;
 }
