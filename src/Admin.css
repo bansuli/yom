@@ -168,3 +168,205 @@
   color: #6a6a6a;
   cursor: pointer;
 }
+
+.yom-admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.9rem 0;
+}
+
+.yom-admin-tabs button {
+  appearance: none;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6a6a6a;
+  cursor: pointer;
+}
+
+.yom-admin-tabs button.on {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.yom-admin-tabs .yom-admin-toggle {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.yom-admin-h {
+  margin: 1.3rem 0 0.5rem;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8a8a8a;
+}
+
+.yom-funnel {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.yom-funnel-row {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr 2.5rem 3rem;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.yom-funnel-label {
+  color: #6a6a6a;
+}
+
+.yom-funnel-bar {
+  height: 0.7rem;
+  background: #f2f2f2;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.yom-funnel-bar i {
+  display: block;
+  height: 100%;
+  background: #c8f060;
+  border-right: 2px solid #111;
+}
+
+.yom-funnel-row b {
+  text-align: right;
+}
+
+.yom-funnel-row em {
+  font-style: normal;
+  font-size: 0.74rem;
+  color: #b23c3c;
+  text-align: right;
+}
+
+.yom-admin-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.2rem;
+}
+
+.yom-admin-stuck {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: #6a6a6a;
+}
+
+.yom-admin-stuck b {
+  color: #111;
+  font-size: 1rem;
+  margin-right: 0.3rem;
+}
+
+.yom-admin-table tr.is-clickable {
+  cursor: pointer;
+}
+
+.yom-admin-table tr.is-clickable:hover,
+.yom-admin-table tr.is-open {
+  background: #fafafa;
+}
+
+.yom-admin-table td.is-wide {
+  white-space: normal;
+  max-width: 34rem;
+}
+
+.yom-admin-drawer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: min(100%, 430px);
+  background: #fff;
+  border-left: 1px solid #e8e8e8;
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1.1rem 2rem;
+  overflow-y: auto;
+  z-index: 40;
+}
+
+.yom-admin-drawer > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #eee;
+}
+
+.yom-admin-drawer > header div {
+  flex: 1;
+  min-width: 0;
+}
+
+.yom-admin-drawer > header b {
+  display: block;
+  font-size: 1rem;
+}
+
+.yom-admin-drawer > header span {
+  font-size: 0.76rem;
+  color: #8a8a8a;
+  word-break: break-all;
+}
+
+.yom-admin-drawer > header button {
+  appearance: none;
+  border: 0;
+  background: none;
+  font-size: 1.3rem;
+  line-height: 1;
+  color: #9a9a9a;
+  cursor: pointer;
+}
+
+.yom-admin-scans {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.yom-admin-scans li {
+  display: grid;
+  gap: 0.15rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.yom-scan-when {
+  font-size: 0.72rem;
+  color: #9a9a9a;
+}
+
+.yom-scan-what b {
+  font-size: 0.86rem;
+}
+
+.yom-scan-what em {
+  display: block;
+  font-style: normal;
+  font-size: 0.78rem;
+  color: #6a6a6a;
+}
+
+.yom-scan-meta {
+  font-size: 0.74rem;
+  color: #8a8a8a;
+}

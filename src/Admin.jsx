@@ -13,6 +13,40 @@ function when(value) {
   return at.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
+function ago(value) {
+  const at = value ? new Date(value) : null;
+  if (!at || Number.isNaN(at.valueOf())) return "—";
+  const mins = Math.round((Date.now() - at.valueOf()) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}h ago`;
+  return `${Math.round(mins / 1440)}d ago`;
+}
+
+/** The gap between two steps is the thing worth fixing, so show the gap. */
+function Funnel({ steps }) {
+  const top = steps[0]?.people || 0;
+  return (
+    <div className="yom-funnel">
+      {steps.map((step, i) => {
+        const prev = i ? steps[i - 1].people : step.people;
+        const lost = Math.max(0, prev - step.people);
+        const width = top ? Math.max(3, Math.round((step.people / top) * 100)) : 3;
+        return (
+          <div className="yom-funnel-row" key={step.step}>
+            <span className="yom-funnel-label">{step.step}</span>
+            <span className="yom-funnel-bar">
+              <i style={{ width: `${width}%` }} />
+            </span>
+            <b>{step.people}</b>
+            <em>{i && lost ? `−${lost}` : ""}</em>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Admin() {
   const [secret, setSecret] = useState(() => {
     try {
@@ -32,6 +66,8 @@ export default function Admin() {
   const [password, setPassword] = useState("");
   const [useSecret, setUseSecret] = useState(false);
   const [showInternal, setShowInternal] = useState(false);
+  const [tab, setTab] = useState("overview");
+  const [open, setOpen] = useState(null);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -105,6 +141,20 @@ export default function Admin() {
   }, []);
 
   const totals = data?.totals;
+  const person = open ? (data?.people || []).find((p) => p.email === open) : null;
+
+  const downloadCsv = async () => {
+    const res = await fetch(`/api/admin?csv=1${showInternal ? "&internal=1" : ""}`, {
+      headers: token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret },
+    });
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "yom-people.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="yom-admin">
@@ -114,21 +164,7 @@ export default function Admin() {
         </Link>
         <b>yom · who we have</b>
         {data && (
-          <button
-            type="button"
-            onClick={async () => {
-              const res = await fetch("/api/admin?csv=1", {
-                headers: token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret },
-              });
-              const blob = await res.blob();
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "yom-people.csv";
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-          >
+          <button type="button" onClick={downloadCsv}>
             csv
           </button>
         )}
@@ -195,34 +231,25 @@ export default function Admin() {
 
       {totals && (
         <>
-          <div className="yom-admin-tiles">
-            <article>
-              <b>{totals.people}</b>
-              <span>people with an email</span>
-            </article>
-            <article>
-              <b>{totals.people_today}</b>
-              <span>joined today</span>
-            </article>
-            <article>
-              <b>{totals.visitors_no_email_today}</b>
-              <span>opened today, no email</span>
-            </article>
-            <article>
-              <b>{totals.with_lineup}</b>
-              <span>built a lineup</span>
-            </article>
-            <article>
-              <b>{totals.public_lineups}</b>
-              <span>shared it</span>
-            </article>
-            <article>
-              <b>{totals.looks_total}</b>
-              <span>looks scanned</span>
-            </article>
-          </div>
-
-          <div className="yom-admin-campaigns">
+          <nav className="yom-admin-tabs">
+            {[
+              ["overview", "overview"],
+              ["people", `people · ${totals.people}`],
+              ["activity", "activity"],
+              ["issues", `issues${data.errors_today ? ` · ${data.errors_today}` : ""}`],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={tab === id ? "on" : ""}
+                onClick={() => {
+                  setTab(id);
+                  setOpen(null);
+                }}
+              >
+                {label}
+              </button>
+            ))}
             <button
               type="button"
               className="yom-admin-toggle"
@@ -234,44 +261,257 @@ export default function Admin() {
             >
               {showInternal
                 ? "hide you + mal"
-                : `showing real signups${totals.internal_hidden ? ` · ${totals.internal_hidden} of yours hidden` : ""}`}
+                : `real signups${totals.internal_hidden ? ` · ${totals.internal_hidden} hidden` : ""}`}
             </button>
-            {Object.entries(data.by_campaign || {}).map(([name, count]) => (
-              <span key={name}>
-                {name} <b>{count}</b>
-              </span>
-            ))}
-          </div>
+          </nav>
 
           {err && <p className="yom-admin-err">{err}</p>}
 
-          <div className="yom-admin-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>email</th>
-                  <th>name</th>
-                  <th>campaign</th>
-                  <th>first seen</th>
-                  <th>looks</th>
-                  <th>lineup</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.people || []).map((p) => (
-                  <tr key={p.email}>
-                    <td>{p.email}</td>
-                    <td>{p.name || "—"}</td>
-                    <td>{p.campaign || "—"}</td>
-                    <td>{when(p.first_seen)}</td>
-                    <td>{p.looks || 0}</td>
-                    <td>{p.is_public ? "public" : p.in_lineup ? `${p.in_lineup}` : "—"}</td>
-                  </tr>
+          {tab === "overview" && (
+            <>
+              <div className="yom-admin-tiles">
+                <article>
+                  <b>{totals.people}</b>
+                  <span>people with an email</span>
+                </article>
+                <article>
+                  <b>{totals.people_today}</b>
+                  <span>joined today</span>
+                </article>
+                <article>
+                  <b>{totals.visitors_no_email_today}</b>
+                  <span>opened today, no email</span>
+                </article>
+                <article>
+                  <b>{totals.with_lineup}</b>
+                  <span>built a lineup</span>
+                </article>
+                <article>
+                  <b>{totals.public_lineups}</b>
+                  <span>shared it</span>
+                </article>
+                <article>
+                  <b>{totals.looks_total}</b>
+                  <span>looks scanned</span>
+                </article>
+              </div>
+
+              <h2 className="yom-admin-h">where they drop off</h2>
+              <Funnel steps={data.funnel || []} />
+
+              <div className="yom-admin-split">
+                <section>
+                  <h2 className="yom-admin-h">stuck right now</h2>
+                  <ul className="yom-admin-stuck">
+                    <li>
+                      <b>{data.stuck?.no_scan?.length || 0}</b> gave an email, never scanned
+                    </li>
+                    <li>
+                      <b>{data.stuck?.scanned_no_lineup?.length || 0}</b> scanned, no lineup
+                    </li>
+                    <li>
+                      <b>{data.stuck?.lineup_not_shared?.length || 0}</b> have a lineup, not shared
+                    </li>
+                  </ul>
+                </section>
+                <section>
+                  <h2 className="yom-admin-h">how they scan</h2>
+                  <div className="yom-admin-campaigns">
+                    {Object.entries(data.by_input || {}).map(([name, count]) => (
+                      <span key={name}>
+                        {name} <b>{count}</b>
+                      </span>
+                    ))}
+                    {data.avg_score != null && (
+                      <span>
+                        avg score <b>{data.avg_score}</b>
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="yom-admin-h">rounds</h2>
+                  <div className="yom-admin-campaigns">
+                    {Object.entries(data.by_round || {}).map(([name, count]) => (
+                      <span key={name}>
+                        {name} <b>{count}</b>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <h2 className="yom-admin-h">where they came from</h2>
+              <div className="yom-admin-campaigns">
+                {Object.entries(data.by_campaign || {}).map(([name, count]) => (
+                  <span key={name}>
+                    {name} <b>{count}</b>
+                  </span>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            </>
+          )}
+
+          {tab === "people" && (
+            <div className="yom-admin-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>email</th>
+                    <th>name</th>
+                    <th>campaign</th>
+                    <th>first seen</th>
+                    <th>looks</th>
+                    <th>lineup</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.people || []).map((p) => (
+                    <tr
+                      key={p.email}
+                      className={`is-clickable${open === p.email ? " is-open" : ""}`}
+                      onClick={() => setOpen(open === p.email ? null : p.email)}
+                    >
+                      <td>{p.email}</td>
+                      <td>{p.name || "—"}</td>
+                      <td>{p.campaign || "—"}</td>
+                      <td>{when(p.first_seen)}</td>
+                      <td>{p.looks || 0}</td>
+                      <td>{p.is_public ? "public" : p.in_lineup ? `${p.in_lineup}` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {tab === "activity" && (
+            <div className="yom-admin-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>when</th>
+                    <th>who</th>
+                    <th>scanned</th>
+                    <th>how</th>
+                    <th>round</th>
+                    <th>score</th>
+                    <th>kept</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.activity || []).map((a, i) => (
+                    <tr key={`${a.at}-${i}`}>
+                      <td>{ago(a.at)}</td>
+                      <td>{a.email || "—"}</td>
+                      <td>{[a.brand, a.title].filter(Boolean).join(" · ") || "—"}</td>
+                      <td>{a.input || "—"}</td>
+                      <td>{a.round || "—"}</td>
+                      <td>{a.score ?? "—"}</td>
+                      <td>{a.in_lineup ? "yes" : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!(data.activity || []).length && <p className="pnm-sub">nothing scanned yet.</p>}
+            </div>
+          )}
+
+          {tab === "issues" && (
+            <>
+              {data.error_log_missing && (
+                <p className="yom-admin-err">
+                  the error log table doesn’t exist yet — run supabase/errors.sql and failures will land here.
+                </p>
+              )}
+              <div className="yom-admin-campaigns">
+                {Object.entries(data.errors_by_kind || {}).map(([name, count]) => (
+                  <span key={name}>
+                    {name} <b>{count}</b>
+                  </span>
+                ))}
+              </div>
+              <div className="yom-admin-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>when</th>
+                      <th>kind</th>
+                      <th>what broke</th>
+                      <th>status</th>
+                      <th>page</th>
+                      <th>who</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.errors || []).map((e, i) => (
+                      <tr key={`${e.at}-${i}`}>
+                        <td>{ago(e.at)}</td>
+                        <td>{e.kind}</td>
+                        <td className="is-wide">{e.message}</td>
+                        <td>{e.status || "—"}</td>
+                        <td>{e.path || "—"}</td>
+                        <td>{e.email || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {!(data.errors || []).length && !data.error_log_missing && (
+                  <p className="pnm-sub">nothing has broken since the log was turned on.</p>
+                )}
+              </div>
+            </>
+          )}
         </>
+      )}
+
+      {person && (
+        <aside className="yom-admin-drawer">
+          <header>
+            <div>
+              <b>{person.name || person.email}</b>
+              <span>{person.email}</span>
+            </div>
+            <button type="button" onClick={() => setOpen(null)} aria-label="close">
+              ×
+            </button>
+          </header>
+          <div className="yom-admin-campaigns">
+            <span>
+              first seen <b>{when(person.first_seen)}</b>
+            </span>
+            <span>
+              last seen <b>{ago(person.last_seen || person.first_seen)}</b>
+            </span>
+            <span>
+              checks <b>{person.checks || 0}</b>
+            </span>
+            <span>
+              devices <b>{person.anon_ids?.length || 0}</b>
+            </span>
+            <span>
+              lineup <b>{person.is_public ? "public" : person.in_lineup || 0}</b>
+            </span>
+          </div>
+          {person.scans?.length ? (
+            <ol className="yom-admin-scans">
+              {person.scans.map((s) => (
+                <li key={s.id}>
+                  <span className="yom-scan-when">{when(s.at)}</span>
+                  <span className="yom-scan-what">
+                    <b>{[s.brand, s.title].filter(Boolean).join(" · ") || "a look"}</b>
+                    {s.verdict && <em>{s.verdict}</em>}
+                  </span>
+                  <span className="yom-scan-meta">
+                    {[s.input, s.round, s.score != null ? `${s.score}/10` : "", s.in_lineup ? "in lineup" : ""]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="pnm-sub">she gave an email but hasn’t scanned anything.</p>
+          )}
+        </aside>
       )}
     </div>
   );

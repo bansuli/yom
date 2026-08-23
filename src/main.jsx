@@ -20,6 +20,7 @@ import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 import { bootPipeline } from './lib/pipeline-store.js'
 import { adoptAccountKey } from './lib/account.js'
+import { startErrorReporting } from './lib/report-error.js'
 
 // A transfer link carries the account key in the fragment, which browsers keep
 // out of referrers and server logs. Adopt it before anything reads the store.
@@ -36,6 +37,7 @@ function claimAccountFromUrl() {
 }
 
 claimAccountFromUrl()
+startErrorReporting()
 initAnalytics()
 recoverLocalLeads()
 startLeadFlush()

@@ -80,17 +80,25 @@ export default async function handler(req, res) {
     return;
   }
 
-  const [leadsRes, visitorsRes, lineupsRes, looksRes] = await Promise.all([
+  const [leadsRes, visitorsRes, lineupsRes, looksRes, errorsRes] = await Promise.all([
     sbAdmin(rest("leads", "select=*&order=created_at.desc&limit=1000")),
     sbAdmin(rest("scan_visitors", "select=*&order=created_at.desc&limit=2000")),
     sbAdmin(rest("lineups", "select=*&limit=1000")),
-    sbAdmin(rest("pipeline_looks", "select=id,email,anon_id,account_key,in_closet,created_at&limit=2000")),
+    sbAdmin(
+      rest(
+        "pipeline_looks",
+        "select=id,email,anon_id,account_key,title,source_url,input_method,round_id,day_id,score,product,verdict,in_closet,created_at&order=created_at.desc&limit=2000"
+      )
+    ),
+    sbAdmin(rest("app_errors", "select=*&order=at.desc&limit=200")),
   ]);
 
   const leads = rows(leadsRes);
   const visitors = rows(visitorsRes);
   const lineups = rows(lineupsRes);
   const looks = rows(looksRes);
+  // The table may not exist yet; a missing error log must not break the page.
+  const errors = rows(errorsRes);
 
   // One row per person. Email is the handle she gave us; anon ids are the
   // browsers she used, and are what tie a visit to a lead to a lineup.
@@ -108,6 +116,7 @@ export default async function handler(req, res) {
         last_seen: "",
         anon_ids: [],
         checks: 0,
+        scans: [],
         looks: 0,
         in_lineup: 0,
         is_public: false,
@@ -145,6 +154,22 @@ export default async function handler(req, res) {
     if (!p) continue;
     p.looks += 1;
     if (look.in_closet) p.in_lineup += 1;
+    if (p.scans.length < 40) {
+      p.scans.push({
+        id: look.id,
+        at: look.created_at,
+        title: look.title || "",
+        brand: look.product?.brand || "",
+        piece: look.product?.name || look.product?.category || "",
+        input: look.input_method || "",
+        round: look.round_id || "",
+        day: look.day_id || "",
+        score: look.score == null ? null : Number(look.score),
+        verdict: String(look.verdict?.title || "").slice(0, 120),
+        source_url: look.source_url || "",
+        in_lineup: Boolean(look.in_closet),
+      });
+    }
   }
 
   for (const row of lineups) {
@@ -186,8 +211,78 @@ export default async function handler(req, res) {
     return;
   }
 
+  // The funnel, in the order she actually moves through it. Each step is the
+  // people who reached it, so the gaps between them are where she gave up.
+  const openedToday = new Set(
+    visitors.filter((v) => dayKey(v.created_at) === today).map((v) => v.anon_id)
+  ).size;
+  const scanned = list.filter((p) => p.looks > 0);
+  const funnel = [
+    { step: "opened yom", people: openedToday + list.filter((p) => dayKey(p.first_seen) === today).length },
+    { step: "gave an email", people: list.filter((p) => dayKey(p.first_seen) === today).length },
+    { step: "scanned a look", people: scanned.length },
+    { step: "built a lineup", people: list.filter((p) => p.in_lineup > 0).length },
+    { step: "shared it", people: list.filter((p) => p.is_public).length },
+  ];
+
+  // Where each person is stuck right now — the actionable version of the funnel.
+  const stuck = {
+    no_scan: list.filter((p) => p.looks === 0).map((p) => p.email),
+    scanned_no_lineup: list.filter((p) => p.looks > 0 && p.in_lineup === 0).map((p) => p.email),
+    lineup_not_shared: list.filter((p) => p.in_lineup > 0 && !p.is_public).map((p) => p.email),
+  };
+
+  const mine = looks.filter((look) => showInternal || !isInternal(look.email));
+  const byInput = {};
+  const byRound = {};
+  let scored = 0;
+  let scoreSum = 0;
+  for (const look of mine) {
+    const input = look.input_method || "unknown";
+    byInput[input] = (byInput[input] || 0) + 1;
+    const round = look.round_id || "unassigned";
+    byRound[round] = (byRound[round] || 0) + 1;
+    if (look.score != null) {
+      scored += 1;
+      scoreSum += Number(look.score) || 0;
+    }
+  }
+
+  const activity = mine.slice(0, 60).map((look) => ({
+    at: look.created_at,
+    email: look.email || "",
+    title: look.title || "",
+    brand: look.product?.brand || "",
+    input: look.input_method || "",
+    round: look.round_id || "",
+    score: look.score == null ? null : Number(look.score),
+    in_lineup: Boolean(look.in_closet),
+  }));
+
+  const errorsOut = errors.slice(0, 60).map((e) => ({
+    at: e.at,
+    kind: e.kind || "",
+    message: e.message || "",
+    status: e.status,
+    path: e.path || "",
+    email: e.email || "",
+    surface: e.surface || "",
+  }));
+  const errorsByKind = {};
+  for (const e of errors) errorsByKind[e.kind || "unknown"] = (errorsByKind[e.kind || "unknown"] || 0) + 1;
+
   json(res, 200, {
     ok: true,
+    funnel,
+    stuck,
+    activity,
+    errors: errorsOut,
+    errors_by_kind: errorsByKind,
+    errors_today: errors.filter((e) => dayKey(e.at) === today).length,
+    error_log_missing: !Array.isArray(errorsRes?.data),
+    by_input: byInput,
+    by_round: byRound,
+    avg_score: scored ? Math.round((scoreSum / scored) * 10) / 10 : null,
     totals: {
       people: list.length,
       people_today: list.filter((p) => dayKey(p.first_seen) === today).length,

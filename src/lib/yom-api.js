@@ -1,3 +1,5 @@
+import { reportError } from "./report-error.js";
+
 const SESSION = "yom-beta";
 
 async function parseRes(res) {
@@ -21,11 +23,15 @@ async function post(path, body, token, extra = {}) {
       keepalive: Boolean(extra.keepalive),
     });
     const parsed = await parseRes(res);
+    if (parsed.status >= 500 || parsed.status === 429) {
+      reportError({ kind: "api_error", message: parsed.data?.error || `POST ${path}`, status: parsed.status, path });
+    }
     if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
       return { fallback: true, error: parsed.data?.error };
     }
     return { status: parsed.status, ...parsed.data };
-  } catch {
+  } catch (e) {
+    reportError({ kind: "api_error", message: `POST ${path} — ${e?.message || "network"}`, path });
     return { fallback: true };
   }
 }
@@ -36,11 +42,15 @@ async function get(path, token) {
       headers: token ? { authorization: `Bearer ${token}` } : {},
     });
     const parsed = await parseRes(res);
+    if (parsed.status >= 500 || parsed.status === 429) {
+      reportError({ kind: "api_error", message: parsed.data?.error || `GET ${path}`, status: parsed.status, path });
+    }
     if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
       return { fallback: true, error: parsed.data?.error };
     }
     return { status: parsed.status, ...parsed.data };
-  } catch {
+  } catch (e) {
+    reportError({ kind: "api_error", message: `GET ${path} — ${e?.message || "network"}`, path });
     return { fallback: true };
   }
 }

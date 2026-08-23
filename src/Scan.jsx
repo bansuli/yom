@@ -13,6 +13,7 @@ import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel }
 import { addLookToLineup, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
 import { thumbFrom as thumbForSheet } from "./lib/image.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
+import { reportError } from "./lib/report-error.js";
 import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "./lib/scan-score.js";
 import "./Scan.css";
 import "./Pipeline.css";
@@ -113,6 +114,12 @@ function scrubTake(data) {
 }
 
 function scanFailMessage(res, data) {
+  reportError({
+    kind: "scan_failed",
+    message: data?.error || `scan failed (${res.status})`,
+    status: res.status,
+    path: "/scan",
+  });
   if (data?.error) return data.error;
   if (res.status === 413) return "photo is too heavy — crop closer and try again.";
   if (res.status === 503) return "yom’s brain is warming up — try again in a moment.";
