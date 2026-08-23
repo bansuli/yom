@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import YomNav from "./components/YomNav.jsx";
+import AddToHomeScreen from "./components/AddToHomeScreen.jsx";
 import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, track } from "./lib/analytics.js";
 import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
@@ -10,7 +12,7 @@ import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js"
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
 import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceSlotFor, wearLabel } from "./lib/contexts.js";
-import { addLookToLineup, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
+import { addLookToLineup, loadLooks, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
 import { thumbFrom as thumbForSheet } from "./lib/image.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
 import { reportError } from "./lib/report-error.js";
@@ -865,12 +867,26 @@ export default function Scan() {
     );
   }
 
+  // The think step is the home tab now, so it keeps the nav and loses the back
+  // button — there is nothing behind it unless she came from a day.
+  const isHome = phase === "think" && !pickDay;
+
   return (
-    <div className="pnm-page is-flush">
+    <div className={`pnm-page${isHome ? " is-app" : " is-flush"}`}>
       <header className="pnm-brand-row">
-        <button type="button" className="pnm-back" onClick={() => (phase === "think" ? navigate("/looks") : resetLive())}>
-          ← back
-        </button>
+        {isHome ? (
+          <span />
+        ) : (
+          <button
+            type="button"
+            className="pnm-back"
+            onClick={() => (phase === "think" ? navigate("/lineup") : resetLive())}
+          >
+            ← back
+          </button>
+        )}
+        {/* /looks redirects here, so the logo remounts this page on a fresh
+            think step rather than doing nothing on the route it is already on. */}
         <Link to="/looks" className="pnm-brand">
           yom
         </Link>
@@ -947,6 +963,7 @@ export default function Scan() {
               onChange={(e) => setNote(e.target.value)}
             />
           </form>
+          {isHome && <AddToHomeScreen when={loadLooks().length > 0} />}
         </>
       )}
 
@@ -1003,6 +1020,8 @@ export default function Scan() {
         className="scan-file"
         onChange={onFile}
       />
+
+      {isHome && <YomNav active="y" />}
     </div>
   );
 }

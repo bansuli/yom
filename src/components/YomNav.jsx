@@ -41,7 +41,7 @@ export default function YomNav({ active = "y" }) {
         everyone
       </NavLink>
       <NavLink
-        to="/looks"
+        to="/scan"
         className={({ isActive }) => `yom-nav-y${isActive || active === "y" ? " on" : ""}`}
         aria-label="yom"
       >

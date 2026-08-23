@@ -1,6 +1,6 @@
 import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 import Survey from './Survey.jsx'
@@ -11,7 +11,6 @@ import Scan from './Scan.jsx'
 import SharePage from './Share.jsx'
 import Create from './Create.jsx'
 import Join from './Join.jsx'
-import Looks from './Looks.jsx'
 import Lineup from './Lineup.jsx'
 import Me from './Me.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
@@ -43,6 +42,15 @@ initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
 bootPipeline()
+
+// The home tab is the scanner itself now — one page that asks what she's
+// thinking, instead of a page whose only job was to offer the same three
+// choices. Her looks live on /me. Kept as a route because her yom link, the
+// home-screen icon and every restore email point at it.
+function LooksHome() {
+  const { search } = useLocation()
+  return <Navigate to={`/scan${search}`} replace />
+}
 
 function PageHits() {
   const location = useLocation()
@@ -97,7 +105,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/beta" element={<Beta />} />
         <Route path="/scan" element={<Scan />} />
         <Route path="/join" element={<Join />} />
-        <Route path="/looks" element={<Looks />} />
+        <Route path="/looks" element={<LooksHome />} />
         <Route path="/lineup" element={<Lineup />} />
         <Route path="/me" element={<Me />} />
         <Route path="/profile" element={<Me />} />

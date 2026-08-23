@@ -58,7 +58,7 @@ export default function Lineup() {
     setBusy(false);
     setModal("");
     setPub(loadPublicState());
-    navigate("/looks#looks");
+    navigate("/me");
   };
 
   const isPublic = Boolean(pub.is_public);
