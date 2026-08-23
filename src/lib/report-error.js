@@ -10,11 +10,33 @@ import { loadJoinEmail } from "./join-store.js";
 const MAX_PER_SESSION = 12;
 const seen = new Set();
 let sent = 0;
+let leaving = false;
+
+// A request cancelled because she navigated away is not a failure, and logging
+// it buries the failures that are. Anything reported while the page is on its
+// way out is dropped.
+if (typeof window !== "undefined") {
+  const going = () => {
+    leaving = true;
+  };
+  window.addEventListener("pagehide", going);
+  window.addEventListener("beforeunload", going);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") leaving = true;
+    else leaving = false;
+  });
+}
+
+function isNavigationNoise(message) {
+  return /abort|load failed|failed to fetch|networkerror|cancell?ed/i.test(String(message || ""));
+}
 
 export function reportError({ kind = "js_error", message = "", status, path, detail } = {}) {
   if (typeof window === "undefined") return;
   const text = String(message || "").slice(0, 400);
   if (!text) return;
+  if (leaving && isNavigationNoise(text)) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
   const fingerprint = `${kind}:${status || ""}:${text}`;
   if (seen.has(fingerprint) || sent >= MAX_PER_SESSION) return;

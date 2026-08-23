@@ -121,7 +121,10 @@ export function yomCaptureLead(body) {
 }
 
 export function yomScanVisit(body) {
-  return post("/api/scan-visit", body);
+  // Fired the moment a page loads, so it is usually still in flight when she
+  // taps through. Without keepalive the browser cancels it and the visit is
+  // simply never recorded.
+  return post("/api/scan-visit", body, undefined, { keepalive: true });
 }
 
 export function yomShare(body) {
