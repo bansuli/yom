@@ -203,13 +203,24 @@ export default async function handler(req, res) {
   }
   const sharedCount = peopleIn.filter((p) => p.is_public).length;
 
-  const funnel = [
-    { step: "Opened yom", people: opened },
-    { step: "Gave an email", people: peopleIn.length },
-    { step: "Scanned a look", people: scannedKeys.size },
-    { step: "Built a lineup", people: lineupKeys.size },
-    { step: "Shared it", people: sharedCount },
+  const steps = [
+    ["Opened yom", opened],
+    ["Gave an email", peopleIn.length],
+    ["Scanned a look", scannedKeys.size],
+    ["Built a lineup", lineupKeys.size],
+    ["Shared it", sharedCount],
   ];
+  const funnel = steps.map(([step, count], i) => {
+    const prev = i ? steps[i - 1][1] : count;
+    return {
+      step,
+      people: count,
+      lost: i ? Math.max(0, prev - count) : 0,
+      // Share of the step above that carried on, which is the number worth
+      // reading; the raw drop alone says nothing about how bad it is.
+      pct: i && prev ? Math.round((count / prev) * 100) : null,
+    };
+  });
 
   const stuck = {
     no_scan: peopleIn.filter((p) => p.looks === 0).map((p) => p.email),
@@ -327,6 +338,9 @@ export default async function handler(req, res) {
     ok: true,
     window: windowKey,
     funnel,
+    // Opens can only count visits that were recorded. Anyone restored from the
+    // sheet, or lost while scan-visit was dropping writes, has no visit row.
+    opens_untracked: untracked,
     stuck,
     activity,
     issues,

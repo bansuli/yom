@@ -89,8 +89,6 @@ function Funnel({ steps }) {
   return (
     <div className="yom-funnel">
       {steps.map((step, i) => {
-        const prev = i ? steps[i - 1].people : step.people;
-        const lost = Math.max(0, prev - step.people);
         const width = top ? Math.max(3, Math.round((step.people / top) * 100)) : 3;
         return (
           <div className="yom-funnel-row" key={step.step}>
@@ -99,7 +97,9 @@ function Funnel({ steps }) {
               <i style={{ width: `${width}%` }} />
             </span>
             <b>{step.people}</b>
-            <em>{i && lost ? `−${lost}` : ""}</em>
+            <em title={step.pct == null ? "" : `${step.pct}% of the step above carried on`}>
+              {step.pct == null ? "" : step.lost ? `${step.pct}% · ${step.lost} dropped` : `${step.pct}%`}
+            </em>
           </div>
         );
       })}
@@ -406,7 +406,15 @@ export default function Admin() {
                 </article>
               </div>
 
-              <Section title={`Funnel · ${rangeLabel}`} show={(data.funnel || []).some((f) => f.people)}>
+              <Section
+                title={`Funnel · ${rangeLabel}`}
+                show={(data.funnel || []).some((f) => f.people)}
+                note={
+                  data.opens_untracked
+                    ? `${data.opens_untracked} of these have no visit record — restored from the sheet, or lost while visit tracking was broken — so opens are undercounted.`
+                    : ""
+                }
+              >
                 <Funnel steps={data.funnel || []} />
               </Section>
 
