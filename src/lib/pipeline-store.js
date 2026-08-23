@@ -252,12 +252,14 @@ function uploadPreview(look) {
  * small copy for the looks that need one. Idempotent, so it doubles as a
  * backfill for looks saved before this existed.
  */
+function needsThumb(look) {
+  const preview = String(look.preview || "");
+  return preview.startsWith("data:image/") && preview.length > UPLOAD_MAX && !look.thumb;
+}
+
 export async function ensureThumbs() {
   if (typeof window === "undefined") return { ok: false, made: 0 };
-  const needs = loadLooks().filter((look) => {
-    const preview = String(look.preview || "");
-    return preview.startsWith("data:image/") && preview.length > UPLOAD_MAX && !look.thumb;
-  });
+  const needs = loadLooks().filter(needsThumb);
   if (!needs.length) return { ok: true, made: 0 };
 
   const made = new Map();
@@ -308,15 +310,22 @@ export async function syncPipeline() {
  */
 export function syncPipelineOnce() {
   if (typeof window === "undefined") return { ok: false, skipped: true };
-  try {
-    if (sessionStorage.getItem(SYNC_KEY) === "1") return { ok: true, skipped: true };
-  } catch {
-    /* private mode — sync anyway, it is one call */
-  }
 
   const looks = loadLooks();
   const pub = loadPublicState();
   if (!looks.length && !pub.is_public) return { ok: true, skipped: true };
+
+  // sessionStorage survives a reload, so the once-per-tab guard would stop a
+  // phone that is still missing thumbnails from ever sending them. Work left to
+  // do beats the guard; once every look has its thumb, the guard holds again.
+  const pending = looks.some(needsThumb);
+  if (!pending) {
+    try {
+      if (sessionStorage.getItem(SYNC_KEY) === "1") return { ok: true, skipped: true };
+    } catch {
+      /* private mode — sync anyway, it is one call */
+    }
+  }
 
   try {
     sessionStorage.setItem(SYNC_KEY, "1");
