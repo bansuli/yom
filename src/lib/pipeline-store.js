@@ -1,10 +1,12 @@
 import { getAnonId } from "./analytics.js";
 import { LINEUP_DAYS, guessDayForRound, pieceSlotFor } from "./contexts.js";
 import { loadJoinEmail, loadJoinProfile } from "./join-store.js";
+import { yomLineup } from "./yom-api.js";
 
 const LOOKS_KEY = "yom_pipeline_looks";
 const LINEUP_KEY = "yom_pipeline_lineup";
 const PUBLIC_KEY = "yom_pipeline_public";
+const SYNC_KEY = "yom_pipeline_synced";
 
 function newId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -239,4 +241,40 @@ export function pipelinePayload() {
     lineup: loadLineupMap(),
     public: loadPublicState(),
   };
+}
+
+/**
+ * Looks and lineups only reach the server when a pnm acts — adds a look, or
+ * toggles sharing. A phone that built its lineup while the store was down
+ * therefore holds looks the server has never seen, and a lineup she already
+ * chose to make public stays invisible to everyone else. Push once per tab so
+ * returning phones heal themselves. Publishing is unchanged: the board still
+ * shows only lineups whose public toggle is on.
+ */
+export function syncPipelineOnce() {
+  if (typeof window === "undefined") return { ok: false, skipped: true };
+  try {
+    if (sessionStorage.getItem(SYNC_KEY) === "1") return { ok: true, skipped: true };
+  } catch {
+    /* private mode — sync anyway, it is one call */
+  }
+
+  const looks = loadLooks();
+  const pub = loadPublicState();
+  if (!looks.length && !pub.is_public) return { ok: true, skipped: true };
+
+  try {
+    sessionStorage.setItem(SYNC_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+
+  Promise.resolve(yomLineup(pipelinePayload()))
+    .then((res) => {
+      if (res?.ok && res.lineup_id && !pub.id) savePublicState({ id: res.lineup_id });
+    })
+    .catch(() => {
+      /* offline or blocked — next tab tries again */
+    });
+  return { ok: true, count: looks.length };
 }

@@ -17,10 +17,12 @@ import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
+import { syncPipelineOnce } from './lib/pipeline-store.js'
 
 initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
+syncPipelineOnce()
 
 function PageHits() {
   const location = useLocation()
