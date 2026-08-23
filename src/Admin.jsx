@@ -4,7 +4,6 @@ import { LINEUP_DAYS } from "./lib/contexts.js";
 import "./Pipeline.css";
 import "./Admin.css";
 
-const SECRET_KEY = "yom_admin_secret";
 const TOKEN_KEY = "yom_admin_token";
 
 function when(value) {
@@ -119,13 +118,6 @@ function Funnel({ steps, atLeastFirst }) {
 }
 
 export default function Admin() {
-  const [secret, setSecret] = useState(() => {
-    try {
-      return sessionStorage.getItem(SECRET_KEY) || "";
-    } catch {
-      return "";
-    }
-  });
   const [token, setToken] = useState(() => {
     try {
       return sessionStorage.getItem(TOKEN_KEY) || "";
@@ -135,7 +127,6 @@ export default function Admin() {
   });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [useSecret, setUseSecret] = useState(false);
   const [showInternal, setShowInternal] = useState(false);
   const [tab, setTab] = useState("overview");
   const [range, setRange] = useState("all");
@@ -151,8 +142,7 @@ export default function Admin() {
   const load = useCallback(
     async (creds) => {
       const bearer = creds?.token ?? token;
-      const pass = creds?.secret ?? secret;
-      if (!bearer && !pass) return;
+      if (!bearer) return;
       setBusy(true);
       setErr("");
       try {
@@ -160,13 +150,13 @@ export default function Admin() {
         const win = creds?.range ?? range;
         const qs = `?window=${encodeURIComponent(win)}${withInternal ? "&internal=1" : ""}`;
         const res = await fetch(`/api/admin${qs}`, {
-          headers: bearer ? { authorization: `Bearer ${bearer}` } : { "x-yom-admin": pass },
+          headers: { authorization: `Bearer ${bearer}` },
         });
         const body = await res.json().catch(() => null);
         if (!res.ok || !body?.ok) {
           setErr(res.status === 401 ? "That login didn’t work." : body?.error || "Could not load.");
           setData(null);
-          if (res.status === 401 && bearer) {
+          if (res.status === 401) {
             setToken("");
             try {
               sessionStorage.removeItem(TOKEN_KEY);
@@ -177,8 +167,7 @@ export default function Admin() {
         } else {
           setData(body);
           try {
-            if (bearer) sessionStorage.setItem(TOKEN_KEY, bearer);
-            else sessionStorage.setItem(SECRET_KEY, pass);
+            sessionStorage.setItem(TOKEN_KEY, bearer);
           } catch {
             /* ignore */
           }
@@ -188,7 +177,7 @@ export default function Admin() {
       }
       setBusy(false);
     },
-    [secret, token, showInternal, range]
+    [token, showInternal, range]
   );
 
   const logIn = async (e) => {
@@ -214,7 +203,6 @@ export default function Admin() {
 
   useEffect(() => {
     if (token) load({ token });
-    else if (secret) load({ secret });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -240,7 +228,7 @@ export default function Admin() {
     setDetail(null);
     setDetailBusy(true);
     const res = await fetch(`/api/admin?person=${encodeURIComponent(email)}`, {
-      headers: token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret },
+      headers: { authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .catch(() => null);
@@ -255,10 +243,7 @@ export default function Admin() {
     setWorking(issue.key);
     await fetch("/api/admin-issues", {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret }),
-      },
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
       body: JSON.stringify({ action, kind: issue.kind, message: issue.message }),
     }).catch(() => null);
     setWorking("");
@@ -267,7 +252,7 @@ export default function Admin() {
 
   const downloadCsv = async () => {
     const res = await fetch(`/api/admin?csv=1&window=${range}${showInternal ? "&internal=1" : ""}`, {
-      headers: token ? { authorization: `Bearer ${token}` } : { "x-yom-admin": secret },
+      headers: { authorization: `Bearer ${token}` },
     });
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -295,7 +280,7 @@ export default function Admin() {
         </button>
       </header>
 
-      {!data && !useSecret && (
+      {!data && (
         <form className="yom-admin-gate" onSubmit={logIn}>
           <label htmlFor="admin-email">Email</label>
           <input
@@ -318,36 +303,6 @@ export default function Admin() {
             {busy ? "Checking…" : "Log in"}
           </button>
           {err && <p className="yom-admin-err">{err}</p>}
-          <button type="button" className="yom-admin-alt" onClick={() => setUseSecret(true)}>
-            Use the shared secret instead
-          </button>
-        </form>
-      )}
-
-      {!data && useSecret && (
-        <form
-          className="yom-admin-gate"
-          onSubmit={(e) => {
-            e.preventDefault();
-            load({ secret });
-          }}
-        >
-          <label htmlFor="admin-secret">Admin secret</label>
-          <input
-            id="admin-secret"
-            type="password"
-            value={secret}
-            onChange={(e) => setSecret(e.target.value)}
-            autoComplete="off"
-            autoFocus
-          />
-          <button type="submit" disabled={busy}>
-            {busy ? "Checking…" : "Open"}
-          </button>
-          {err && <p className="yom-admin-err">{err}</p>}
-          <button type="button" className="yom-admin-alt" onClick={() => setUseSecret(false)}>
-            ← Log in with my email
-          </button>
         </form>
       )}
 
