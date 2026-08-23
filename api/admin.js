@@ -151,6 +151,9 @@ export default async function handler(req, res) {
     const p = (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id);
     if (!p) continue;
     if (row.is_public) p.is_public = true;
+    // Her name reaches us on the lead row, which is exactly what the sheet was
+    // dropping — so fall back to the one she typed into her lineup.
+    if (!p.name && row.display_name) p.name = String(row.display_name).trim();
   }
 
   const everyone = [...people.values()].sort((a, b) => String(b.first_seen).localeCompare(String(a.first_seen)));
