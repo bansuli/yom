@@ -1,6 +1,6 @@
 import { json, preflight, readJson } from "../lib/http.js";
 import { signIn, supabaseConfigured } from "../lib/supabase.js";
-import { adminEmails } from "../lib/admin-auth.js";
+import { isAdminEmail } from "../lib/admin-auth.js";
 
 /**
  * Log in to /admin. Deliberately separate from /beta: that is the founder
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     json(res, 400, { ok: false, error: "email and password, please." });
     return;
   }
-  if (!adminEmails().includes(email)) {
+  if (!isAdminEmail(email)) {
     // Same answer as a bad password: no hint about which addresses count.
     json(res, 401, { ok: false, error: "wrong email or password." });
     return;
