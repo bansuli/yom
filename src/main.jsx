@@ -15,6 +15,7 @@ import Looks from './Looks.jsx'
 import Lineup from './Lineup.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
+import Admin from './Admin.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 import { bootPipeline } from './lib/pipeline-store.js'
@@ -64,6 +65,7 @@ function BetaCorner() {
     pathname === '/lineup' ||
     pathname === '/closet' ||
     pathname === '/everyone' ||
+    pathname === '/admin' ||
     pathname.startsWith('/survey') ||
     pathname.startsWith('/s/') ||
     pathname.startsWith('/l/')
@@ -97,6 +99,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/create" element={<Create />} />
         <Route path="/s/:shareId" element={<SharePage />} />
         <Route path="/l/:lineupId" element={<PublicLineup />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,
