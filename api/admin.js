@@ -1,5 +1,6 @@
 import { json, preflight } from "../lib/http.js";
-import { rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
+import { getAuthUser, rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
+import { adminEmails } from "./admin-login.js";
 
 /**
  * One place that answers "how many people does yom actually have", read
@@ -8,13 +9,29 @@ import { rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
  * refreshed as often as it takes to trust the number.
  */
 
-function authed(req) {
+/**
+ * Either a founder logged in with her own email, or the shared secret — which
+ * exists so the numbers were reachable the night this was built, and can be
+ * dropped by unsetting YOM_ADMIN_SECRET once both accounts exist.
+ */
+async function authed(req) {
+  const token = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+  if (token) {
+    const who = await getAuthUser(token);
+    const email = String(who.data?.email || "").trim().toLowerCase();
+    if (who.ok && email && adminEmails().includes(email)) return email;
+  }
   const secret = process.env.YOM_ADMIN_SECRET || "";
-  if (!secret) return false;
-  const sent =
-    req.headers["x-yom-admin"] ||
-    (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
-  return String(sent) === secret;
+  if (secret && String(req.headers["x-yom-admin"] || "") === secret) return "secret";
+  return "";
+}
+
+function parseCsv(req) {
+  try {
+    return new URL(req.url, "http://localhost").searchParams.get("csv") || "";
+  } catch {
+    return "";
+  }
 }
 
 function rows(res) {
@@ -28,7 +45,8 @@ function dayKey(value) {
 
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
-  if (!authed(req)) {
+  const who = await authed(req);
+  if (!who) {
     json(res, 401, { ok: false, error: "nope." });
     return;
   }
@@ -121,6 +139,21 @@ export default async function handler(req, res) {
   // Visitors with no email are the top of the funnel: she opened yom and left.
   const anonOnly = visitors.filter((v) => !v.email);
   const anonToday = new Set(anonOnly.filter((v) => dayKey(v.created_at) === today).map((v) => v.anon_id));
+
+  if (String(parseCsv(req)) === "1") {
+    const head = "email,name,source,campaign,first_seen,looks,in_lineup,public";
+    const body = list
+      .map((p) =>
+        [p.email, p.name, p.source, p.campaign, p.first_seen, p.looks, p.in_lineup, p.is_public ? "yes" : ""]
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",")
+      )
+      .join("\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="yom-people.csv"`);
+    res.end(`${head}\n${body}\n`);
+    return;
+  }
 
   json(res, 200, {
     ok: true,

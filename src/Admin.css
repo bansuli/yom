@@ -143,3 +143,16 @@
 .yom-admin-table tr:last-child td {
   border-bottom: 0;
 }
+
+.yom-admin-alt {
+  appearance: none;
+  border: 0 !important;
+  background: none !important;
+  color: #8a8a8a !important;
+  font: inherit;
+  font-size: 0.74rem !important;
+  font-weight: 500 !important;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.2rem !important;
+}
