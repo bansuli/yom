@@ -4,6 +4,7 @@ import { yomCaptureLead } from "./yom-api.js";
 
 const QUEUE_KEY = "yom_lead_queue";
 const SYNCED_KEY = "yom_leads_synced";
+const RECOVERY_KEY = "yom_leads_recovery_v1";
 const HOUR_MS = 60 * 60 * 1000;
 const DEBOUNCE_MS = 2500;
 const RETRY_MS = [4000, 12000, 30000, 60000];
@@ -104,6 +105,49 @@ function scheduleDebouncedFlush() {
   }, DEBOUNCE_MS);
 }
 
+function collectLocalEmails() {
+  const found = [];
+  const push = (email, extra = {}) => {
+    const e = String(email || "")
+      .trim()
+      .toLowerCase();
+    if (!e || !e.includes("@")) return;
+    if (found.some((row) => row.email === e)) return;
+    found.push({ email: e, ...extra });
+  };
+
+  const profile = loadJoinProfile();
+  push(loadJoinEmail(), {
+    name: profile.name || undefined,
+    channel: "recovery_join",
+    path: "/join",
+  });
+  push(profile.email, {
+    name: profile.name || undefined,
+    channel: "recovery_profile",
+    path: "/join",
+  });
+
+  try {
+    const survey = JSON.parse(localStorage.getItem("yom-survey") || "null");
+    if (survey && typeof survey === "object") {
+      push(survey.email, {
+        name: survey.name || undefined,
+        channel: "recovery_survey",
+        path: "/survey",
+        metadata: {
+          recovered: true,
+          shopping_context: survey.context || undefined,
+        },
+      });
+    }
+  } catch {
+    /* ignore */
+  }
+
+  return found;
+}
+
 /** Pull join email/profile back into the queue if it never got an ok from the server. */
 function rehydrateFromJoin() {
   const email = String(loadJoinEmail() || "").trim().toLowerCase();
@@ -123,6 +167,55 @@ function rehydrateFromJoin() {
   ]);
 }
 
+/**
+ * One-time salvage: phones that still have the email locally, but we may have
+ * falsely marked them synced when the sheet write didn't actually land.
+ * Re-queues every local email and clears synced marks so flush retries.
+ */
+export function recoverLocalLeads({ force = false } = {}) {
+  if (typeof window === "undefined") return { ok: false, count: 0 };
+  try {
+    if (!force && localStorage.getItem(RECOVERY_KEY) === "1") {
+      return { ok: true, skipped: true, count: 0 };
+    }
+  } catch {
+    /* continue */
+  }
+
+  const locals = collectLocalEmails();
+  if (!locals.length) {
+    try {
+      localStorage.setItem(RECOVERY_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    return { ok: true, count: 0 };
+  }
+
+  const synced = loadSynced();
+  locals.forEach((row) => synced.delete(row.email));
+  saveSynced(synced);
+
+  let queue = load().filter((row) => !locals.some((l) => l.email === String(row.email).toLowerCase()));
+  locals.forEach((row) => {
+    queue.push(
+      payloadFrom({
+        ...row,
+        metadata: { ...(row.metadata || {}), recovered: true, recovery_pass: "v1" },
+      })
+    );
+  });
+  save(queue);
+
+  try {
+    localStorage.setItem(RECOVERY_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+
+  return { ok: true, count: locals.length, emails: locals.map((l) => l.email) };
+}
+
 /** Save email on-device. No network on the tap. */
 export function queueLead(extra = {}) {
   if (!extra?.email) return;
@@ -138,6 +231,7 @@ export function queueLead(extra = {}) {
 export function startLeadFlush() {
   if (started || typeof window === "undefined") return;
   started = true;
+  recoverLocalLeads();
   rehydrateFromJoin();
   window.addEventListener("pagehide", () => {
     void flushLeadQueue({ unload: true });
