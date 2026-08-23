@@ -88,7 +88,7 @@ function Funnel({ steps }) {
   const top = steps[0]?.people || 0;
   return (
     <div className="yom-funnel">
-      {steps.map((step, i) => {
+      {steps.map((step) => {
         const width = top ? Math.max(3, Math.round((step.people / top) * 100)) : 3;
         return (
           <div className="yom-funnel-row" key={step.step}>
