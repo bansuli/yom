@@ -168,7 +168,7 @@ export default function Join() {
     setRestoring(false);
     setRestored(
       res?.ok
-        ? "sent. open the link from your email on this phone."
+        ? "check your email — tap the link on this phone and you’re in."
         : "couldn’t send that right now — try again in a minute."
     );
   };
@@ -290,7 +290,7 @@ export default function Join() {
         <form onSubmit={restore}>
           <h1 className="pnm-title">log in.</h1>
           <p className="pnm-sub pnm-lede">
-            we’ll email you a link. tap it and your <em>lineup</em> is back.
+            your looks, your rounds, your <em>lineup.</em>
           </p>
           <label className="pnm-field" htmlFor="login-email">
             email
@@ -308,7 +308,7 @@ export default function Join() {
           />
           {restored && <p className="pnm-sub pnm-moved">{restored}</p>}
           <button type="submit" className="pnm-cta" disabled={restoring} style={{ marginTop: "1.1rem" }}>
-            {restoring ? "sending…" : "send my link →"}
+            {restoring ? "one sec…" : "log in →"}
           </button>
           <button
             type="button"
