@@ -334,12 +334,17 @@ export default async function handler(req, res) {
   const whose = (row) =>
     (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id) || null;
 
-  const looksIn = looks.filter(
-    (look) => inWindow(look.created_at) && (showInternal || !isInternal(look.email))
-  );
-  const checksIn = checks.filter(
-    (check) => inWindow(check.created_at) && (showInternal || !isInternal(check.email))
-  );
+  // A scan or a look carries an email only when the client happened to send
+  // one — it belongs to whoever owns the browser it came from. Judging a row by
+  // its own empty email column called every anonymous scan internal and threw
+  // it away, which is why the funnel said nobody had scanned.
+  const rowIsInternal = (row) => {
+    const p = whose(row);
+    return isInternal(p ? p.email : row.email);
+  };
+
+  const looksIn = looks.filter((look) => inWindow(look.created_at) && (showInternal || !rowIsInternal(look)));
+  const checksIn = checks.filter((check) => inWindow(check.created_at) && (showInternal || !rowIsInternal(check)));
 
   const scannedKeys = new Set();
   const lineupKeys = new Set();
@@ -387,7 +392,7 @@ export default async function handler(req, res) {
     byCampaign[key] = (byCampaign[key] || 0) + 1;
   }
 
-  const mine = looks.filter((look) => showInternal || !isInternal(look.email));
+  const mine = looks.filter((look) => showInternal || !rowIsInternal(look));
   const byInput = {};
   const byRound = {};
   let scored = 0;
@@ -403,12 +408,12 @@ export default async function handler(req, res) {
     }
   }
 
-  const myChecks = checks.filter((check) => showInternal || !isInternal(check.email));
+  const myChecks = checks.filter((check) => showInternal || !rowIsInternal(check));
   const activity = (myChecks.length ? myChecks : mine).slice(0, 80).map((row) =>
     row.product !== undefined
       ? {
           at: row.created_at,
-          email: row.email || "",
+          email: whose(row)?.email || row.email || "",
           title: row.product?.name || row.verdict?.title || "",
           brand: row.product?.brand || "",
           input: row.input_method || "",
@@ -419,7 +424,7 @@ export default async function handler(req, res) {
         }
       : {
           at: row.created_at,
-          email: row.email || "",
+          email: whose(row)?.email || row.email || "",
           title: row.title || "",
           brand: row.product?.brand || "",
           input: row.input_method || "",
