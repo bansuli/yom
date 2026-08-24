@@ -84,24 +84,14 @@ function IssueRow({ issue, busy, onAction }) {
 }
 
 /** The gap between two steps is the thing worth fixing, so show the gap. */
-function Funnel({ steps, atLeastFirst }) {
+function Funnel({ steps }) {
   const top = steps[0]?.people || 0;
   return (
     <div className="yom-funnel">
       {steps.map((step, i) => (
         <div className="yom-funnel-row" key={step.step}>
           <span className="yom-funnel-label">{step.step}</span>
-          <b
-            className="yom-funnel-count"
-            title={
-              i === 0 && atLeastFirst
-                ? "At least this many — anyone who opened yom without giving an email isn't counted"
-                : ""
-            }
-          >
-            {step.people}
-            {i === 0 && atLeastFirst ? "+" : ""}
-          </b>
+          <b className="yom-funnel-count">{step.people}</b>
           <span className="yom-funnel-bar">
             {/* No fill at all at zero — a coloured stub reads as "some". */}
             {step.people > 0 && (
@@ -393,7 +383,7 @@ export default function Admin() {
               </div>
 
               <Section title={`Funnel · ${rangeLabel}`} show={(data.funnel || []).some((f) => f.people)}>
-                <Funnel steps={data.funnel || []} atLeastFirst={Boolean(data.opens_untracked)} />
+                <Funnel steps={data.funnel || []} />
               </Section>
 
               <div className="yom-admin-split">

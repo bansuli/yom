@@ -205,8 +205,41 @@
   cursor: pointer;
 }
 
-.pnm-cta:disabled {
-  opacity: 0.55;
+.pnm-cta:disabled,
+.pnm-ghost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Step four does something rather than describing something. */
+.pnm-step-do {
+  appearance: none;
+  margin-top: 0.5rem;
+  border: 1.5px solid var(--scan-ink);
+  border-radius: 999px;
+  background: var(--scan-ink);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.42rem 0.9rem;
+  cursor: pointer;
+}
+
+.pnm-step.is-done .pnm-num {
+  color: var(--scan-olive);
+}
+
+.pnm-step.is-done h2::after {
+  content: " ✓";
+  color: var(--scan-olive);
+}
+
+.pnm-gate {
+  margin: 0.6rem 0 0;
+  text-align: center;
+  font-size: 0.76rem;
+  color: #8a8a8a;
 }
 
 .pnm-park {

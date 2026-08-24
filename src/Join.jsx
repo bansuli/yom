@@ -20,6 +20,7 @@ import {
   seedTestYom,
 } from "./lib/join-store.js";
 import { BERKELEY_FPR_CONTEXT_ID, getContextById } from "./lib/contexts.js";
+import { addByHandText, armTransferKey, disarmTransferKey, hasAdded, markAdded } from "./lib/a2hs.js";
 import "./Scan.css";
 import "./Share.css";
 import "./Pipeline.css";
@@ -44,6 +45,31 @@ export default function Join() {
   const [err, setErr] = useState("");
   const [restoring, setRestoring] = useState(false);
   const [restored, setRestored] = useState("");
+  // Step four. Her yom lives in this browser, so this is the step that decides
+  // whether she still has it on wednesday — she does not get past it.
+  const [added, setAdded] = useState(() => hasAdded());
+  const [howTo, setHowTo] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState(null);
+
+  useEffect(() => {
+    const onPrompt = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+    const onInstalled = () => {
+      markAdded();
+      setAdded(true);
+      track("home_screen_added", { how: "prompt" });
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  useEffect(() => () => disarmTransferKey(), []);
 
   useEffect(() => {
     const acq = captureAcquisitionFromUrl(search);
@@ -173,6 +199,34 @@ export default function Join() {
     );
   };
 
+  // The key rides in the url while she installs: safari saves the address that
+  // is showing, and the installed app opens holding her account.
+  const addToHome = async () => {
+    armTransferKey();
+    track("home_screen_offered", { path: "/join" });
+    if (installPrompt) {
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice.catch(() => null);
+      setInstallPrompt(null);
+      if (choice?.outcome === "accepted") {
+        markAdded();
+        setAdded(true);
+        track("home_screen_added", { how: "prompt" });
+        return;
+      }
+      disarmTransferKey();
+      return;
+    }
+    setHowTo(true);
+  };
+
+  const confirmAdded = () => {
+    markAdded();
+    setAdded(true);
+    disarmTransferKey();
+    track("home_screen_added", { how: "by_hand" });
+  };
+
   const showOutfit = () => {
     if (!isYomReady()) {
       setStep("create");
@@ -226,13 +280,36 @@ export default function Join() {
                 <p>save your looks for each round and see what other girls going through Berkeley recruitment are planning.</p>
               </div>
             </article>
+            <article className={`pnm-step${added ? " is-done" : ""}`}>
+              <span className="pnm-num">04</span>
+              <div>
+                <h2>{added ? "yom is on your home screen" : "put yom on your home screen"}</h2>
+                <p>
+                  {added
+                    ? "open it from there and your lineup is always one tap away."
+                    : howTo
+                      ? addByHandText()
+                      : "your yom lives on this phone. this is what keeps it — and gets you back in one tap all week."}
+                </p>
+                {added ? null : howTo ? (
+                  <button type="button" className="pnm-step-do" onClick={confirmAdded}>
+                    i added it →
+                  </button>
+                ) : (
+                  <button type="button" className="pnm-step-do" onClick={addToHome}>
+                    add yom →
+                  </button>
+                )}
+              </div>
+            </article>
           </div>
-          <button type="button" className="pnm-cta" onClick={showOutfit}>
+          <button type="button" className="pnm-cta" disabled={!added} onClick={showOutfit}>
             show yom an outfit →
           </button>
-          <button type="button" className="pnm-ghost" onClick={noOutfitYet}>
+          <button type="button" className="pnm-ghost" disabled={!added} onClick={noOutfitYet}>
             i don’t have an outfit yet →
           </button>
+          {added ? null : <p className="pnm-gate">add yom to your home screen first — step 04.</p>}
         </>
       )}
 
