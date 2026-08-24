@@ -32,5 +32,12 @@ export async function captureLead({ email, name, channel, ...rest }) {
 
 /** Record /scan visitor; optional email */
 export async function recordScanVisit(extra = {}) {
-  return yomScanVisit(leadPayload({ path: "/scan", channel: "scan", ...extra }));
+  const payload = leadPayload({ path: "/scan", channel: "scan", ...extra });
+  // This fires as the page loads, when a phone is most likely to be between
+  // networks — walking into a building is enough to lose it. Try again before
+  // giving up, and only call it a fault if the second one dies too.
+  const first = await yomScanVisit(payload, { quiet: true });
+  if (!first?.fallback) return first;
+  await new Promise((resolve) => setTimeout(resolve, 2500));
+  return yomScanVisit(payload);
 }

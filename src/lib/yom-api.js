@@ -23,7 +23,7 @@ async function post(path, body, token, extra = {}) {
       keepalive: Boolean(extra.keepalive),
     });
     const parsed = await parseRes(res);
-    if (parsed.status >= 500 || parsed.status === 429) {
+    if ((parsed.status >= 500 || parsed.status === 429) && !extra.quiet) {
       reportError({ kind: "api_error", message: parsed.data?.error || `POST ${path}`, status: parsed.status, path });
     }
     if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
@@ -31,7 +31,9 @@ async function post(path, body, token, extra = {}) {
     }
     return { status: parsed.status, ...parsed.data };
   } catch (e) {
-    reportError({ kind: "api_error", message: `POST ${path} — ${e?.message || "network"}`, path });
+    // quiet is for a call that will try again itself: reporting the first miss
+    // fills /admin with faults nothing needs to be done about.
+    if (!extra.quiet) reportError({ kind: "api_error", message: `POST ${path} — ${e?.message || "network"}`, path });
     return { fallback: true };
   }
 }
@@ -120,11 +122,11 @@ export function yomCaptureLead(body) {
   return post("/api/leads", body, undefined, { keepalive: true });
 }
 
-export function yomScanVisit(body) {
+export function yomScanVisit(body, opts = {}) {
   // Fired the moment a page loads, so it is usually still in flight when she
   // taps through. Without keepalive the browser cancels it and the visit is
   // simply never recorded.
-  return post("/api/scan-visit", body, undefined, { keepalive: true });
+  return post("/api/scan-visit", body, undefined, { keepalive: true, quiet: Boolean(opts.quiet) });
 }
 
 export function yomShare(body) {
