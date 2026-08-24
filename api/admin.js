@@ -225,8 +225,20 @@ export default async function handler(req, res) {
   const byAnon = new Map();
   for (const p of people.values()) for (const id of p.anon_ids) byAnon.set(id, p);
 
+  // The account key is the third way a row names its owner, and the only one on
+  // a device that never sent an email with a look. Seed it from the rows that
+  // do carry a name, so the rest of that account's rows can be placed too.
+  const byKey = new Map();
+  const named = (row) =>
+    (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id) || null;
+  for (const row of [...lineups, ...looks]) {
+    const p = named(row);
+    if (p && row.account_key) byKey.set(row.account_key, p);
+  }
+  const owner = (row) => named(row) || byKey.get(row.account_key) || null;
+
   for (const look of looks) {
-    const p = (look.email ? people.get(String(look.email).trim().toLowerCase()) : null) || byAnon.get(look.anon_id);
+    const p = owner(look);
     if (!p) continue;
     p.looks += 1;
     if (look.in_closet) p.in_lineup += 1;
@@ -251,7 +263,7 @@ export default async function handler(req, res) {
   }
 
   for (const row of lineups) {
-    const p = (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id);
+    const p = owner(row);
     if (!p) continue;
     if (row.is_public) p.is_public = true;
     // Her name reaches us on the lead row, which is exactly what the sheet was
@@ -331,8 +343,7 @@ export default async function handler(req, res) {
   const untracked = peopleIn.filter((p) => !(p.anon_ids || []).some((id) => trackedAnons.has(id))).length;
   const opened = trackedAnons.size + untracked;
 
-  const whose = (row) =>
-    (row.email ? people.get(String(row.email).trim().toLowerCase()) : null) || byAnon.get(row.anon_id) || null;
+  const whose = (row) => owner(row);
 
   // A scan or a look carries an email only when the client happened to send
   // one — it belongs to whoever owns the browser it came from. Judging a row by
@@ -348,6 +359,7 @@ export default async function handler(req, res) {
 
   const scannedKeys = new Set();
   const lineupKeys = new Set();
+  const sharedKeys = new Set();
   for (const check of checksIn) {
     const p = whose(check);
     if (p && peopleInKeys.has(keyOf(p))) scannedKeys.add(keyOf(p));
@@ -359,7 +371,17 @@ export default async function handler(req, res) {
     scannedKeys.add(keyOf(p));
     if (look.in_closet) lineupKeys.add(keyOf(p));
   }
-  const sharedCount = peopleIn.filter((p) => p.is_public).length;
+  // Her lineup is a row of its own, and it is the thing that actually decides
+  // whether she has one — counting only kept looks missed a lineup whose looks
+  // never made it into the table.
+  for (const row of lineups) {
+    if (!inWindow(row.updated_at || row.created_at)) continue;
+    const p = whose(row);
+    if (!p || !peopleInKeys.has(keyOf(p))) continue;
+    if (row.days && Object.keys(row.days).length) lineupKeys.add(keyOf(p));
+    if (row.is_public) sharedKeys.add(keyOf(p));
+  }
+  const sharedCount = sharedKeys.size;
 
   const steps = [
     ["Opened yom", opened],
