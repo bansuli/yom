@@ -31,10 +31,23 @@ function isNavigationNoise(message) {
   return /abort|load failed|failed to fetch|networkerror|cancell?ed/i.test(String(message || ""));
 }
 
+/**
+ * The account key is the whole of someone's yom — hold it and you are her. It
+ * travels in the url of /api/lineup?mine=1, so a failed request put it straight
+ * into a message displayed on /admin. Take it out of anything we report; it also
+ * means one broken call is one issue rather than one per person.
+ */
+function scrub(text) {
+  return String(text || "").replace(/\b(key|token|secret|access_token)=[^&\s]+/gi, "$1=…");
+}
+
 export function reportError({ kind = "js_error", message = "", status, path, detail } = {}) {
   if (typeof window === "undefined") return;
-  const text = String(message || "").slice(0, 400);
+  const text = scrub(message).slice(0, 400);
   if (!text) return;
+  // What a cross-origin script reports instead of a message. It is an extension
+  // or an embedded script, never yom's own code, and it says nothing at all.
+  if (/^script error\.?$/i.test(text)) return;
   if (leaving && isNavigationNoise(text)) return;
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
@@ -48,7 +61,7 @@ export function reportError({ kind = "js_error", message = "", status, path, det
       kind,
       message: text,
       status,
-      path: path || window.location.pathname,
+      path: scrub(path || window.location.pathname),
       surface: getSurface(),
       anon_id: getAnonId(),
       email: loadJoinEmail() || undefined,

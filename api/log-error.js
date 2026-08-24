@@ -23,6 +23,10 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Belt and braces: a client that has not picked up the scrubbing yet must not
+  // be able to write an account key into a line /admin displays.
+  const scrub = (value) => String(value || "").replace(/\b(key|token|secret|access_token)=[^&\s]+/gi, "$1=…");
+
   const body = readJson(req);
   const kind = ["scan_failed", "api_error", "js_error"].includes(body.kind) ? body.kind : "js_error";
   const status = Number(body.status);
@@ -31,9 +35,9 @@ export default async function handler(req, res) {
     method: "POST",
     body: {
       kind,
-      message: text(body.message, 400),
+      message: scrub(text(body.message, 400)),
       status: Number.isFinite(status) && status > 0 ? Math.trunc(status) : null,
-      path: text(body.path, 200),
+      path: scrub(text(body.path, 200)),
       surface: text(body.surface, 32),
       anon_id: text(body.anon_id, 80),
       email: text(body.email, 180).toLowerCase() || null,
