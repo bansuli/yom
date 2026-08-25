@@ -35,11 +35,8 @@ export default function Join() {
   const search = window.location.search || "";
   const fresh = params.get("fresh") === "1";
 
-  const [step, setStep] = useState(() => {
-    if (fresh) return "create";
-    if (isYomReady()) return "land";
-    return "create";
-  });
+  const [step, setStep] = useState(() => (fresh ? "create" : "land"));
+  const [afterJoin, setAfterJoin] = useState("");
   const [email, setEmail] = useState(() => loadJoinEmail());
   const [name, setName] = useState(() => loadJoinProfile().name || "");
   const [err, setErr] = useState("");
@@ -172,6 +169,14 @@ export default function Join() {
       navigate(shareNext);
       return;
     }
+    if (added && afterJoin === "looks") {
+      navigate(`/looks${qs({ from: "land" })}`);
+      return;
+    }
+    if (added && afterJoin === "scan") {
+      navigate(`/scan${qs({ from: "land" })}`);
+      return;
+    }
     setStep("land");
     try {
       window.scrollTo(0, 0);
@@ -229,20 +234,20 @@ export default function Join() {
     track("home_screen_added", { how: "by_hand" });
   };
 
-  const showOutfit = () => {
+  const goFromLand = (dest) => {
     if (!isYomReady()) {
+      setAfterJoin(dest);
+      setErr("");
       setStep("create");
+      try {
+        window.scrollTo(0, 0);
+      } catch {
+        /* ignore */
+      }
       return;
     }
-    navigate(`/scan${qs({ from: "land" })}`);
-  };
-
-  const noOutfitYet = () => {
-    if (!isYomReady()) {
-      setStep("create");
-      return;
-    }
-    navigate(`/looks${qs({ from: "land" })}`);
+    if (!added) return;
+    navigate(dest === "looks" ? `/looks${qs({ from: "land" })}` : `/scan${qs({ from: "land" })}`);
   };
 
   return (
@@ -251,7 +256,9 @@ export default function Join() {
         <Link to="/" className="pnm-brand">
           yom
         </Link>
-        <p className="pnm-kicker">{step === "login" ? "welcome back" : "create your yom"}</p>
+        <p className="pnm-kicker">
+          {step === "login" ? "welcome back" : step === "land" ? "berkeley recruitment" : "create your yom"}
+        </p>
       </header>
 
       {err && <p className="scan-err">{err}</p>}
@@ -305,13 +312,38 @@ export default function Join() {
               </div>
             </article>
           </div>
-          <button type="button" className="pnm-cta" disabled={!added} onClick={showOutfit}>
+          <button
+            type="button"
+            className="pnm-cta"
+            disabled={isYomReady() && !added}
+            onClick={() => goFromLand("scan")}
+          >
             show yom an outfit →
           </button>
-          <button type="button" className="pnm-ghost" disabled={!added} onClick={noOutfitYet}>
+          <button
+            type="button"
+            className="pnm-ghost"
+            disabled={isYomReady() && !added}
+            onClick={() => goFromLand("looks")}
+          >
             i don’t have an outfit yet →
           </button>
-          {added ? null : <p className="pnm-gate">add yom to your home screen first — step 04.</p>}
+          {isYomReady() && !added ? (
+            <p className="pnm-gate">add yom to your home screen first — step 04.</p>
+          ) : null}
+          {isYomReady() ? null : (
+            <button
+              type="button"
+              className="pnm-ghost"
+              onClick={() => {
+                setErr("");
+                setRestored("");
+                setStep("login");
+              }}
+            >
+              already have a yom? log in →
+            </button>
+          )}
         </>
       )}
 
@@ -362,6 +394,18 @@ export default function Join() {
           >
             already have a yom? log in →
           </button>
+          {fresh ? null : (
+            <button
+              type="button"
+              className="pnm-ghost"
+              onClick={() => {
+                setErr("");
+                setStep("land");
+              }}
+            >
+              ← back
+            </button>
+          )}
         </form>
       )}
 
@@ -398,7 +442,7 @@ export default function Join() {
               setStep("create");
             }}
           >
-            ← back to creating one
+            ← back
           </button>
         </form>
       )}
