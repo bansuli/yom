@@ -201,7 +201,7 @@ export default function Join() {
       res?.ok
         ? "check your email — tap the link on this phone and you’re in."
         : res?.status === 503 || /set up/i.test(res?.error || "")
-          ? "email login isn’t switched on yet. open yom on the phone you joined on — it’s still there — or text ban and he’ll send your link."
+          ? "email login isn’t on yet. your yom is still on the phone you made it on — open it there and everything’s where you left it."
           : "couldn’t send that right now — try again in a minute."
     );
   };
