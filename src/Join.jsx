@@ -169,8 +169,8 @@ export default function Join() {
       navigate(shareNext);
       return;
     }
-    if (added && afterJoin === "looks") {
-      navigate(`/looks${qs({ from: "land" })}`);
+    if (added && afterJoin === "lineup") {
+      navigate(`/lineup${qs({ from: "land" })}`);
       return;
     }
     if (added && afterJoin === "scan") {
@@ -247,7 +247,10 @@ export default function Join() {
       return;
     }
     if (!added) return;
-    navigate(dest === "looks" ? `/looks${qs({ from: "land" })}` : `/scan${qs({ from: "land" })}`);
+    // "i don't have an outfit yet" used to mean /looks, which is the scanner
+    // now — so both buttons landed on the same page. Someone with nothing yet
+    // wants the week laid out, not a camera.
+    navigate(dest === "lineup" ? `/lineup${qs({ from: "land" })}` : `/scan${qs({ from: "land" })}`);
   };
 
   return (
@@ -324,7 +327,7 @@ export default function Join() {
             type="button"
             className="pnm-ghost"
             disabled={isYomReady() && !added}
-            onClick={() => goFromLand("looks")}
+            onClick={() => goFromLand("lineup")}
           >
             i don’t have an outfit yet →
           </button>
