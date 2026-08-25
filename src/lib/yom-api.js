@@ -11,9 +11,60 @@ async function parseRes(res) {
   }
 }
 
-async function post(path, body, token, extra = {}) {
+const RETRY_AFTER_MS = 1200;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A rejected fetch never completed — the phone was between networks as the page
+ * loaded, which on a walk across campus is most of them. Try once more before
+ * calling it a fault, and only report if the second one dies too: the issues
+ * list is for things somebody has to fix, not for a lift with no signal.
+ *
+ * Only for requests that are safe to repeat. Every write behind `retry` is an
+ * upsert keyed on the account, the email or the device, so arriving twice is
+ * the same as arriving once.
+ */
+async function send(path, init, { quiet = false, retry = false } = {}) {
+  const label = `${init.method || "GET"} ${path}`;
+  const attempt = async () => {
+    const res = await fetch(path, init);
+    return parseRes(res);
+  };
+
+  let parsed;
   try {
-    const res = await fetch(path, {
+    parsed = await attempt();
+  } catch (e) {
+    if (retry) {
+      await wait(RETRY_AFTER_MS);
+      try {
+        parsed = await attempt();
+      } catch (again) {
+        if (!quiet) reportError({ kind: "api_error", message: `${label} — ${again?.message || "network"}`, path });
+        return { fallback: true };
+      }
+    } else {
+      if (!quiet) reportError({ kind: "api_error", message: `${label} — ${e?.message || "network"}`, path });
+      return { fallback: true };
+    }
+  }
+
+  // A 5xx is the server's problem, not the network's — repeating it just asks
+  // a struggling server the same question twice.
+  if ((parsed.status >= 500 || parsed.status === 429) && !quiet) {
+    reportError({ kind: "api_error", message: parsed.data?.error || label, status: parsed.status, path });
+  }
+  if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
+    return { fallback: true, error: parsed.data?.error };
+  }
+  return { status: parsed.status, ...parsed.data };
+}
+
+async function post(path, body, token, extra = {}) {
+  return send(
+    path,
+    {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -21,40 +72,14 @@ async function post(path, body, token, extra = {}) {
       },
       body: JSON.stringify(body || {}),
       keepalive: Boolean(extra.keepalive),
-    });
-    const parsed = await parseRes(res);
-    if ((parsed.status >= 500 || parsed.status === 429) && !extra.quiet) {
-      reportError({ kind: "api_error", message: parsed.data?.error || `POST ${path}`, status: parsed.status, path });
-    }
-    if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
-      return { fallback: true, error: parsed.data?.error };
-    }
-    return { status: parsed.status, ...parsed.data };
-  } catch (e) {
-    // quiet is for a call that will try again itself: reporting the first miss
-    // fills /admin with faults nothing needs to be done about.
-    if (!extra.quiet) reportError({ kind: "api_error", message: `POST ${path} — ${e?.message || "network"}`, path });
-    return { fallback: true };
-  }
+    },
+    extra
+  );
 }
 
-async function get(path, token) {
-  try {
-    const res = await fetch(path, {
-      headers: token ? { authorization: `Bearer ${token}` } : {},
-    });
-    const parsed = await parseRes(res);
-    if (parsed.status >= 500 || parsed.status === 429) {
-      reportError({ kind: "api_error", message: parsed.data?.error || `GET ${path}`, status: parsed.status, path });
-    }
-    if (parsed.status === 404 || parsed.status === 503 || !parsed.data) {
-      return { fallback: true, error: parsed.data?.error };
-    }
-    return { status: parsed.status, ...parsed.data };
-  } catch (e) {
-    reportError({ kind: "api_error", message: `GET ${path} — ${e?.message || "network"}`, path });
-    return { fallback: true };
-  }
+async function get(path, token, extra = {}) {
+  // Reading is always safe to repeat.
+  return send(path, { headers: token ? { authorization: `Bearer ${token}` } : {} }, { retry: true, ...extra });
 }
 
 export function loadBetaSession() {
@@ -119,14 +144,15 @@ export function yomScan(body, token) {
 }
 
 export function yomCaptureLead(body) {
-  return post("/api/leads", body, undefined, { keepalive: true });
+  // Upserted by email on the server, so a repeat is the same lead.
+  return post("/api/leads", body, undefined, { keepalive: true, retry: true });
 }
 
-export function yomScanVisit(body, opts = {}) {
+export function yomScanVisit(body) {
   // Fired the moment a page loads, so it is usually still in flight when she
   // taps through. Without keepalive the browser cancels it and the visit is
-  // simply never recorded.
-  return post("/api/scan-visit", body, undefined, { keepalive: true, quiet: Boolean(opts.quiet) });
+  // simply never recorded. Upserted by device id, so a repeat is the same visit.
+  return post("/api/scan-visit", body, undefined, { keepalive: true, retry: true });
 }
 
 export function yomShare(body) {
@@ -138,7 +164,9 @@ export function yomLinkPreview(url) {
 }
 
 export function yomLineup(body) {
-  return post("/api/lineup", body);
+  // Her whole pipeline, upserted on her account key — this is the one write
+  // where losing the request means losing looks she can see on her own phone.
+  return post("/api/lineup", body, undefined, { retry: true });
 }
 
 export function yomGetLineup(id) {

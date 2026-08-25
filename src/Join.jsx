@@ -195,7 +195,9 @@ export default function Join() {
     setRestored(
       res?.ok
         ? "check your email — tap the link on this phone and you’re in."
-        : "couldn’t send that right now — try again in a minute."
+        : res?.status === 503 || /set up/i.test(res?.error || "")
+          ? "email login isn’t switched on yet. open yom on the phone you joined on — it’s still there — or text ban and he’ll send your link."
+          : "couldn’t send that right now — try again in a minute."
     );
   };
 

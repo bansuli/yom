@@ -206,6 +206,10 @@ export default function Scan() {
     }
     if (startMode === "link" || startMode === "text") setMode(startMode);
     (async () => {
+      // Google is a beta-account feature. Asking about it on every scan load for
+      // a recruitment pnm who has never connected it was a request nothing read,
+      // and one more thing to fail on a bad connection.
+      if (!grant && !loadBetaSession()?.access_token) return;
       if (grant) await claimGoogleGrant(grant);
       const g = await loadGoogleState();
       setGoogleEvents(g.events || []);

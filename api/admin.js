@@ -460,8 +460,14 @@ export default async function handler(req, res) {
   // The same fault fifty times is one issue, not fifty rows. Group by what
   // broke, and treat a group as resolved only while nothing newer has happened
   // since it was ticked off.
+  // Rows written before the key was scrubbed at the source still hold it, and
+  // this page is where it would be read. Take it out on the way to the screen.
+  const hideSecrets = (value) =>
+    String(value || "").replace(/\b(key|token|secret|access_token)=[^&\s]+/gi, "$1=…");
+
   const groups = new Map();
-  for (const e of errors) {
+  for (const raw of errors) {
+    const e = { ...raw, message: hideSecrets(raw.message), path: hideSecrets(raw.path) };
     const kind = e.kind || "unknown";
     const message = e.message || "";
     const key = `${kind}::${message}`;
