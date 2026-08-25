@@ -337,11 +337,36 @@ export default async function handler(req, res) {
   // Every step counts the same population over the same window, or the chart
   // compares two different things and reads as nonsense.
   const visitorsIn = visitors.filter((v) => inWindow(v.created_at) || inWindow(v.last_seen_at));
-  const trackedAnons = new Set(visitorsIn.map((v) => v.anon_id).filter(Boolean));
-  // Someone backfilled from the sheet has no visitor row, so count her once here
-  // rather than letting the funnel show more emails than opens.
-  const untracked = peopleIn.filter((p) => !(p.anon_ids || []).some((id) => trackedAnons.has(id))).length;
-  const opened = trackedAnons.size + untracked;
+
+  // A person is not a browser. One girl reaches yom from the instagram browser,
+  // then safari, then the app she just put on her home screen — which on ios
+  // keeps its own storage, and so gets its own id. Counting ids made every step
+  // below look like a collapse against a number that was never people.
+  //
+  // So: everyone who gave an email counts once, however many browsers she used,
+  // plus every browser we could not tie to a person — the ones who looked and
+  // left, which is the drop worth reading.
+  const strangers = new Set();
+  for (const v of visitorsIn) {
+    if (!v.anon_id) continue;
+    const p = byAnon.get(v.anon_id);
+    if (!p || !peopleInKeys.has(keyOf(p))) strangers.add(v.anon_id);
+  }
+  const opened = peopleIn.length + strangers.size;
+
+  // The girls who opened yom and never gave an email are the whole of the first
+  // drop, so the page they arrived on is the thing to look at. Guessing at where
+  // the friction is beats nothing; knowing which page they left from beats
+  // guessing.
+  const leftFrom = {};
+  const leftBy = {};
+  for (const v of visitorsIn) {
+    if (!v.anon_id || !strangers.has(v.anon_id)) continue;
+    const page = String(v.path || "unknown").split("?")[0] || "unknown";
+    leftFrom[page] = (leftFrom[page] || 0) + 1;
+    const how = String(v.campaign || v.source || "direct");
+    leftBy[how] = (leftBy[how] || 0) + 1;
+  }
 
   const whose = (row) => owner(row);
 
@@ -545,7 +570,7 @@ export default async function handler(req, res) {
     funnel,
     // Opens can only count visits that were recorded. Anyone restored from the
     // sheet, or lost while scan-visit was dropping writes, has no visit row.
-    opens_untracked: untracked,
+    opens_anonymous: strangers.size,
     stuck,
     activity,
     issues,
@@ -567,6 +592,8 @@ export default async function handler(req, res) {
       internal_hidden: showInternal ? 0 : internal.length,
     },
     by_campaign: byCampaign,
+    left_from: leftFrom,
+    left_by: leftBy,
     people: list.slice(0, 500),
   });
 }

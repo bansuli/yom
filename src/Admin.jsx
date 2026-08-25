@@ -202,6 +202,7 @@ export default function Admin() {
   const hasInputs = some(data?.by_input) || data?.avg_score != null;
   const hasRounds = some(data?.by_round);
   const hasCampaigns = some(data?.by_campaign);
+  const hasLeft = some(data?.left_from) || some(data?.left_by);
   const stuckTotal =
     (data?.stuck?.no_scan?.length || 0) +
     (data?.stuck?.scanned_no_lineup?.length || 0) +
@@ -426,6 +427,11 @@ export default function Admin() {
 
                 <Section title="Campaign" show={hasCampaigns}>
                   <Chips data={data.by_campaign} />
+                </Section>
+
+                <Section title="Opened, never gave an email" show={hasLeft}>
+                  <Chips data={data.left_from} />
+                  <Chips data={data.left_by} />
                 </Section>
               </div>
 
