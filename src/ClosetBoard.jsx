@@ -27,6 +27,7 @@ export default function ClosetBoard() {
   const navigate = useNavigate();
   const [cat, setCat] = useState("all");
   const [feed, setFeed] = useState(() => localFeed());
+  const [loading, setLoading] = useState(true);
   const ready = unlockIfTest();
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function ClosetBoard() {
       const mine = localFeed();
       const seen = new Set(remote.map((look) => look.id));
       setFeed([...remote, ...mine.filter((look) => !seen.has(look.id))]);
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -76,7 +78,11 @@ export default function ClosetBoard() {
         ))}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading && filtered.length === 0 ? (
+        <p className="pnm-sub" aria-live="polite">
+          seeing what everyone’s wearing…
+        </p>
+      ) : filtered.length === 0 ? (
         <p className="pnm-sub">nobody’s shared a lineup yet. yours will show here once you make it public.</p>
       ) : (
         <div className="pnm-grid">

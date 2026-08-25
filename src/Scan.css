@@ -63,8 +63,25 @@
   font: inherit;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 0.35rem 0.9rem;
+  padding: 0.45rem 0.95rem;
+  min-height: 2.2rem;
   cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.14s ease, transform 0.14s ease;
+}
+
+.scan-modes button:active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .scan-modes button:hover {
+    background: color-mix(in srgb, var(--scan-lime) 55%, #fff);
+  }
+
+  .scan-modes button.on:hover {
+    background: color-mix(in srgb, var(--scan-lime) 70%, #111);
+  }
 }
 
 .scan-modes button.on {
@@ -115,8 +132,11 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: lowercase;
-  padding: 0.45rem 0.7rem;
+  padding: 0.5rem 0.75rem;
+  min-height: 2.2rem;
   cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
 }
 
 .scan-flip:active {

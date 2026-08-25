@@ -20,10 +20,114 @@
   font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
   text-transform: lowercase;
   padding: max(0.85rem, env(safe-area-inset-top)) 1.2rem max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pnm-page button,
+.pnm-page a,
+.yom-nav a {
+  touch-action: manipulation;
+}
+
+.pnm-cta,
+.pnm-ghost,
+.pnm-mini,
+.pnm-action,
+.pnm-chip,
+.pnm-choice,
+.pnm-step-do,
+.pnm-pick button,
+.pnm-cats button,
+.pnm-back,
+.pnm-close,
+.pnm-viewall,
+.pnm-switch,
+.yom-nav a {
+  transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease, color 0.14s ease, opacity 0.14s ease;
+}
+
+.pnm-cta:active:not(:disabled),
+.pnm-action:active,
+.pnm-chip:active,
+.pnm-choice:active,
+.pnm-mini:active,
+.pnm-step-do:active,
+.pnm-pick button:active,
+.pnm-cats button:active {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pnm-cta:hover:not(:disabled),
+  .pnm-cta-olive:hover:not(:disabled),
+  .pnm-mini:hover:not(.is-ghost) {
+    background: color-mix(in srgb, var(--scan-lime) 70%, #111);
+    filter: none;
+    transform: none;
+  }
+
+  .pnm-action:hover,
+  .pnm-choice:hover,
+  .pnm-pick button:hover,
+  .pnm-mini.is-ghost:hover {
+    background: color-mix(in srgb, #fff 86%, #111);
+  }
+
+  .pnm-chip:hover {
+    background: color-mix(in srgb, var(--scan-lime) 70%, #111);
+  }
+
+  .pnm-chip.on:hover {
+    background: #000;
+  }
+
+  .pnm-ghost:hover,
+  .pnm-back:hover,
+  .pnm-viewall:hover,
+  .pnm-step-skip:hover {
+    color: #000;
+  }
+
+  .pnm-cats button:hover {
+    border-color: var(--scan-ink);
+    background: color-mix(in srgb, var(--scan-lime) 55%, #fff);
+  }
+
+  .pnm-cats button.on:hover {
+    background: color-mix(in srgb, var(--scan-lime) 70%, #111);
+  }
+
+  .yom-nav a:hover {
+    color: var(--scan-ink);
+  }
+
+  .pnm-card:hover img,
+  .pnm-card:hover .pnm-thumb {
+    transform: scale(1.015);
+  }
+
+  .pnm-look:hover {
+    background: color-mix(in srgb, var(--scan-lime) 22%, #fff);
+  }
+
+  .pnm-step-do:hover {
+    background: #000;
+  }
 }
 
 .pnm-page.is-flush {
   padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
+}
+
+.pnm-page.is-app {
+  background: #fff;
+}
+
+.pnm-page.is-app .pnm-kicker {
+  text-align: left;
+  color: var(--scan-muted);
+  font-size: 0.75rem;
+  margin-bottom: 0.15rem;
 }
 
 .pnm-brand {
@@ -126,6 +230,13 @@
 .pnm-home-title {
   font-size: clamp(1.7rem, 7vw, 2.05rem);
   max-width: 14ch;
+}
+
+.pnm-home-title em {
+  display: block;
+  font-style: italic;
+  font-size: 1.08em;
+  font-family: "Instrument Serif", Georgia, serif;
 }
 
 .pnm-sub {
@@ -284,7 +395,8 @@
   font-size: 0.72rem;
   font-weight: 600;
   border-radius: 999px;
-  padding: 0.32rem 0.7rem;
+  padding: 0.48rem 0.82rem;
+  min-height: 2.2rem;
   cursor: pointer;
 }
 
@@ -348,6 +460,44 @@
   padding: 0.9rem 1rem;
   margin-bottom: 0.55rem;
   cursor: pointer;
+  color: inherit;
+}
+
+.pnm-choice.is-primary {
+  background: var(--scan-lime);
+  border-color: var(--scan-ink);
+  border-radius: 12px;
+  margin-bottom: 0.65rem;
+}
+
+.pnm-choice-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.pnm-choice.is-compact {
+  margin-bottom: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 12px;
+}
+
+.pnm-choice.is-compact strong {
+  font-size: 0.85rem;
+}
+
+.pnm-choice.is-compact span span {
+  font-size: 0.68rem;
+}
+
+.pnm-look {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }
 
 .pnm-choice strong {
@@ -861,6 +1011,7 @@
   border-radius: 10px;
   display: block;
   background: #f3f3f3;
+  transition: transform 0.18s ease;
 }
 
 .pnm-card figcaption {
@@ -924,6 +1075,7 @@
   background: #fff;
   border-radius: 12px;
   padding: 0.4rem 0.45rem 0.4rem 0.4rem;
+  transition: background 0.14s ease;
 }
 
 .pnm-look .pnm-chips {
@@ -1062,6 +1214,7 @@
   position: relative;
   cursor: pointer;
   flex-shrink: 0;
+  transition: background 0.14s ease;
 }
 
 .pnm-switch.on {
@@ -1077,7 +1230,7 @@
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  transition: transform 0.15s ease;
+  transition: transform 0.14s ease;
 }
 
 .pnm-switch.on::after {
@@ -1136,7 +1289,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 0.18rem;
+  min-height: 2.75rem;
+  padding: 0.28rem 0 0.1rem;
   text-decoration: none;
   color: #9a9a9a;
   font-size: 0.62rem;

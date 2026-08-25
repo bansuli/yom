@@ -11,12 +11,29 @@ import { loadBetaSession, yomLinkPreview, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
 import { enrichScanTake } from "./lib/scan-details.js";
 import { claimGoogleGrant, loadGoogleState } from "./lib/google-session.js";
-import { LINEUP_DAYS, LINEUP_PIECES, guessDayForRound, pieceLabel, pieceSlotFor, wearLabel } from "./lib/contexts.js";
-import { addLookToLineup, loadLooks, lookFromScan, syncPipeline, upsertLook } from "./lib/pipeline-store.js";
+import {
+  getContextById,
+  LINEUP_DAYS,
+  LINEUP_PIECES,
+  guessDayForRound,
+  pieceLabel,
+  pieceSlotFor,
+  wearLabel,
+} from "./lib/contexts.js";
+import {
+  addLookToLineup,
+  loadLooks,
+  lookFromScan,
+  lookImage,
+  lookInLineup,
+  syncPipeline,
+  upsertLook,
+} from "./lib/pipeline-store.js";
 import { thumbFrom as thumbForSheet } from "./lib/image.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/product-link.js";
 import { reportError } from "./lib/report-error.js";
 import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "./lib/scan-score.js";
+import { humanizeTake } from "./lib/voice.js";
 import "./Scan.css";
 import "./Pipeline.css";
 
@@ -724,13 +741,14 @@ export default function Scan() {
   const landed = phase === "result" && result;
   const wearRound =
     LINEUP_DAYS.find((d) => d.id === pickDay)?.wear || wearLabel(verdict.round) || "recruitment";
-  const score = verdict.score != null ? Number(verdict.score).toFixed(1) : "—";
-  const why = verdict.why_it_works || verdict.body || "";
-  const change = verdict.change || verdict.resolve || "";
-  const berkeley =
+  const score = verdict.score != null ? Number(verdict.score).toFixed(1) : "-";
+  const why = humanizeTake(verdict.why_it_works || verdict.body || "");
+  const change = humanizeTake(verdict.change || verdict.resolve || "");
+  const berkeley = humanizeTake(
     verdict.berkeley ||
     verdict.spotting ||
-    (cousins.length ? cousins.map((item) => item.name).join(" · ") : "");
+    (cousins.length ? cousins.map((item) => item.name).join(" · ") : "")
+  );
   const peopleTalk =
     result?.reviews?.summary || result?.reviews?.highlights?.length
       ? result.reviews
@@ -787,7 +805,7 @@ export default function Scan() {
           </div>
           <div className="pnm-result-copy">
             <p className="pnm-sub" style={{ margin: 0 }}>
-              {verdict.body || "yom needs a photo, link, or description of something you’d actually wear."}
+              {humanizeTake(verdict.body) || "yom needs a photo, link, or description of something you’d actually wear."}
             </p>
           </div>
         </div>
@@ -828,7 +846,7 @@ export default function Scan() {
             </div>
             <article className="pnm-block">
               <h3>why it works</h3>
-              <p>{why || verdict.title}</p>
+              <p>{why || humanizeTake(verdict.title)}</p>
             </article>
             {peopleTalk ? (
               <article className="pnm-block pnm-reviews">
@@ -864,8 +882,8 @@ export default function Scan() {
                     <li key={`${piece.slot}-${piece.name}`}>
                       <strong>{pieceLabel(piece.slot)}</strong>
                       <span>{piece.name}</span>
-                      <p>{piece.feedback}</p>
-                      {piece.note ? <p className="pnm-piece-tweak">{piece.note}</p> : null}
+                      <p>{humanizeTake(piece.feedback)}</p>
+                      {piece.note ? <p className="pnm-piece-tweak">{humanizeTake(piece.note)}</p> : null}
                     </li>
                   ))}
                 </ul>
@@ -926,6 +944,12 @@ export default function Scan() {
   // The think step is the home tab now, so it keeps the nav and loses the back
   // button — there is nothing behind it unless she came from a day.
   const isHome = phase === "think" && !pickDay;
+  const joinProfile = loadJoinProfile();
+  const shoppingContext = getContextById(joinProfile.context);
+  const contextKicker =
+    (joinProfile.contextOther || "").trim() ||
+    (shoppingContext.id === "berkeley_fpr_2026" ? "berkeley fpr 2026" : shoppingContext.label);
+  const savedLooks = isHome ? loadLooks() : [];
 
   return (
     <div className={`pnm-page${isHome ? " is-app" : " is-flush"}`}>
@@ -950,39 +974,48 @@ export default function Scan() {
 
       {phase === "think" && (
         <>
-          <h1 className="pnm-title pnm-think">
-            show me what
-            <br />
-            you’re thinking.
+          {isHome && contextKicker ? <p className="pnm-kicker">{contextKicker}</p> : null}
+          <h1 className={`pnm-title${isHome ? " pnm-home-title" : " pnm-think"}`}>
+            {isHome ? (
+              <>
+                show yom what you’re
+                <em>thinking.</em>
+              </>
+            ) : (
+              <>
+                show me what
+                <br />
+                you’re thinking.
+              </>
+            )}
           </h1>
-          <p className="pnm-sub">an outfit, a single piece, anything.</p>
-          <button type="button" className="pnm-choice" onClick={() => startScan("photo")}>
+          {!isHome ? <p className="pnm-sub">an outfit, a single piece, anything.</p> : null}
+          <button type="button" className="pnm-choice is-primary" onClick={() => startScan("photo")}>
             <span>
               <strong>take a photo</strong>
               <span>use your camera</span>
             </span>
-            <span className="pnm-choice-arrow">→</span>
           </button>
-          <button type="button" className="pnm-choice" onClick={() => fileRef.current?.click()}>
-            <span>
-              <strong>upload a photo</strong>
-              <span>from your camera roll</span>
-            </span>
-            <span className="pnm-choice-arrow">→</span>
-          </button>
-          <button
-            type="button"
-            className="pnm-choice"
-            onClick={() => {
-              setMode("link");
-            }}
-          >
-            <span>
-              <strong>paste a link</strong>
-              <span>from any store</span>
-            </span>
-            <span className="pnm-choice-arrow">→</span>
-          </button>
+          <div className="pnm-choice-row">
+            <button type="button" className="pnm-choice is-compact" onClick={() => fileRef.current?.click()}>
+              <span>
+                <strong>upload</strong>
+                <span>from camera roll</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              className="pnm-choice is-compact"
+              onClick={() => {
+                setMode("link");
+              }}
+            >
+              <span>
+                <strong>paste a link</strong>
+                <span>from any store</span>
+              </span>
+            </button>
+          </div>
           {mode === "link" && (
             <form
               onSubmit={(e) => {
@@ -1019,7 +1052,48 @@ export default function Scan() {
               onChange={(e) => setNote(e.target.value)}
             />
           </form>
-          {isHome && <AddToHomeScreen when={loadLooks().length > 0} />}
+          {isHome && savedLooks.length > 0 ? (
+            <>
+              <div className="pnm-section-head">
+                <h2>your looks</h2>
+                <span className="pnm-count">{savedLooks.length}</span>
+              </div>
+              <ul className="pnm-looks">
+                {savedLooks.map((look) => {
+                  const inLineup = lookInLineup(look.id);
+                  const day =
+                    LINEUP_DAYS.find((d) => d.id === look.dayId)?.chip ||
+                    wearLabel(look.roundId || look.dayId);
+                  const label =
+                    look.product?.name || look.title || wearLabel(look.roundId) || "look";
+                  return (
+                    <li key={look.id}>
+                      <button type="button" className="pnm-look" onClick={() => navigate("/me")}>
+                        {lookImage(look) ? (
+                          <img src={lookImage(look)} alt="" referrerPolicy="no-referrer" />
+                        ) : (
+                          <div className="pnm-thumb empty" aria-hidden="true" />
+                        )}
+                        <div>
+                          <h3>{label}</h3>
+                          <p>
+                            {look.score != null ? `${Number(look.score).toFixed(1)}/10` : "—"}
+                            {day ? ` · ${day}` : ""}
+                          </p>
+                        </div>
+                        {inLineup ? (
+                          <span className="pnm-mini">in lineup</span>
+                        ) : (
+                          <span className="pnm-mini is-ghost">saved</span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          ) : null}
+          {isHome && <AddToHomeScreen when={savedLooks.length > 0} />}
         </>
       )}
 

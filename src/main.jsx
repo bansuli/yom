@@ -20,6 +20,7 @@ import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 import { bootPipeline } from './lib/pipeline-store.js'
 import { adoptAccountKey } from './lib/account.js'
+import { startTapFeel } from './lib/tap-feel.js'
 import { startErrorReporting } from './lib/report-error.js'
 
 // A transfer link carries the account key in the fragment, which browsers keep
@@ -38,6 +39,7 @@ function claimAccountFromUrl() {
 
 claimAccountFromUrl()
 startErrorReporting()
+startTapFeel()
 initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
