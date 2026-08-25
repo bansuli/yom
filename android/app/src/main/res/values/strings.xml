@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">yom</string>
+    <string name="title_activity_main">yom</string>
+    <string name="package_name">com.youryom.app</string>
+    <string name="custom_url_scheme">com.youryom.app</string>
+</resources>

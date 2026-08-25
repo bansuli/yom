@@ -1,5 +1,6 @@
 import { getAnonId, getSurface } from "./analytics.js";
 import { loadJoinEmail } from "./join-store.js";
+import { apiUrl } from "./native.js";
 
 /**
  * Report a failure so it shows up on /admin. Deliberately quiet and bounded:
@@ -75,7 +76,7 @@ export function reportError({ kind = "js_error", message = "", status, path, det
       detail: detail && typeof detail === "object" ? detail : undefined,
     });
     // keepalive so a report survives the navigation that often follows a crash
-    fetch("/api/log-error", {
+    fetch(apiUrl("/api/log-error"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body,

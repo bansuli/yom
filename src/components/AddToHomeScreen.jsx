@@ -8,6 +8,7 @@ import {
   isStandalone,
   markAdded,
 } from "../lib/a2hs.js";
+import { isNativeApp } from "../lib/native.js";
 import "../Pipeline.css";
 
 /**
@@ -20,7 +21,7 @@ export default function AddToHomeScreen({ when = false }) {
   const [prompt, setPrompt] = useState(null);
 
   useEffect(() => {
-    if (!when || isStandalone() || hasAdded()) return;
+    if (!when || isStandalone() || hasAdded() || isNativeApp()) return;
     try {
       if (localStorage.getItem(A2HS_DISMISSED_KEY) === "1") return;
     } catch {

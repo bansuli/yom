@@ -9,6 +9,7 @@ import {
   newId,
   parseAcquisitionFromSearch,
 } from "./analytics-shared.js";
+import { isNativeApp, nativePlatform } from "./native.js";
 
 let ready = false;
 let identified = false;
@@ -20,6 +21,12 @@ function isBrowser() {
 
 export function getSurface() {
   if (!isBrowser()) return "web";
+  if (isNativeApp()) {
+    const platform = nativePlatform();
+    if (platform === "ios") return "ios_app";
+    if (platform === "android") return "android_app";
+    return "native_app";
+  }
   const w = window.innerWidth || 0;
   const ua = navigator.userAgent || "";
   if (w <= 768 || /iPhone|iPad|Android/i.test(ua)) return "mobile_web";

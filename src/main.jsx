@@ -22,6 +22,25 @@ import { bootPipeline } from './lib/pipeline-store.js'
 import { adoptAccountKey } from './lib/account.js'
 import { startTapFeel } from './lib/tap-feel.js'
 import { startErrorReporting } from './lib/report-error.js'
+import { isNativeApp } from './lib/native.js'
+
+async function bootNativeShell() {
+  if (!isNativeApp()) return
+  try {
+    const { StatusBar, Style } = await import('@capacitor/status-bar')
+    await StatusBar.setStyle({ style: Style.Light })
+  } catch {
+    /* plugin optional at dev time */
+  }
+  try {
+    const { SplashScreen } = await import('@capacitor/splash-screen')
+    await SplashScreen.hide()
+  } catch {
+    /* ignore */
+  }
+}
+
+bootNativeShell()
 
 // A transfer link carries the account key in the fragment, which browsers keep
 // out of referrers and server logs. Adopt it before anything reads the store.
@@ -69,6 +88,7 @@ function PageHits() {
 
 function BetaCorner() {
   const { pathname } = useLocation()
+  if (isNativeApp()) return null
   if (
     pathname === '/beta' ||
     pathname === '/scan' ||

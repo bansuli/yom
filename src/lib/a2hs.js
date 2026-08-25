@@ -9,12 +9,14 @@
  */
 
 import { getAccountKey } from "./account.js";
+import { isNativeApp } from "./native.js";
 
 export const A2HS_DISMISSED_KEY = "yom_a2hs_dismissed";
 const ADDED_KEY = "yom_a2hs_added";
 
 export function isStandalone() {
   if (typeof window === "undefined") return false;
+  if (isNativeApp()) return true;
   try {
     return Boolean(
       window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true

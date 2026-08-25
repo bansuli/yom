@@ -1,4 +1,5 @@
 import { reportError } from "./report-error.js";
+import { apiUrl } from "./native.js";
 
 const SESSION = "yom-beta";
 
@@ -28,7 +29,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function send(path, init, { quiet = false, retry = false } = {}) {
   const label = `${init.method || "GET"} ${path}`;
   const attempt = async () => {
-    const res = await fetch(path, init);
+    const res = await fetch(apiUrl(path), init);
     return parseRes(res);
   };
 

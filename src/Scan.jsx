@@ -34,6 +34,7 @@ import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "./lib/pr
 import { reportError } from "./lib/report-error.js";
 import { capRunningTrainerVerdict, emptyClothingVerdict, isNonClothingScan } from "./lib/scan-score.js";
 import { humanizeTake } from "./lib/voice.js";
+import { apiUrl } from "./lib/native.js";
 import "./Scan.css";
 import "./Pipeline.css";
 
@@ -463,7 +464,7 @@ export default function Scan() {
     }
     let data = {};
     try {
-      const res = await fetch("/api/yom-scan", {
+      const res = await fetch(apiUrl("/api/yom-scan"), {
         method: "POST",
         headers: {
           "content-type": "application/json",

@@ -8,6 +8,7 @@ import {
   track,
 } from "./lib/analytics.js";
 import { loadVoterName, saveVoterName } from "./lib/share-votes.js";
+import { apiUrl } from "./lib/native.js";
 import "./Scan.css";
 import "./Share.css";
 
@@ -57,7 +58,9 @@ export default function SharePage() {
         if (cancelled) return;
         try {
           const res = await fetch(
-            `/api/share?id=${encodeURIComponent(shareId)}&anon_id=${encodeURIComponent(getAnonId() || "")}`
+            apiUrl(
+              `/api/share?id=${encodeURIComponent(shareId)}&anon_id=${encodeURIComponent(getAnonId() || "")}`
+            )
           );
           const data = await res.json().catch(() => ({}));
           if (cancelled) return;
@@ -107,7 +110,7 @@ export default function SharePage() {
       voter_name: name,
     });
 
-    const res = await fetch("/api/share", {
+    const res = await fetch(apiUrl("/api/share"), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
