@@ -400,6 +400,16 @@ export default function Admin() {
                         <b>{data.stuck.scanned_no_lineup.length}</b> scanned, no lineup
                       </li>
                     ) : null}
+                    {data.stuck?.never_opened_scanner?.length ? (
+                      <li>
+                        <b>{data.stuck.never_opened_scanner.length}</b> joined and never came back
+                      </li>
+                    ) : null}
+                    {data.stuck?.opened_scanner_no_scan?.length ? (
+                      <li>
+                        <b>{data.stuck.opened_scanner_no_scan.length}</b> opened the scanner, got no scan out of it
+                      </li>
+                    ) : null}
                     {data.stuck?.lineup_not_shared?.length ? (
                       <li>
                         <b>{data.stuck.lineup_not_shared.length}</b> have a lineup, not shared

@@ -427,8 +427,29 @@ export default async function handler(req, res) {
     };
   });
 
+  // Where the pages someone actually reached are recorded, so "never scanned"
+  // can be split into the two very different reasons for it.
+  const pathsByAnon = new Map();
+  for (const v of visitorsIn) {
+    if (!v.anon_id) continue;
+    const page = String(v.path || "").split("?")[0];
+    if (!pathsByAnon.has(v.anon_id)) pathsByAnon.set(v.anon_id, new Set());
+    pathsByAnon.get(v.anon_id).add(page);
+  }
+  const reachedScanner = (p) =>
+    (p.anon_ids || []).some((id) => {
+      const pages = pathsByAnon.get(id);
+      return pages ? [...pages].some((page) => page === "/scan" || page === "/looks") : false;
+    });
+
+  // A girl who gave her email and never scanned did one of two things, and they
+  // need opposite fixes: she never came back at all, or she came back, opened
+  // the scanner and did not get a scan out of it.
+  const noScan = peopleIn.filter((p) => p.looks === 0 && !(p.scans || []).length);
   const stuck = {
     no_scan: peopleIn.filter((p) => p.looks === 0).map((p) => p.email),
+    never_opened_scanner: noScan.filter((p) => !reachedScanner(p)).map((p) => p.email),
+    opened_scanner_no_scan: noScan.filter((p) => reachedScanner(p)).map((p) => p.email),
     scanned_no_lineup: peopleIn.filter((p) => p.looks > 0 && p.in_lineup === 0).map((p) => p.email),
     lineup_not_shared: peopleIn.filter((p) => p.in_lineup > 0 && !p.is_public).map((p) => p.email),
   };
