@@ -79,7 +79,7 @@ Mobile camera / upload → `POST /api/yom-scan` (OpenAI vision, Anthropic fallba
 
 QR for in-store: `https://www.youryom.com/join?qr=1&campaign=reformation_monday`
 
-Funnel: **email → create my yom → camera** (`/join` then `/scan`). Visiting `/scan` without completing join redirects back to `/join`.
+Funnel: **poster landing → email → home screen → camera** (`/join` then `/scan`). Visiting `/scan` without completing join redirects back to `/join`.
 
 PWA: `public/manifest.webmanifest` + Add to Home Screen tip on the scan page. Same PostHog/Supabase identity as the site.
 
