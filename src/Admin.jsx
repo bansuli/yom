@@ -83,6 +83,25 @@ function IssueRow({ issue, busy, onAction }) {
   );
 }
 
+/**
+ * A note you actually send. Forty-six girls is few enough to write to one at a
+ * time, and the fastest thing that tells you why they are not scanning is
+ * asking them. Opens her own mail app, from her own address — nothing is sent
+ * from here.
+ */
+function askHer(person, detail) {
+  const first = String(person.name || "").trim().split(/\s+/)[0];
+  const hi = first ? `hi ${first},` : "hi,";
+  const scans = detail?.scans?.length ?? person.scans?.length ?? 0;
+  const middle = scans
+    ? "i saw you tried it out — what did you think? anything that felt off or annoying?"
+    : "you signed up but haven't shown yom anything yet, and i'd really like to know why. did something not work, or is it just not the right moment yet?";
+  const body = `${hi}\n\nit's ban — i built yom.\n\n${middle}\n\nanything at all, even one line, helps. thank you for trying it.\n\n— ban`;
+  return `mailto:${encodeURIComponent(person.email)}?subject=${encodeURIComponent(
+    "how's yom going?"
+  )}&body=${encodeURIComponent(body)}`;
+}
+
 /** The gap between two steps is the thing worth fixing, so show the gap. */
 function Funnel({ steps }) {
   const top = steps[0]?.people || 0;
@@ -640,6 +659,9 @@ export default function Admin() {
               Lineup <b>{person.is_public ? "Public" : "Private"}</b>
             </span>
           </div>
+          <a className="yom-admin-ask" href={askHer(person, detail)}>
+            Ask her how it's going →
+          </a>
           {detailBusy && <p className="yom-admin-note">Loading her record…</p>}
 
           {detail?.lineup?.some((day) => day.pieces.length) && (

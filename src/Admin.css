@@ -674,3 +674,18 @@
 .yom-thumb-empty.is-blank {
   opacity: 0.6;
 }
+
+/* Writing to one girl at a time is a real tool at this size, so it gets a real
+   button rather than an email address to copy out by hand. */
+.yom-admin-ask {
+  display: inline-block;
+  margin: 0.7rem 0 0.2rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #111;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
