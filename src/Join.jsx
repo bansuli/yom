@@ -45,6 +45,11 @@ export default function Join() {
   // Step four. Her yom lives in this browser, so this is the step that decides
   // whether she still has it on wednesday — she does not get past it.
   const [added, setAdded] = useState(() => hasAdded());
+  // The home screen step is asked of a girl the moment she joins, and never
+  // again. Someone coming back is coming back to something she already owns —
+  // standing in front of it and demanding she install first locks her out of
+  // her own lineup, which is the opposite of what the step is for.
+  const [justJoined, setJustJoined] = useState(false);
   const [howTo, setHowTo] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
 
@@ -177,6 +182,7 @@ export default function Join() {
       navigate(`/scan${qs({ from: "land" })}`);
       return;
     }
+    setJustJoined(true);
     setStep("land");
     try {
       window.scrollTo(0, 0);
@@ -246,7 +252,7 @@ export default function Join() {
       }
       return;
     }
-    if (!added) return;
+    if (justJoined && !added) return;
     // "i don't have an outfit yet" used to mean /looks, which is the scanner
     // now — so both buttons landed on the same page. Someone with nothing yet
     // wants the week laid out, not a camera.
@@ -303,14 +309,33 @@ export default function Join() {
                       ? addByHandText()
                       : "your yom lives on this phone. this is what keeps it — and gets you back in one tap all week."}
                 </p>
-                {added ? null : howTo ? (
-                  <button type="button" className="pnm-step-do" onClick={confirmAdded}>
-                    i added it →
-                  </button>
-                ) : (
-                  <button type="button" className="pnm-step-do" onClick={addToHome}>
-                    add yom →
-                  </button>
+                {added ? null : (
+                  <div className="pnm-step-actions">
+                    {howTo ? (
+                      <button type="button" className="pnm-step-do" onClick={confirmAdded}>
+                        i added it →
+                      </button>
+                    ) : (
+                      <button type="button" className="pnm-step-do" onClick={addToHome}>
+                        add yom →
+                      </button>
+                    )}
+                    {/* Never a dead end. A girl who will not install still gets
+                        to use the thing she just signed up for; she is told what
+                        it costs her, and asked again by the banner later. */}
+                    {justJoined ? (
+                      <button
+                        type="button"
+                        className="pnm-step-skip"
+                        onClick={() => {
+                          setJustJoined(false);
+                          track("home_screen_skipped", { path: "/join" });
+                        }}
+                      >
+                        not now
+                      </button>
+                    ) : null}
+                  </div>
                 )}
               </div>
             </article>
@@ -318,7 +343,7 @@ export default function Join() {
           <button
             type="button"
             className="pnm-cta"
-            disabled={isYomReady() && !added}
+            disabled={justJoined && !added}
             onClick={() => goFromLand("scan")}
           >
             show yom an outfit →
@@ -326,12 +351,12 @@ export default function Join() {
           <button
             type="button"
             className="pnm-ghost"
-            disabled={isYomReady() && !added}
+            disabled={justJoined && !added}
             onClick={() => goFromLand("lineup")}
           >
             i don’t have an outfit yet →
           </button>
-          {isYomReady() && !added ? (
+          {justJoined && !added ? (
             <p className="pnm-gate">add yom to your home screen first — step 04.</p>
           ) : null}
           {isYomReady() ? null : (

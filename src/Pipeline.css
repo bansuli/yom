@@ -226,6 +226,25 @@
   cursor: pointer;
 }
 
+.pnm-step-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.pnm-step-skip {
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.76rem;
+  color: #8a8a8a;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  padding: 0;
+  cursor: pointer;
+}
+
 .pnm-step.is-done .pnm-num {
   color: var(--scan-olive);
 }
