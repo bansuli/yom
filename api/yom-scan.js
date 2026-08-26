@@ -1,7 +1,7 @@
 import { bearer, json, preflight, readJson } from "../lib/http.js";
 import { mergeDetailsIntoVerdict } from "../lib/scan-details.js";
 import { buildScanSystemPrompt, buildScanUserPrompt, defaultRetailer, humanizeVerdictText } from "../lib/scan-brain.js";
-import { RUSH_PARROT } from "../lib/berkeley-rush.js";
+import { RUSH_PARROT, resolveRoundId } from "../lib/berkeley-rush.js";
 import { loadStylistContext } from "../lib/google-context.js";
 import { fetchImageAsDataUrl, fetchLinkPreview } from "../lib/link-preview.js";
 import { cleanProductUrl, guessListingImage, noteFromProductUrl } from "../lib/product-link.js";
@@ -201,9 +201,9 @@ function analysisFields(verdict = {}, context = {}) {
   const scoreRaw = Number(verdict.score);
   const kind = verdict.kind;
   const fallbackScore = kind === "love" ? 8.4 : kind === "warn" ? 5.6 : 7.2;
-  const round = ROUNDS.has(String(verdict.round || "").trim())
+  const said = ROUNDS.has(String(verdict.round || "").trim())
     ? String(verdict.round).trim()
-    : String(context.recruitment_round || "").trim() || null;
+    : String(context.recruitment_round || "").trim();
   if (verdict.quiet) {
     return {
       score: null,
@@ -214,9 +214,13 @@ function analysisFields(verdict = {}, context = {}) {
       spotting: "",
     };
   }
+  // Which day to wear it on is the answer she came for, so it is never blank:
+  // a model that skipped the field, or hedged with a generic "unity", still
+  // resolves to one night she can act on. Everything below is clothing.
+  const round = resolveRoundId(said);
   return {
     score: Number.isFinite(scoreRaw) ? Math.max(0, Math.min(10, Math.round(scoreRaw * 10) / 10)) : fallbackScore,
-    round: ROUNDS.has(round) ? round : null,
+    round: ROUNDS.has(round) ? round : "unity_day_1",
     why_it_works: humanizeVerdictText(String(verdict.why_it_works || verdict.body || "").toLowerCase()).slice(0, 280),
     change: humanizeVerdictText(String(verdict.change || verdict.resolve || "").toLowerCase()).slice(0, 280),
     berkeley: humanizeVerdictText(String(verdict.berkeley || verdict.spotting || "").toLowerCase()).slice(0, 280),
@@ -512,8 +516,10 @@ export default async function handler(req, res) {
   }
 
   const earlyQuery = note || "";
+  // Nothing to research for a photo, so nothing is started for one — a closet
+  // shot should not wait on a web search it will never show.
   const earlyReviews =
-    (sourceUrl || earlyQuery) && openai
+    sourceUrl && openai
       ? researchProductReviews({
           product: { name: earlyQuery, brand: null },
           sourceUrl,
@@ -613,16 +619,12 @@ export default async function handler(req, res) {
     }
   }
 
-  const verdictOut = analysis.quiet
+  const merged = analysis.quiet
     ? analysis
-    : attachReviews(
-        mergeDetailsIntoVerdict(
-          { ...product, name, brand, guess },
-          analysis,
-          verdict.style_notes || data.style_notes
-        ),
-        reviews
-      );
+    : mergeDetailsIntoVerdict({ ...product, name, brand, guess }, analysis, verdict.style_notes || data.style_notes);
+  // The verdict carries its own copy of the reviews and the app falls back to
+  // it, so a photo has to be stripped in both places or the strangers come back.
+  const verdictOut = analysis.quiet ? merged : sourceUrl ? attachReviews(merged, reviews) : { ...merged, reviews: null };
 
   json(res, 200, {
     ok: true,
@@ -647,7 +649,9 @@ export default async function handler(req, res) {
       similar,
     },
     similar,
-    reviews: verdictOut.reviews || reviews || null,
+    // Never from a photo, even if the model volunteered some: unsourced quotes
+    // about a piece she already owns are invented, and read as fact.
+    reviews: sourceUrl ? verdictOut.reviews || reviews || null : null,
     ocr: data.ocr || null,
     verdict: verdictOut,
   });

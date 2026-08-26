@@ -15,7 +15,7 @@ import {
   getContextById,
   LINEUP_DAYS,
   LINEUP_PIECES,
-  guessDayForRound,
+  dayToWear,
   pieceLabel,
   pieceSlotFor,
   wearLabel,
@@ -206,6 +206,19 @@ function loadSavedEmail() {
   return loadJoinEmail();
 }
 
+/**
+ * Is this a whole outfit rather than one garment?
+ *
+ * Several photos on a sheet always are. So is a single photo the model read as
+ * an outfit — a dress with shoes in frame is a look, and asking her to file it
+ * under one slot forces a wrong answer either way.
+ */
+function isWholeLook(result, mode) {
+  if (mode === "photos") return true;
+  const pieces = Array.isArray(result?.pieces) ? result.pieces.filter((p) => p?.feedback) : [];
+  return result?.scan_mode === "outfit" && pieces.length >= 2;
+}
+
 export default function Scan() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -245,11 +258,11 @@ export default function Scan() {
 
   useEffect(() => {
     if (!result) return;
-    const guessed = guessDayForRound(result.verdict?.round);
-    setPickDay((prev) => prev || guessed?.id || "");
-    // A sheet of several photos is the whole look, so it takes a day rather than
-    // a slot — guessing "top" for a top, shorts and shoes would be wrong.
-    if (mode === "photos") setPickSlot("look");
+    setPickDay((prev) => prev || dayToWear(result.verdict?.round).id);
+    // A whole look takes a day, not a slot. That is several photos on one sheet,
+    // but also one photo of an outfit she is already wearing — calling a dress
+    // and shoes "shoes" is the wrong question asked confidently.
+    if (isWholeLook(result, mode)) setPickSlot("look");
     else setPickSlot((prev) => prev || pieceSlotFor({ product: result.product, title: result.product?.name, note }));
   }, [result, note, mode]);
 
@@ -807,10 +820,14 @@ export default function Scan() {
   const verdict = result?.verdict || {};
   const outfitPieces = Array.isArray(result?.pieces) ? result.pieces.filter((p) => p?.feedback) : [];
   const isOutfit = result?.scan_mode === "outfit" && outfitPieces.length >= 2;
+  const wholeLook = isWholeLook(result, mode);
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
-  const wearRound =
-    LINEUP_DAYS.find((d) => d.id === pickDay)?.wear || wearLabel(verdict.round) || "recruitment";
+  // The day yom picked, kept separate from the day she picked: once she taps a
+  // chip the headline follows her, but she should still see what the answer was.
+  const advisedDay = dayToWear(verdict.round);
+  const chosenDay = LINEUP_DAYS.find((d) => d.id === pickDay);
+  const wearRound = chosenDay?.wear || advisedDay?.wear || wearLabel(verdict.round);
   const score = verdict.score != null ? Number(verdict.score).toFixed(1) : "-";
   const why = humanizeTake(verdict.why_it_works || verdict.body || "");
   const change = humanizeTake(verdict.change || verdict.resolve || "");
@@ -984,12 +1001,18 @@ export default function Scan() {
               </button>
             ))}
           </div>
-          {!pickDay && String(verdict.round || "").startsWith("unity") ? (
-            <p className="pnm-sub">unity 1 and 2 are different nights — pick one.</p>
-          ) : null}
-          {/* Several photos are one outfit, not one garment — asking her to
-              call three pieces "a top" is the wrong question. */}
-          {mode === "photos" ? (
+          {/* The chip comes pre-tapped, so say who tapped it — otherwise the
+              answer she came for reads as a box she filled in herself. */}
+          {pickDay === advisedDay.id ? (
+            <p className="pnm-sub">yom picked {advisedDay.wear}. tap another if you disagree.</p>
+          ) : (
+            <p className="pnm-sub">
+              yom said {advisedDay.wear} — saving it for {chosenDay?.wear || "another day"}.
+            </p>
+          )}
+          {/* An outfit is one look, not one garment — asking her to call a dress
+              and shoes "shoes" is the wrong question. */}
+          {wholeLook ? (
             <p className="pnm-sub">saved as a whole outfit.</p>
           ) : (
             <>
