@@ -1801,10 +1801,20 @@ a {
   .prod-cardigan,
   .prod-tank,
   .prod-pants,
-  .prod-bag,
   .prod-extra,
   .fit {
     display: none;
+  }
+
+  /* Second piece: the bag, top right, opposite the nav pills. */
+  .prod-bag {
+    display: block;
+    left: auto;
+    right: -2%;
+    top: 1%;
+    bottom: auto;
+    width: 44vw;
+    max-width: none;
   }
 
   /* First piece back: the tabi, bottom right. Sitting in the corner rather
