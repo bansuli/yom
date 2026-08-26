@@ -7,6 +7,9 @@ import tabiImg from './assets/product-tabi.jpg'
 import tankImg from './assets/product-tank.jpg'
 import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE.webp'
 import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Authentic.jpg'
+// The same bag with the white background actually cut away. Phones only: the
+// desktop collage keeps the original photo exactly as it was.
+import bagCutout from './assets/product-bag-cutout.webp'
 import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8.jpg'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
@@ -64,7 +67,12 @@ function App() {
         <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
         <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
         <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.6)' }} /></div>
-        <div className="sticker prod-bag"><img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} /></div>
+        <div className="sticker prod-bag">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={bagCutout} />
+            <img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} />
+          </picture>
+        </div>
         <div className="sticker prod-extra"><img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} /></div>
 
         <nav className="tilted-nav" aria-label="Primary">
