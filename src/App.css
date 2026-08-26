@@ -1791,3 +1791,20 @@ a {
     opacity: 0.6;
   }
 }
+
+/* Phone only: no clothing for now — a clean base to build the layout back up
+   from, one piece at a time. Desktop and tablet keep the full collage. Last in
+   the file so it wins over the phone rules above that place each piece. */
+@media (max-width: 640px) {
+  .prod-sneaker,
+  .prod-shirt,
+  .prod-cardigan,
+  .prod-tabi,
+  .prod-tank,
+  .prod-pants,
+  .prod-bag,
+  .prod-extra,
+  .fit {
+    display: none;
+  }
+}
