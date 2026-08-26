@@ -260,6 +260,36 @@ export default function Admin() {
     load();
   };
 
+  const personAction = async (action) => {
+    if (!person?.email) return;
+    if (
+      action === "purge" &&
+      !window.confirm(`Delete all data for ${person.email}? This cannot be undone.`)
+    ) {
+      return;
+    }
+    setWorking(`person-${action}`);
+    const res = await fetch("/api/admin-purge", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, email: person.email }),
+    })
+      .then((r) => r.json())
+      .catch(() => null);
+    setWorking("");
+    if (!res?.ok) {
+      window.alert(res?.error || "Could not complete.");
+      return;
+    }
+    if (action === "purge") {
+      setOpen(null);
+      setDetail(null);
+      load();
+      return;
+    }
+    load();
+  };
+
   const downloadCsv = async () => {
     const res = await fetch(`/api/admin?csv=1&window=${range}${showInternal ? "&internal=1" : ""}`, {
       headers: { authorization: `Bearer ${token}` },
@@ -658,6 +688,25 @@ export default function Admin() {
             <span>
               Lineup <b>{person.is_public ? "Public" : "Private"}</b>
             </span>
+          </div>
+          <div className="yom-admin-actions">
+            {person.is_public && (
+              <button
+                type="button"
+                disabled={Boolean(working)}
+                onClick={() => personAction("make_private")}
+              >
+                {working === "person-make_private" ? "…" : "Make lineup private"}
+              </button>
+            )}
+            <button
+              type="button"
+              className="is-danger"
+              disabled={Boolean(working)}
+              onClick={() => personAction("purge")}
+            >
+              {working === "person-purge" ? "…" : "Delete all data"}
+            </button>
           </div>
           <a className="yom-admin-ask" href={askHer(person, detail)}>
             Ask her how it's going →

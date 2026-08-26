@@ -1,19 +1,19 @@
-import { Capacitor } from "@capacitor/core";
-
 /** Production API — native apps load UI locally but call youryom.com. */
 export const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || "https://www.youryom.com";
 
 export function isNativeApp() {
+  if (typeof window === "undefined") return false;
   try {
-    return Capacitor.isNativePlatform();
+    return Boolean(window.Capacitor?.isNativePlatform?.());
   } catch {
     return false;
   }
 }
 
 export function nativePlatform() {
+  if (typeof window === "undefined") return "web";
   try {
-    return Capacitor.getPlatform();
+    return window.Capacitor?.getPlatform?.() || "web";
   } catch {
     return "web";
   }

@@ -179,7 +179,7 @@ export function yomRestore(email) {
 }
 
 export function yomMyPipeline(accountKey) {
-  return get(`/api/lineup?mine=1&key=${encodeURIComponent(accountKey)}`);
+  return get(`/api/lineup?mine=1&key=${encodeURIComponent(accountKey)}`, undefined, { quiet: true });
 }
 
 export function yomEveryone() {

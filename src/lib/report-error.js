@@ -42,10 +42,24 @@ function scrub(text) {
   return String(text || "").replace(/\b(key|token|secret|access_token)=[^&\s]+/gi, "$1=…");
 }
 
+function isExtensionSource(source = "") {
+  return /^(chrome-extension|moz-extension|safari-web-extension):/i.test(String(source || ""));
+}
+
+function isOurBundle(source = "") {
+  const src = String(source || "");
+  if (!src) return true;
+  if (typeof window !== "undefined" && src.startsWith(window.location.origin)) return true;
+  return /\/assets\//.test(src);
+}
+
 export function reportError({ kind = "js_error", message = "", status, path, detail } = {}) {
   if (typeof window === "undefined") return;
   const text = scrub(message).slice(0, 400);
   if (!text) return;
+  const source = detail?.source || "";
+  if (isExtensionSource(source)) return;
+  if (/invalid hook call/i.test(text) && !isOurBundle(source)) return;
   // What a cross-origin script reports instead of a message. It is an extension
   // or an embedded script, never yom's own code, and it says nothing at all.
   if (/^script error\.?$/i.test(text)) return;
@@ -91,10 +105,12 @@ export function reportError({ kind = "js_error", message = "", status, path, det
 export function startErrorReporting() {
   if (typeof window === "undefined") return;
   window.addEventListener("error", (e) => {
+    const source = e?.filename || "";
+    if (isExtensionSource(source)) return;
     reportError({
       kind: "js_error",
       message: e?.message || "script error",
-      detail: { source: e?.filename || "", line: e?.lineno || 0 },
+      detail: { source, line: e?.lineno || 0 },
     });
   });
   window.addEventListener("unhandledrejection", (e) => {

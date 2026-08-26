@@ -62,7 +62,17 @@ startTapFeel()
 initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
-bootPipeline()
+
+const APP_ROUTES = /^\/(scan|join|lineup|me|profile|looks|everyone|closet|beta)(\/|$)/;
+
+function PipelineBoot() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (!APP_ROUTES.test(pathname)) return
+    bootPipeline()
+  }, [pathname])
+  return null
+}
 
 // The home tab is the scanner itself now — one page that asks what she's
 // thinking, instead of a page whose only job was to offer the same three
@@ -118,6 +128,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <PageHits />
+      <PipelineBoot />
       <BetaCorner />
       <Routes>
         <Route path="/" element={<App />} />

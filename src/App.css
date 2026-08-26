@@ -95,17 +95,11 @@ a {
   transform: rotate(20deg);
 }
 
-/* ── Product image stickers ── */
-.prod-sneaker,
-.prod-shirt,
-.prod-cardigan,
-.prod-tabi,
-.prod-tank,
-.idx-sneaker,
-.idx-cardigan,
-.idx-tank,
-.idx-tabi {
-  mix-blend-mode: multiply;
+/* ── Product image stickers (transparent *-nobg.webp assets) ── */
+.sticker img {
+  display: block;
+  width: 100%;
+  transform-origin: center center;
 }
 
 .prod-sneaker,
@@ -119,34 +113,62 @@ a {
   display: block;
 }
 
+.prod-sneaker img {
+  transform: rotate(9deg);
+}
+
+.prod-shirt img {
+  transform: rotate(-16deg);
+}
+
+.prod-cardigan img {
+  transform: rotate(-7deg);
+}
+
+.prod-tabi img {
+  transform: rotate(13deg);
+}
+
+.prod-tank img {
+  transform: rotate(-11deg);
+}
+
+.prod-pants img {
+  transform: rotate(8deg);
+}
+
+.prod-bag img {
+  transform: rotate(-8deg);
+}
+
+.prod-extra img {
+  transform: rotate(18deg);
+}
+
 .prod-sneaker {
   left: 1031px;
   top: -63px;
   right: auto;
   bottom: auto;
   width: 400px;
-  transform: rotate(9deg);
 }
 
 .prod-shirt {
   bottom: 4%;
   left: -1.5%;
   width: 360px;
-  transform: rotate(-16deg);
 }
 
 .prod-cardigan {
   top: 10%;
   left: -1.5%;
   width: 360px;
-  transform: rotate(-7deg);
 }
 
 .prod-tabi {
   bottom: 3%;
   right: -3%;
   width: 330px;
-  transform: rotate(13deg);
 }
 
 .prod-tank {
@@ -155,15 +177,12 @@ a {
   right: auto;
   bottom: auto;
   width: 240px;
-  transform: rotate(-11deg);
 }
 
 .prod-pants {
   left: 10%;
   bottom: -5%;
   width: 320px;
-  transform: rotate(8deg);
-  mix-blend-mode: multiply;
 }
 
 .prod-bag {
@@ -172,16 +191,12 @@ a {
   right: auto;
   bottom: auto;
   width: 280px;
-  transform: rotate(-8deg);
-  mix-blend-mode: multiply;
 }
 
 .prod-extra {
   left: 19%;
   top: 36%;
   width: 260px;
-  transform: rotate(18deg);
-  mix-blend-mode: multiply;
 }
 
 /* ── Motion ── */
@@ -223,7 +238,6 @@ a {
   min-height: 100vh;
   min-height: 100dvh;
   overflow: hidden;
-  isolation: isolate;
 }
 
 .hero::before {

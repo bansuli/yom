@@ -111,6 +111,33 @@
   color: #111;
 }
 
+.yom-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+
+.yom-admin-actions button {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.yom-admin-actions button.is-danger {
+  border-color: rgba(180, 40, 40, 0.35);
+  color: #a32020;
+}
+
+.yom-admin-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .yom-admin-table {
   overflow-x: auto;
   border: 1px solid #e8e8e8;

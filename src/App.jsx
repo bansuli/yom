@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import sneakerImg from './assets/product-sneaker.webp'
-import shirtImg from './assets/product-shirt.webp'
-import cardiganImg from './assets/product-cardigan.webp'
-import tabiImg from './assets/product-tabi.jpg'
-import tankImg from './assets/product-tank.jpg'
-import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE.webp'
-import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Authentic.jpg'
-import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8.jpg'
+import sneakerImg from './assets/product-sneaker-nobg.webp'
+import shirtImg from './assets/product-shirt-nobg.webp'
+import cardiganImg from './assets/product-cardigan-nobg.webp'
+import tabiImg from './assets/product-tabi-nobg.webp'
+import tankImg from './assets/product-tank-nobg.webp'
+import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE-nobg.webp'
+import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Authentic-nobg.webp'
+import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8-nobg.webp'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
 import './App.css'
@@ -58,14 +58,14 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.6)' }} /></div>
-        <div className="sticker prod-bag"><img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.4)' }} /></div>
-        <div className="sticker prod-extra"><img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.4)' }} /></div>
+        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-bag"><img src={bagImg} alt="" aria-hidden="true" /></div>
+        <div className="sticker prod-extra"><img src={extraImg} alt="" aria-hidden="true" /></div>
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (

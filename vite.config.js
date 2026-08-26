@@ -13,6 +13,9 @@ const apiProxy = {
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   server: { proxy: apiProxy },
   preview: { proxy: apiProxy },
 })
