@@ -1801,24 +1801,24 @@ a {
   .prod-cardigan,
   .prod-tank,
   .prod-pants,
-  .prod-extra,
+  .prod-bag,
   .fit {
     display: none;
   }
 
-  /* Second piece: the bag, top right, opposite the nav pills.
+  /* Second piece: the puzzle bag, top right, opposite the nav pills.
      A photo whose white background has actually been cut away, so nothing here
      depends on the browser blending it out — which is what left a white box
      around it on iphones. No blend, no filter, nothing to go wrong. */
-  .prod-bag {
+  .prod-extra {
     mix-blend-mode: normal;
   }
 
-  .prod-bag img {
+  .prod-extra img {
     filter: none;
   }
 
-  .prod-bag {
+  .prod-extra {
     display: block;
     left: auto;
     right: -2%;

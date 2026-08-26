@@ -10,6 +10,7 @@ import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Auth
 // The same bag with the white background actually cut away. Phones only: the
 // desktop collage keeps the original photo exactly as it was.
 import bagCutout from './assets/product-bag-cutout.webp'
+import puzzleCutout from './assets/product-puzzle-cutout.webp'
 import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8.jpg'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
@@ -73,7 +74,12 @@ function App() {
             <img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} />
           </picture>
         </div>
-        <div className="sticker prod-extra"><img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} /></div>
+        <div className="sticker prod-extra">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={puzzleCutout} />
+            <img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} />
+          </picture>
+        </div>
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (
