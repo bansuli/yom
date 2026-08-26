@@ -2,6 +2,20 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './About.css'
 
+/** A phone has no room to drag windows around, so it gets them stacked. */
+function useIsPhone() {
+  const [phone, setPhone] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const onChange = (e) => setPhone(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return phone
+}
+
 const SECTIONS = [
   {
     id: 'who',
@@ -80,6 +94,7 @@ export default function About() {
   const zCounter = useRef(SECTIONS.length)
   const dragging = useRef(null)
   const windowEls = useRef({})
+  const isPhone = useIsPhone()
 
   const bringToFront = (id) => {
     zCounter.current += 1
@@ -149,7 +164,7 @@ export default function About() {
   }
 
   return (
-    <div className="about-page">
+    <div className={`about-page${isPhone ? ' is-stacked' : ''}`}>
       <div className="about-bg" />
       <Link to="/" className="about-back">← yom</Link>
       <h1 className="about-title">about us</h1>
@@ -159,14 +174,18 @@ export default function About() {
           key={win.id}
           ref={el => { windowEls.current[win.id] = el }}
           className="about-window"
-          style={{
-            left: win.pos.x,
-            top: win.pos.y,
-            zIndex: win.z,
-            transform: `rotate(${win.rotation}deg)`,
-          }}
-          onMouseDown={e => onDragStart(e, win.id)}
-          onTouchStart={e => onDragStart(e, win.id)}
+          style={
+            isPhone
+              ? { transform: `rotate(${win.rotation}deg)` }
+              : {
+                  left: win.pos.x,
+                  top: win.pos.y,
+                  zIndex: win.z,
+                  transform: `rotate(${win.rotation}deg)`,
+                }
+          }
+          onMouseDown={isPhone ? undefined : e => onDragStart(e, win.id)}
+          onTouchStart={isPhone ? undefined : e => onDragStart(e, win.id)}
         >
           <div className="about-window-bar">
             <span className="about-window-title">{win.title}</span>

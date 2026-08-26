@@ -135,3 +135,33 @@
   color: #111;
   line-height: 1.45;
 }
+
+/* On a phone the windows stack down the page instead of being scattered across
+   a canvas at coordinates wider than the screen — which is how three of the
+   four ended up off the side of it. Same windows, same tilt, in a column. */
+@media (max-width: 640px) {
+  .about-page.is-stacked {
+    overflow: visible;
+    padding: 7.5rem 1.1rem 5rem;
+  }
+
+  .about-page.is-stacked .about-title {
+    position: static;
+    transform: none;
+    display: block;
+    margin: 0 0 1.6rem;
+    white-space: normal;
+    font-size: clamp(2.4rem, 15vw, 3.4rem);
+  }
+
+  .about-page.is-stacked .about-window {
+    position: static;
+    width: 100%;
+    margin: 0 auto 1.5rem;
+    cursor: auto;
+  }
+
+  .about-page.is-stacked .about-window-bar {
+    cursor: auto;
+  }
+}
