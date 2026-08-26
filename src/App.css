@@ -1799,12 +1799,23 @@ a {
   .prod-sneaker,
   .prod-shirt,
   .prod-cardigan,
-  .prod-tabi,
   .prod-tank,
   .prod-pants,
   .prod-bag,
   .prod-extra,
   .fit {
     display: none;
+  }
+
+  /* First piece back: the tabi, bottom right. Sitting in the corner rather
+     than sliced through the middle of the shoe, and clear of the beta pill. */
+  .prod-tabi {
+    display: block;
+    left: auto;
+    right: -5%;
+    top: auto;
+    bottom: 6%;
+    width: 40vw;
+    max-width: none;
   }
 }
