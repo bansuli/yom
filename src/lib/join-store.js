@@ -1,3 +1,5 @@
+import { BERKELEY_FPR_CONTEXT_ID } from "./contexts.js";
+
 export const SCAN_EMAIL_KEY = "yom_scan_email";
 export const YOM_READY_KEY = "yom_ready";
 export const YOM_PROFILE_KEY = "yom_join_profile";
@@ -71,7 +73,7 @@ export function saveJoinProfile({
   name = "",
   trait = "",
   email = "",
-  context = "general_shopping",
+  context = BERKELEY_FPR_CONTEXT_ID,
   contextOther = "",
   round = "",
   occasion = "",
@@ -85,7 +87,7 @@ export function saveJoinProfile({
         email: String(email || loadJoinEmail() || "")
           .trim()
           .toLowerCase(),
-        context: String(context || "general_shopping").trim(),
+        context: String(context || BERKELEY_FPR_CONTEXT_ID).trim(),
         contextOther: String(contextOther || "").trim(),
         round: String(round || "").trim(),
         occasion: String(occasion || "").trim(),
@@ -114,7 +116,7 @@ export function loadJoinProfile() {
         name: survey.name || "",
         trait: survey.trait || "",
         email: survey.email || loadJoinEmail(),
-        context: survey.context || "general_shopping",
+        context: survey.context || BERKELEY_FPR_CONTEXT_ID,
         contextOther: survey.contextOther || "",
         round: survey.round || "",
         occasion: survey.occasion || "",

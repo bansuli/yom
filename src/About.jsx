@@ -2,29 +2,47 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './About.css'
 
+/** Phones get their own coordinates — the desktop ones are wider than the screen. */
+function useIsPhone() {
+  const [phone, setPhone] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const onChange = (e) => setPhone(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return phone
+}
+
 const SECTIONS = [
   {
     id: 'who',
     title: 'who we are',
     initialPos: { x: 80, y: 210 },
+    phonePos: { x: 14, y: 150 },
     rotation: -2,
   },
   {
     id: 'love',
     title: 'things we love',
     initialPos: { x: 420, y: 180 },
+    phonePos: { x: 96, y: 250 },
     rotation: 1.5,
   },
   {
     id: 'dont',
     title: "things we don't",
     initialPos: { x: 200, y: 430 },
+    phonePos: { x: 20, y: 390 },
     rotation: -1,
   },
   {
     id: 'manifesto',
     title: 'our manifesto',
     initialPos: { x: 620, y: 370 },
+    phonePos: { x: 88, y: 505 },
     rotation: 2,
   },
 ]
@@ -67,15 +85,30 @@ function WindowContent({ id }) {
 }
 
 export default function About() {
-  const [windows, setWindows] = useState(
+  const isPhone = useIsPhone()
+  const [windows, setWindows] = useState(() =>
     SECTIONS.map((s, i) => ({
       id: s.id,
       title: s.title,
-      pos: s.initialPos,
+      pos: isPhone ? s.phonePos : s.initialPos,
       rotation: s.rotation,
       z: i + 1,
     }))
   )
+  const moved = useRef(false)
+
+  // Rotating the phone, or opening this on a laptop after a phone, should lay
+  // them out for the screen she is actually on — unless she has already moved
+  // one, in which case they are hers and nothing is allowed to shuffle them.
+  useEffect(() => {
+    if (moved.current) return
+    setWindows(ws =>
+      ws.map((w) => {
+        const s = SECTIONS.find((sec) => sec.id === w.id)
+        return { ...w, pos: isPhone ? s.phonePos : s.initialPos }
+      })
+    )
+  }, [isPhone])
 
   const zCounter = useRef(SECTIONS.length)
   const dragging = useRef(null)
@@ -111,6 +144,7 @@ export default function About() {
       if (!dragging.current) return
       const { id, lastX, lastY } = dragging.current
       if (lastX != null) {
+        moved.current = true
         setWindows(ws => ws.map(w =>
           w.id === id ? { ...w, pos: { x: lastX, y: lastY }, rotation: 0 } : w
         ))

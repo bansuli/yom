@@ -72,6 +72,7 @@ export const LINEUP_DAYS = [
   {
     id: "unity_day_1",
     round: "unity_day",
+    on: "2026-08-27",
     label: "unity day 1",
     wear: "unity day 1",
     chip: "unity 1",
@@ -84,6 +85,7 @@ export const LINEUP_DAYS = [
   {
     id: "unity_day_2",
     round: "unity_day",
+    on: "2026-08-28",
     label: "unity day 2",
     wear: "unity day 2",
     chip: "unity 2",
@@ -96,6 +98,7 @@ export const LINEUP_DAYS = [
   {
     id: "sisterhood_day",
     round: "sisterhood_day",
+    on: "2026-08-29",
     label: "sisterhood day",
     wear: "sisterhood",
     chip: "sisterhood",
@@ -108,6 +111,7 @@ export const LINEUP_DAYS = [
   {
     id: "philanthropy_day",
     round: "philanthropy_day",
+    on: "2026-08-30",
     label: "philanthropy day",
     wear: "philanthropy",
     chip: "philanthropy",
@@ -120,6 +124,7 @@ export const LINEUP_DAYS = [
   {
     id: "preference",
     round: "preference",
+    on: "2026-08-31",
     label: "preference night",
     wear: "preference",
     chip: "preference",
@@ -148,9 +153,12 @@ export const LINEUP_PIECES = [
 export function pieceSlotFor(look = {}) {
   const hay = `${look.product?.category || ""} ${look.product?.name || ""} ${look.title || ""} ${look.note || ""}`.toLowerCase();
   if (/jewel|earring|necklace|bracelet|ring|hoop/.test(hay)) return "jewelry";
+  // A dress wins over shoes when both are named — "white dress and pink shoes"
+  // is a look whose subject is the dress, and filing it under shoes is the
+  // answer she notices is wrong. "dress shoes" is still a shoe.
+  if (/(^|\s)(dress|gown|romper|jumpsuit)(?!\s+(shoe|sandal|boot|flat|heel))/.test(hay)) return "dress";
   if (/shoe|sandal|heel|boot|sneaker|mule|loafer|flat/.test(hay)) return "shoes";
   if (/bag|purse|tote|clutch|mini bag/.test(hay)) return "bag";
-  if (/dress|gown|romper|jumpsuit/.test(hay)) return "dress";
   if (/skirt|pant|jean|short|trouser|legging|bottom/.test(hay)) return "bottom";
   return "top";
 }
@@ -184,6 +192,12 @@ export function wearLabel(roundId) {
   return String(label || "recruitment").replace(/\s+day.*$/i, "") || "recruitment";
 }
 
+/** The next night she can still dress for. Berkeley is UTC-7 in late august. */
+export function nextLineupDay(now = new Date()) {
+  const today = new Date(now.getTime() - 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return LINEUP_DAYS.find((d) => d.on >= today) || LINEUP_DAYS[LINEUP_DAYS.length - 1];
+}
+
 export function guessDayForRound(roundId) {
   const id = String(roundId || "").trim();
   if (!id) return null;
@@ -191,6 +205,23 @@ export function guessDayForRound(roundId) {
   if (exact) return exact;
   if (id === "unity_day") return null;
   return LINEUP_DAYS.find((d) => d.round === id) || null;
+}
+
+/**
+ * The day to put in front of her, for a look she can still wear.
+ *
+ * Separate from guessDayForRound because that one is allowed to say "i don't
+ * know" — a saved look with no round should keep its own name. On the result
+ * screen there is no such thing as no answer: the day is what she opened yom
+ * for, and "recruitment" only tells her what she already knew.
+ */
+export function dayToWear(roundId) {
+  const id = String(roundId || "").trim();
+  if (id === "unity_day") {
+    const next = nextLineupDay();
+    return LINEUP_DAYS.filter((d) => d.round === "unity_day").find((d) => d.on >= next.on) || next;
+  }
+  return guessDayForRound(id) || nextLineupDay();
 }
 
 export const PHC_PINTEREST_URL = "https://pin.it/5slpgAzHQ";
@@ -203,11 +234,21 @@ export function isOtherContext(contextId) {
   return contextId === OTHER_CONTEXT_ID;
 }
 
+/**
+ * Everyone here came off a recruitment flyer, so recruitment is the default.
+ *
+ * Falling back to everyday shopping meant a girl whose profile lost its context
+ * — restoring on a new phone was enough — started getting advice with no round
+ * in it, which is the one thing yom is for this week.
+ */
 export function getContextById(contextId) {
-  return SHOPPING_CONTEXTS.find((c) => c.id === contextId) || SHOPPING_CONTEXTS[0];
+  return (
+    SHOPPING_CONTEXTS.find((c) => c.id === contextId) ||
+    SHOPPING_CONTEXTS.find((c) => c.id === BERKELEY_FPR_CONTEXT_ID)
+  );
 }
 
-/** Pre-select from saved profile or flyer QR hint — never default everyone to rush. */
+/** Pre-select from saved profile or flyer QR hint. */
 export function initialShoppingContext(search = "") {
   try {
     const saved = localStorage.getItem("yom_join_profile");

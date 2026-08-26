@@ -15,7 +15,7 @@ import {
   getContextById,
   LINEUP_DAYS,
   LINEUP_PIECES,
-  guessDayForRound,
+  dayToWear,
   pieceLabel,
   pieceSlotFor,
   wearLabel,
@@ -64,6 +64,56 @@ function compressImage(fileOrBlob, maxEdge = 1400, quality = 0.82) {
     };
     img.src = url;
   });
+}
+
+/**
+ * Separate photos of the pieces of one outfit, laid onto a single sheet.
+ *
+ * A girl has the top in one shot, the shorts in another and the shoes in a
+ * third, and what she wants to know is whether they work *together* — so they
+ * have to be looked at together. Laying them out here rather than sending three
+ * images keeps the read in one pass, and the sheet doubles as the picture of the
+ * outfit in her lineup.
+ */
+async function outfitSheet(dataUrls, maxEdge = 1400) {
+  const shots = await Promise.all(
+    dataUrls.map(
+      (src) =>
+        new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = src;
+        })
+    )
+  );
+  const pieces = shots.filter(Boolean);
+  if (!pieces.length) return "";
+  if (pieces.length === 1) return dataUrls[0];
+
+  // Two or three in a row, four in a square. A fixed two-wide grid left a
+  // quarter of the sheet empty for three pieces, which is most of the time.
+  const cols = pieces.length <= 3 ? pieces.length : 2;
+  const rows = Math.ceil(pieces.length / cols);
+  const gap = 14;
+  const cell = Math.floor((maxEdge - gap * (cols + 1)) / cols);
+  const canvas = document.createElement("canvas");
+  canvas.width = gap + cols * (cell + gap);
+  canvas.height = gap + rows * (cell + gap);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  pieces.forEach((img, i) => {
+    const cx = gap + (i % cols) * (cell + gap);
+    const cy = gap + Math.floor(i / cols) * (cell + gap);
+    // Contain, never crop: cropping a photo of shoes can lose the shoes.
+    const scale = Math.min(cell / img.width, cell / img.height);
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    ctx.drawImage(img, cx + Math.round((cell - w) / 2), cy + Math.round((cell - h) / 2), w, h);
+  });
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 function productProps(product, extra = {}) {
@@ -156,6 +206,19 @@ function loadSavedEmail() {
   return loadJoinEmail();
 }
 
+/**
+ * Is this a whole outfit rather than one garment?
+ *
+ * Several photos on a sheet always are. So is a single photo the model read as
+ * an outfit — a dress with shoes in frame is a look, and asking her to file it
+ * under one slot forces a wrong answer either way.
+ */
+function isWholeLook(result, mode) {
+  if (mode === "photos") return true;
+  const pieces = Array.isArray(result?.pieces) ? result.pieces.filter((p) => p?.feedback) : [];
+  return result?.scan_mode === "outfit" && pieces.length >= 2;
+}
+
 export default function Scan() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -195,10 +258,13 @@ export default function Scan() {
 
   useEffect(() => {
     if (!result) return;
-    const guessed = guessDayForRound(result.verdict?.round);
-    setPickDay((prev) => prev || guessed?.id || "");
-    setPickSlot((prev) => prev || pieceSlotFor({ product: result.product, title: result.product?.name, note }));
-  }, [result, note]);
+    setPickDay((prev) => prev || dayToWear(result.verdict?.round).id);
+    // A whole look takes a day, not a slot. That is several photos on one sheet,
+    // but also one photo of an outfit she is already wearing — calling a dress
+    // and shoes "shoes" is the wrong question asked confidently.
+    if (isWholeLook(result, mode)) setPickSlot("look");
+    else setPickSlot((prev) => prev || pieceSlotFor({ product: result.product, title: result.product?.name, note }));
+  }, [result, note, mode]);
 
   useEffect(() => {
     const search = window.location.search || "";
@@ -374,16 +440,32 @@ export default function Scan() {
   };
 
   const onFile = async (ev) => {
-    const file = ev.target.files?.[0];
+    // Four is what fits on the sheet and still reads; a top, a bottom, shoes
+    // and one more is the whole of what anyone lays out.
+    const files = [...(ev.target.files || [])].slice(0, 4);
     ev.target.value = "";
-    if (!file) return;
+    if (!files.length) return;
     try {
-      const dataUrl = await compressImage(file);
-      setPreview(dataUrl);
+      const shots = [];
+      for (const file of files) shots.push(await compressImage(file, files.length > 1 ? 900 : 1400));
+      const sheet = files.length > 1 ? await outfitSheet(shots) : shots[0];
+      if (!sheet) {
+        setErr("could not open those photos.");
+        return;
+      }
+      setMode(files.length > 1 ? "photos" : "photo");
+      setPreview(sheet);
       stopCam();
-      await runCheck(dataUrl);
+      await runCheck(sheet, {
+        input_method: files.length > 1 ? "photos" : "photo",
+        // Say what it is looking at, or it reads a grid as one strange garment.
+        note:
+          files.length > 1
+            ? `${files.length} separate photos of pieces i want to wear together as one outfit — read them as one look, not as separate items.`
+            : undefined,
+      });
     } catch {
-      setErr("could not open that photo.");
+      setErr("could not open those photos.");
     }
   };
 
@@ -738,10 +820,14 @@ export default function Scan() {
   const verdict = result?.verdict || {};
   const outfitPieces = Array.isArray(result?.pieces) ? result.pieces.filter((p) => p?.feedback) : [];
   const isOutfit = result?.scan_mode === "outfit" && outfitPieces.length >= 2;
+  const wholeLook = isWholeLook(result, mode);
   const cousins = similarPieces(result);
   const landed = phase === "result" && result;
-  const wearRound =
-    LINEUP_DAYS.find((d) => d.id === pickDay)?.wear || wearLabel(verdict.round) || "recruitment";
+  // The day yom picked, kept separate from the day she picked: once she taps a
+  // chip the headline follows her, but she should still see what the answer was.
+  const advisedDay = dayToWear(verdict.round);
+  const chosenDay = LINEUP_DAYS.find((d) => d.id === pickDay);
+  const wearRound = chosenDay?.wear || advisedDay?.wear || wearLabel(verdict.round);
   const score = verdict.score != null ? Number(verdict.score).toFixed(1) : "-";
   const why = humanizeTake(verdict.why_it_works || verdict.body || "");
   const change = humanizeTake(verdict.change || verdict.resolve || "");
@@ -832,8 +918,8 @@ export default function Scan() {
           {isOutfit ? "the full look for" : "i’d wear this for"}
           <em>{wearRound}.</em>
         </h1>
-        <div className="pnm-result-body">
-          <div className="pnm-shot">
+        <div className={`pnm-result-body${mode === "photos" ? " is-sheet" : ""}`}>
+          <div className={`pnm-shot${mode === "photos" ? " is-sheet" : ""}`}>
             {preview ? (
               <img src={preview} alt={product.name || "the look"} referrerPolicy="no-referrer" />
             ) : (
@@ -915,22 +1001,36 @@ export default function Scan() {
               </button>
             ))}
           </div>
-          {!pickDay && String(verdict.round || "").startsWith("unity") ? (
-            <p className="pnm-sub">unity 1 and 2 are different nights — pick one.</p>
-          ) : null}
-          <p className="pnm-field">this piece is a</p>
-          <div className="pnm-chips">
-            {LINEUP_PIECES.map((piece) => (
-              <button
-                key={piece.id}
-                type="button"
-                className={`pnm-chip${pickSlot === piece.id ? " on" : ""}`}
-                onClick={() => setPickSlot(piece.id)}
-              >
-                {piece.label}
-              </button>
-            ))}
-          </div>
+          {/* The chip comes pre-tapped, so say who tapped it — otherwise the
+              answer she came for reads as a box she filled in herself. */}
+          {pickDay === advisedDay.id ? (
+            <p className="pnm-sub">yom picked {advisedDay.wear}. tap another if you disagree.</p>
+          ) : (
+            <p className="pnm-sub">
+              yom said {advisedDay.wear} — saving it for {chosenDay?.wear || "another day"}.
+            </p>
+          )}
+          {/* An outfit is one look, not one garment — asking her to call a dress
+              and shoes "shoes" is the wrong question. */}
+          {wholeLook ? (
+            <p className="pnm-sub">saved as a whole outfit.</p>
+          ) : (
+            <>
+              <p className="pnm-field">this piece is a</p>
+              <div className="pnm-chips">
+                {LINEUP_PIECES.map((piece) => (
+                  <button
+                    key={piece.id}
+                    type="button"
+                    className={`pnm-chip${pickSlot === piece.id ? " on" : ""}`}
+                    onClick={() => setPickSlot(piece.id)}
+                  >
+                    {piece.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
         <button type="button" className="pnm-cta pnm-result-cta" disabled={!pickDay} onClick={addToCloset}>
           {closetSaved ? "added →" : "add to lineup →"}
@@ -1001,7 +1101,7 @@ export default function Scan() {
             <button type="button" className="pnm-choice is-compact" onClick={() => fileRef.current?.click()}>
               <span>
                 <strong>upload</strong>
-                <span>from camera roll</span>
+                <span>one piece, or a few</span>
               </span>
             </button>
             <button
@@ -1142,7 +1242,7 @@ export default function Scan() {
         </>
       )}
 
-      <input ref={fileRef} type="file" accept="image/*" className="scan-file" onChange={onFile} />
+      <input ref={fileRef} type="file" accept="image/*" multiple className="scan-file" onChange={onFile} />
       <input
         ref={camFileRef}
         type="file"
