@@ -125,28 +125,24 @@ a {
   right: auto;
   bottom: auto;
   width: 400px;
-  transform: rotate(9deg);
 }
 
 .prod-shirt {
   bottom: 4%;
   left: -1.5%;
   width: 360px;
-  transform: rotate(-16deg);
 }
 
 .prod-cardigan {
   top: 10%;
   left: -1.5%;
   width: 360px;
-  transform: rotate(-7deg);
 }
 
 .prod-tabi {
   bottom: 3%;
   right: -3%;
   width: 330px;
-  transform: rotate(13deg);
 }
 
 .prod-tank {
@@ -155,14 +151,12 @@ a {
   right: auto;
   bottom: auto;
   width: 240px;
-  transform: rotate(-11deg);
 }
 
 .prod-pants {
   left: 10%;
   bottom: -5%;
   width: 320px;
-  transform: rotate(8deg);
   mix-blend-mode: multiply;
 }
 
@@ -172,7 +166,6 @@ a {
   right: auto;
   bottom: auto;
   width: 280px;
-  transform: rotate(-8deg);
   mix-blend-mode: multiply;
 }
 
@@ -180,8 +173,43 @@ a {
   left: 19%;
   top: 36%;
   width: 260px;
-  transform: rotate(18deg);
   mix-blend-mode: multiply;
+}
+
+/* Safari will not blend an element that is also rotated: the sticker composited
+   as its own opaque group, so every product photo wore a white box on iphones
+   while chrome looked right. The blend stays on the sticker, the tilt moves to
+   the image inside it. */
+.prod-sneaker img {
+  transform: rotate(9deg);
+}
+
+.prod-shirt img {
+  transform: rotate(-16deg);
+}
+
+.prod-cardigan img {
+  transform: rotate(-7deg);
+}
+
+.prod-tabi img {
+  transform: rotate(13deg);
+}
+
+.prod-tank img {
+  transform: rotate(-11deg);
+}
+
+.prod-pants img {
+  transform: rotate(8deg);
+}
+
+.prod-extra img {
+  transform: rotate(18deg);
+}
+
+.prod-bag img {
+  transform: rotate(-8deg);
 }
 
 /* ── Motion ── */
@@ -1450,9 +1478,9 @@ a {
   }
 
   .prod-extra {
-    left: -12%;
-    top: 26%;
-    width: 48vw;
+    left: -20%;
+    top: 24%;
+    width: 44vw;
   }
 
   .prod-shirt {
@@ -1481,11 +1509,13 @@ a {
     width: 60vw;
   }
 
+  /* Clear of the headline and the button — a collage behind the words, not
+     across them. */
   .prod-tank {
     left: auto;
-    right: -14%;
-    top: 36%;
-    width: 50vw;
+    right: -22%;
+    top: 30%;
+    width: 46vw;
   }
 
   .prod-tabi {

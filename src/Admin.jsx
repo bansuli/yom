@@ -424,9 +424,14 @@ export default function Admin() {
                         <b>{data.stuck.never_opened_scanner.length}</b> joined and never came back
                       </li>
                     ) : null}
-                    {data.stuck?.opened_scanner_no_scan?.length ? (
+                    {data.stuck?.tried_scan_got_nothing?.length ? (
                       <li>
-                        <b>{data.stuck.opened_scanner_no_scan.length}</b> opened the scanner, got no scan out of it
+                        <b>{data.stuck.tried_scan_got_nothing.length}</b> pressed scan and got nothing back
+                      </li>
+                    ) : null}
+                    {data.stuck?.opened_never_tried?.length ? (
+                      <li>
+                        <b>{data.stuck.opened_never_tried.length}</b> opened it, never pressed scan
                       </li>
                     ) : null}
                     {data.stuck?.lineup_not_shared?.length ? (

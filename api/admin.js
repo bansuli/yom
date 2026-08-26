@@ -449,7 +449,12 @@ export default async function handler(req, res) {
   const stuck = {
     no_scan: peopleIn.filter((p) => p.looks === 0).map((p) => p.email),
     never_opened_scanner: noScan.filter((p) => !reachedScanner(p)).map((p) => p.email),
-    opened_scanner_no_scan: noScan.filter((p) => reachedScanner(p)).map((p) => p.email),
+    // A check is counted the moment she presses go, and a scan only when one
+    // came back. Someone with checks and no scans pressed the button and got
+    // nothing, which is a fault; someone with neither only ever looked at the
+    // page, which is a reason-to-bother problem. Same row until now.
+    tried_scan_got_nothing: noScan.filter((p) => reachedScanner(p) && (p.checks || 0) > 0).map((p) => p.email),
+    opened_never_tried: noScan.filter((p) => reachedScanner(p) && !(p.checks || 0)).map((p) => p.email),
     scanned_no_lineup: peopleIn.filter((p) => p.looks > 0 && p.in_lineup === 0).map((p) => p.email),
     lineup_not_shared: peopleIn.filter((p) => p.in_lineup > 0 && !p.is_public).map((p) => p.email),
   };

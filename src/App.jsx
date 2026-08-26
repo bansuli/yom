@@ -58,14 +58,14 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply' }} /></div>
-        <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.6)' }} /></div>
-        <div className="sticker prod-bag"><img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.4)' }} /></div>
-        <div className="sticker prod-extra"><img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', mixBlendMode: 'multiply', filter: 'brightness(1.4)' }} /></div>
+        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
+        <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.6)' }} /></div>
+        <div className="sticker prod-bag"><img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} /></div>
+        <div className="sticker prod-extra"><img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} /></div>
 
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (
