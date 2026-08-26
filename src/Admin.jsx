@@ -694,29 +694,21 @@ export default function Admin() {
               Lineup <b>{person.is_public ? "Public" : "Private"}</b>
             </span>
           </div>
-          <div className="yom-admin-actions">
-            {person.is_public && (
+          {person.is_public && (
+            <div className="yom-admin-actions">
               <button
                 type="button"
                 disabled={Boolean(working)}
                 onClick={() => personAction("make_private")}
               >
-                {working === "person-make_private" ? "…" : "Make lineup private"}
+                {working === "person-make_private" ? "…" : "make lineup private"}
               </button>
-            )}
-            <button
-              type="button"
-              className="is-danger"
-              disabled={Boolean(working)}
-              onClick={() => personAction("purge")}
-            >
-              {working === "person-purge" ? "…" : "Delete all data"}
-            </button>
-          </div>
+            </div>
+          )}
           <a className="yom-admin-ask" href={askHer(person, detail)}>
-            Ask her how it's going →
+            ask them how it's going →
           </a>
-          {detailBusy && <p className="yom-admin-note">Loading her record…</p>}
+          {detailBusy && <p className="yom-admin-note">loading their record…</p>}
 
           {detail?.lineup?.some((day) => day.pieces.length) && (
             <div className="yom-lineup">
@@ -806,6 +798,20 @@ export default function Admin() {
           ) : (
             !detailBusy && <p className="yom-admin-empty">Gave an email, has not scanned anything.</p>
           )}
+
+          <div className="yom-admin-danger">
+            <p className="yom-admin-danger-note">
+              Permanent — removes looks, lineup, scans, visits, and their login if one exists.
+            </p>
+            <button
+              type="button"
+              className="is-danger"
+              disabled={Boolean(working)}
+              onClick={() => personAction("purge")}
+            >
+              {working === "person-purge" ? "…" : "delete all data"}
+            </button>
+          </div>
         </aside>
       )}
     </div>
