@@ -87,14 +87,37 @@ export function reportError({ kind = "js_error", message = "", status, path, det
   }
 }
 
+/**
+ * Whose code threw. window.onerror fires for every script on the page, not just
+ * ours — a browser extension, an in-app browser's injected helper, a password
+ * manager. Those crash in their own world and there is nothing here to fix, but
+ * reported as ours they read like yom is broken for three people.
+ */
+function isOurs(filename) {
+  const src = String(filename || "");
+  if (!src) return false;
+  if (/^(chrome|safari-web|moz)-extension:|^extension:|^webkit-masked-url:/i.test(src)) return false;
+  try {
+    return new URL(src, window.location.href).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+}
+
 /** Catch what never reaches a try/catch: thrown errors and rejected promises. */
 export function startErrorReporting() {
   if (typeof window === "undefined") return;
   window.addEventListener("error", (e) => {
+    const source = e?.filename || "";
+    // No filename at all means the browser withheld it (cross-origin), which is
+    // the same situation and equally unfixable from here.
+    if (!isOurs(source)) return;
     reportError({
       kind: "js_error",
-      message: e?.message || "script error",
-      detail: { source: e?.filename || "", line: e?.lineno || 0 },
+      // The file and line are the whole diagnosis for a crash nobody watched
+      // happen, so they belong in the line /admin shows, not buried in detail.
+      message: `${e?.message || "script error"} — ${source.split("/").pop()}:${e?.lineno || 0}`,
+      detail: { source, line: e?.lineno || 0, col: e?.colno || 0 },
     });
   });
   window.addEventListener("unhandledrejection", (e) => {
