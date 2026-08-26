@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './About.css'
 
-/** A phone has no room to drag windows around, so it gets them stacked. */
+/** Phones get their own coordinates — the desktop ones are wider than the screen. */
 function useIsPhone() {
   const [phone, setPhone] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches
@@ -21,24 +21,28 @@ const SECTIONS = [
     id: 'who',
     title: 'who we are',
     initialPos: { x: 80, y: 210 },
+    phonePos: { x: 14, y: 150 },
     rotation: -2,
   },
   {
     id: 'love',
     title: 'things we love',
     initialPos: { x: 420, y: 180 },
+    phonePos: { x: 96, y: 250 },
     rotation: 1.5,
   },
   {
     id: 'dont',
     title: "things we don't",
     initialPos: { x: 200, y: 430 },
+    phonePos: { x: 20, y: 390 },
     rotation: -1,
   },
   {
     id: 'manifesto',
     title: 'our manifesto',
     initialPos: { x: 620, y: 370 },
+    phonePos: { x: 88, y: 505 },
     rotation: 2,
   },
 ]
@@ -81,20 +85,34 @@ function WindowContent({ id }) {
 }
 
 export default function About() {
-  const [windows, setWindows] = useState(
+  const isPhone = useIsPhone()
+  const [windows, setWindows] = useState(() =>
     SECTIONS.map((s, i) => ({
       id: s.id,
       title: s.title,
-      pos: s.initialPos,
+      pos: isPhone ? s.phonePos : s.initialPos,
       rotation: s.rotation,
       z: i + 1,
     }))
   )
+  const moved = useRef(false)
+
+  // Rotating the phone, or opening this on a laptop after a phone, should lay
+  // them out for the screen she is actually on — unless she has already moved
+  // one, in which case they are hers and nothing is allowed to shuffle them.
+  useEffect(() => {
+    if (moved.current) return
+    setWindows(ws =>
+      ws.map((w) => {
+        const s = SECTIONS.find((sec) => sec.id === w.id)
+        return { ...w, pos: isPhone ? s.phonePos : s.initialPos }
+      })
+    )
+  }, [isPhone])
 
   const zCounter = useRef(SECTIONS.length)
   const dragging = useRef(null)
   const windowEls = useRef({})
-  const isPhone = useIsPhone()
 
   const bringToFront = (id) => {
     zCounter.current += 1
@@ -126,6 +144,7 @@ export default function About() {
       if (!dragging.current) return
       const { id, lastX, lastY } = dragging.current
       if (lastX != null) {
+        moved.current = true
         setWindows(ws => ws.map(w =>
           w.id === id ? { ...w, pos: { x: lastX, y: lastY }, rotation: 0 } : w
         ))
@@ -164,7 +183,7 @@ export default function About() {
   }
 
   return (
-    <div className={`about-page${isPhone ? ' is-stacked' : ''}`}>
+    <div className="about-page">
       <div className="about-bg" />
       <Link to="/" className="about-back">← yom</Link>
       <h1 className="about-title">about us</h1>
@@ -174,18 +193,14 @@ export default function About() {
           key={win.id}
           ref={el => { windowEls.current[win.id] = el }}
           className="about-window"
-          style={
-            isPhone
-              ? { transform: `rotate(${win.rotation}deg)` }
-              : {
-                  left: win.pos.x,
-                  top: win.pos.y,
-                  zIndex: win.z,
-                  transform: `rotate(${win.rotation}deg)`,
-                }
-          }
-          onMouseDown={isPhone ? undefined : e => onDragStart(e, win.id)}
-          onTouchStart={isPhone ? undefined : e => onDragStart(e, win.id)}
+          style={{
+            left: win.pos.x,
+            top: win.pos.y,
+            zIndex: win.z,
+            transform: `rotate(${win.rotation}deg)`,
+          }}
+          onMouseDown={e => onDragStart(e, win.id)}
+          onTouchStart={e => onDragStart(e, win.id)}
         >
           <div className="about-window-bar">
             <span className="about-window-title">{win.title}</span>
