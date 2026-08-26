@@ -165,6 +165,17 @@ a {
   mix-blend-mode: multiply;
 }
 
+/* Desktop keeps the brightness tweaks these three photos were shipped with.
+   They used to sit inline on the image, where a stylesheet cannot reach them. */
+.prod-pants img {
+  filter: brightness(1.6);
+}
+
+.prod-bag img,
+.prod-extra img {
+  filter: brightness(1.4);
+}
+
 /* Safari will not blend an element that is also rotated: the sticker composited
    as its own opaque group, so every cutout wore a white box on iphones while
    chrome looked right. Same tilt, moved to the image inside the sticker. */
@@ -1806,14 +1817,29 @@ a {
     display: none;
   }
 
-  /* Second piece: the puzzle bag, top right, opposite the nav pills.
-     A photo whose white background has actually been cut away, so nothing here
-     depends on the browser blending it out — which is what left a white box
-     around it on iphones. No blend, no filter, nothing to go wrong. */
+  /* Every piece on a phone is the cut-out version of its photo, drawn plainly:
+     no blend, no filter, nothing that depends on the browser hiding a white
+     background for us. That is what the tabi was doing right and the bags were
+     not, and the difference is why one looked correct and the other wore a
+     white square. */
+  .prod-sneaker,
+  .prod-shirt,
+  .prod-cardigan,
+  .prod-tabi,
+  .prod-tank,
+  .prod-pants,
+  .prod-bag,
   .prod-extra {
     mix-blend-mode: normal;
   }
 
+  .prod-sneaker img,
+  .prod-shirt img,
+  .prod-cardigan img,
+  .prod-tabi img,
+  .prod-tank img,
+  .prod-pants img,
+  .prod-bag img,
   .prod-extra img {
     filter: none;
   }

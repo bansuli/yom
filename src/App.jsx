@@ -9,8 +9,16 @@ import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE.web
 import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Authentic.jpg'
 // The same bag with the white background actually cut away. Phones only: the
 // desktop collage keeps the original photo exactly as it was.
-import bagCutout from './assets/product-bag-cutout.webp'
-import puzzleCutout from './assets/product-puzzle-cutout.webp'
+// Every product photo again with its background actually cut away. Phones get
+// these; the desktop collage keeps the original files exactly as they were.
+import cutSneaker from './assets/cut-sneaker.webp'
+import cutShirt from './assets/cut-shirt.webp'
+import cutCardigan from './assets/cut-cardigan.webp'
+import cutTabi from './assets/cut-tabi.webp'
+import cutTank from './assets/cut-tank.webp'
+import cutPants from './assets/cut-pants.webp'
+import cutBag from './assets/cut-bag.webp'
+import cutPuzzle from './assets/cut-puzzle.webp'
 import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8.jpg'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
@@ -62,22 +70,52 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <div className="sticker prod-sneaker"><img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
-        <div className="sticker prod-shirt"><img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
-        <div className="sticker prod-cardigan"><img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
-        <div className="sticker prod-tabi"><img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
-        <div className="sticker prod-tank"><img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} /></div>
-        <div className="sticker prod-pants"><img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.6)' }} /></div>
+        <div className="sticker prod-sneaker">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={cutSneaker} />
+            <img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
+          </picture>
+        </div>
+        <div className="sticker prod-shirt">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={cutShirt} />
+            <img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
+          </picture>
+        </div>
+        <div className="sticker prod-cardigan">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={cutCardigan} />
+            <img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
+          </picture>
+        </div>
+        <div className="sticker prod-tabi">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={cutTabi} />
+            <img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
+          </picture>
+        </div>
+        <div className="sticker prod-tank">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={cutTank} />
+            <img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
+          </picture>
+        </div>
+        <div className="sticker prod-pants">
+          <picture>
+            <source media="(max-width: 640px)" srcSet={cutPants} />
+            <img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
+          </picture>
+        </div>
         <div className="sticker prod-bag">
           <picture>
-            <source media="(max-width: 640px)" srcSet={bagCutout} />
-            <img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} />
+            <source media="(max-width: 640px)" srcSet={cutBag} />
+            <img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
           </picture>
         </div>
         <div className="sticker prod-extra">
           <picture>
-            <source media="(max-width: 640px)" srcSet={puzzleCutout} />
-            <img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block', filter: 'brightness(1.4)' }} />
+            <source media="(max-width: 640px)" srcSet={cutPuzzle} />
+            <img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
           </picture>
         </div>
 
