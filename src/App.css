@@ -1856,12 +1856,16 @@ a {
   /* Third piece: the jeans, bottom left, facing the tabi across the corner. */
   .prod-pants {
     display: block;
-    left: 1%;
+    left: -2%;
     right: auto;
     top: auto;
-    bottom: 4%;
-    width: 42vw;
+    bottom: 3%;
+    width: 54vw;
     max-width: none;
+  }
+
+  .prod-pants img {
+    transform: rotate(-12deg);
   }
 
   /* First piece back: the tabi, bottom right. Sitting in the corner rather
