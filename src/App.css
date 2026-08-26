@@ -1803,24 +1803,10 @@ a {
   }
 }
 
-/* Phone only: no clothing for now — a clean base to build the layout back up
-   from, one piece at a time. Desktop and tablet keep the full collage. Last in
-   the file so it wins over the phone rules above that place each piece. */
+/* Phone only: no clothing. A clean base — the pieces go back one at a time.
+   Desktop and tablet keep the full collage. Last in the file so it wins over
+   the phone rules above that place each piece. */
 @media (max-width: 640px) {
-  .prod-sneaker,
-  .prod-shirt,
-  .prod-cardigan,
-  .prod-tank,
-  .prod-bag,
-  .fit {
-    display: none;
-  }
-
-  /* Every piece on a phone is the cut-out version of its photo, drawn plainly:
-     no blend, no filter, nothing that depends on the browser hiding a white
-     background for us. That is what the tabi was doing right and the bags were
-     not, and the difference is why one looked correct and the other wore a
-     white square. */
   .prod-sneaker,
   .prod-shirt,
   .prod-cardigan,
@@ -1828,55 +1814,8 @@ a {
   .prod-tank,
   .prod-pants,
   .prod-bag,
-  .prod-extra {
-    mix-blend-mode: normal;
-  }
-
-  .prod-sneaker img,
-  .prod-shirt img,
-  .prod-cardigan img,
-  .prod-tabi img,
-  .prod-tank img,
-  .prod-pants img,
-  .prod-bag img,
-  .prod-extra img {
-    filter: none;
-  }
-
-  .prod-extra {
-    display: block;
-    left: auto;
-    right: -2%;
-    top: 1%;
-    bottom: auto;
-    width: 44vw;
-    max-width: none;
-  }
-
-  /* Third piece: the jeans, bottom left, facing the tabi across the corner. */
-  .prod-pants {
-    display: block;
-    left: -2%;
-    right: auto;
-    top: auto;
-    bottom: 3%;
-    width: 54vw;
-    max-width: none;
-  }
-
-  .prod-pants img {
-    transform: rotate(-12deg);
-  }
-
-  /* First piece back: the tabi, bottom right. Sitting in the corner rather
-     than sliced through the middle of the shoe, and clear of the beta pill. */
-  .prod-tabi {
-    display: block;
-    left: auto;
-    right: 3%;
-    top: auto;
-    bottom: 6%;
-    width: 40vw;
-    max-width: none;
+  .prod-extra,
+  .fit {
+    display: none;
   }
 }
