@@ -1811,7 +1811,6 @@ a {
   .prod-shirt,
   .prod-cardigan,
   .prod-tank,
-  .prod-pants,
   .prod-bag,
   .fit {
     display: none;
@@ -1851,6 +1850,17 @@ a {
     top: 1%;
     bottom: auto;
     width: 44vw;
+    max-width: none;
+  }
+
+  /* Third piece: the jeans, bottom left, facing the tabi across the corner. */
+  .prod-pants {
+    display: block;
+    left: 1%;
+    right: auto;
+    top: auto;
+    bottom: 4%;
+    width: 42vw;
     max-width: none;
   }
 
