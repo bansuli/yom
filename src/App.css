@@ -108,17 +108,6 @@ a {
   mix-blend-mode: multiply;
 }
 
-.prod-sneaker,
-.prod-shirt,
-.prod-cardigan,
-.prod-tabi,
-.prod-tank,
-.prod-pants,
-.prod-bag,
-.prod-extra {
-  display: block;
-}
-
 .prod-sneaker {
   left: 1031px;
   top: -63px;
@@ -177,9 +166,8 @@ a {
 }
 
 /* Safari will not blend an element that is also rotated: the sticker composited
-   as its own opaque group, so every product photo wore a white box on iphones
-   while chrome looked right. The blend stays on the sticker, the tilt moves to
-   the image inside it. */
+   as its own opaque group, so every cutout wore a white box on iphones while
+   chrome looked right. Same tilt, moved to the image inside the sticker. */
 .prod-sneaker img {
   transform: rotate(9deg);
 }
@@ -204,12 +192,12 @@ a {
   transform: rotate(8deg);
 }
 
-.prod-extra img {
-  transform: rotate(18deg);
-}
-
 .prod-bag img {
   transform: rotate(-8deg);
+}
+
+.prod-extra img {
+  transform: rotate(18deg);
 }
 
 /* ── Motion ── */
@@ -1280,8 +1268,16 @@ a {
 
 /* ── Responsive ── */
 
+/*
+  The hero collage is pinned with pixel offsets tuned for a wide desktop
+  (e.g. .prod-sneaker at left: 1031px). Below ~1200px those offsets stop
+  making sense, so every breakpoint below re-anchors the stickers to the
+  viewport edges and keeps the centre column (brand → line → cta) clear.
+*/
+
 /* Laptop and below — the pixel offsets only compose properly around 1440px */
 @media (max-width: 1400px) {
+  /* Clear of the tilted nav, which is a fixed ~125px tall. */
   .prod-cardigan {
     left: -5%;
     top: 15%;
@@ -1315,6 +1311,7 @@ a {
   }
 }
 
+/* Tablet */
 @media (max-width: 900px) {
   .steps {
     grid-template-columns: repeat(2, 1fr);
@@ -1328,6 +1325,7 @@ a {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .prod-shirt,
   .sticker-scissors,
   .idx-tabi,
   .idx-tank {
@@ -1342,63 +1340,14 @@ a {
     display: none;
   }
 
-  .prod-shirt,
-  .prod-bag,
-  .prod-extra,
-  .prod-tank {
-    display: block;
-  }
-
-  /* Same 14" frame, just a bit tighter so the type still sits in open paper. */
-  .prod-cardigan {
-    left: -4%;
-    top: 9%;
-    width: 26vw;
-  }
-
-  .prod-extra {
-    left: 8%;
-    top: 34%;
-    width: 18vw;
-  }
-
-  .prod-shirt {
-    left: -3%;
-    bottom: 10%;
-    width: 24vw;
-  }
-
-  .prod-pants {
-    left: 5%;
-    bottom: -4%;
-    width: 24vw;
-  }
-
-  .prod-bag {
-    left: auto;
-    right: 8%;
-    top: -3%;
-    width: 20vw;
-  }
-
+  .prod-cardigan,
   .prod-sneaker {
-    left: auto;
-    right: -3%;
-    top: -3%;
-    width: 28vw;
+    width: min(30vw, 220px);
   }
 
-  .prod-tank {
-    left: auto;
-    right: 2%;
-    top: 40%;
-    width: 18vw;
-  }
-
+  .prod-pants,
   .prod-tabi {
-    right: -3%;
-    bottom: 2%;
-    width: 24vw;
+    width: min(28vw, 200px);
   }
 }
 
@@ -1470,43 +1419,54 @@ a {
     display: none;
   }
 
-  /* A phone is not a small desktop. Eight photos crowding a 390px screen left
-     the logo, the line and the button fighting for room — so on a phone it is
-     four, one to a corner, bled off the edge, and the middle belongs to the
-     words. */
-  .prod-shirt,
-  .prod-tank,
+  /* Hide items that crowd the center on mobile */
   .prod-extra,
+  .prod-tank,
   .prod-bag {
     display: none;
   }
 
+  /* Four stickers, one per corner. On a phone the frame is narrow enough
+     that a big bleed reads as a mistake rather than a crop, so each piece
+     stays mostly on-screen; the bottom pair sits high enough to close the
+     gap under the CTA and to leave the beta pill its own corner. */
   .prod-cardigan {
-    left: -20%;
-    top: -4%;
-    width: 58vw;
+    left: -4%;
+    top: 16%;
+    width: 32vw;
+    max-width: 142px;
+    transform: rotate(-7deg);
   }
 
   .prod-sneaker {
     left: auto;
-    right: -14%;
-    top: 9%;
-    width: 56vw;
+    right: -2%;
+    top: 8%;
+    width: 33vw;
+    max-width: 148px;
+    transform: rotate(9deg);
   }
 
   .prod-pants {
-    left: -16%;
-    bottom: -6%;
-    width: 58vw;
+    left: -3%;
+    bottom: 3%;
+    width: 40vw;
+    max-width: 175px;
+    transform: rotate(8deg);
   }
 
   .prod-tabi {
+    display: block;
     left: auto;
-    right: -14%;
-    bottom: -4%;
-    width: 54vw;
+    right: -1%;
+    bottom: 10%;
+    width: 35vw;
+    max-width: 155px;
+    transform: rotate(13deg);
   }
 
+  /* The dot field is masked for a wide viewport; recentre it so a phone
+     doesn't get a dense clump in one corner. */
   .hero::before {
     background-size: 11px 11px;
     -webkit-mask-image: radial-gradient(ellipse 88% 64% at 50% 40%, black 6%, transparent 82%);
@@ -1530,6 +1490,19 @@ a {
     font-size: 1.05rem;
     max-width: 17rem;
   }
+
+  .prod-cardigan,
+  .prod-sneaker {
+    max-width: 108px;
+  }
+
+  .prod-pants {
+    max-width: 132px;
+  }
+
+  .prod-tabi {
+    max-width: 118px;
+  }
 }
 
 /* Short phones (SE-sized, and anything with a shallow viewport): the collage
@@ -1548,6 +1521,32 @@ a {
     font-size: 1.05rem;
     margin-top: 1rem;
     margin-bottom: 1.2rem;
+  }
+
+  /* Sits beside the brand rather than above it, so it never slides
+     under the nav pills. */
+  .prod-cardigan {
+    top: 24%;
+    width: 26vw;
+    max-width: 100px;
+  }
+
+  .prod-sneaker {
+    top: 6%;
+    width: 27vw;
+    max-width: 105px;
+  }
+
+  .prod-pants {
+    bottom: 2%;
+    width: 32vw;
+    max-width: 125px;
+  }
+
+  .prod-tabi {
+    bottom: 11%;
+    width: 28vw;
+    max-width: 112px;
   }
 }
 
@@ -1587,6 +1586,31 @@ a {
 
   .sticky-lime {
     display: none;
+  }
+
+  .prod-pants,
+  .prod-tabi,
+  .prod-shirt,
+  .prod-tank,
+  .prod-bag,
+  .prod-extra {
+    display: none;
+  }
+
+  .prod-cardigan {
+    left: -5%;
+    top: auto;
+    bottom: -6%;
+    width: 32vh;
+    max-width: 190px;
+  }
+
+  .prod-sneaker {
+    left: auto;
+    right: -4%;
+    top: -3%;
+    width: 32vh;
+    max-width: 190px;
   }
 }
 
