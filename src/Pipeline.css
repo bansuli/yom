@@ -632,6 +632,23 @@
   aspect-ratio: 3 / 4.2;
 }
 
+/* A sheet of several pieces is wide, and cropping it to a tall card cuts the
+   shoes off the bottom — which are half the question she is asking. So it runs
+   the full width with the read underneath, rather than shrinking into the
+   narrow column a single garment sits in. */
+.pnm-result-body.is-sheet {
+  grid-template-columns: 1fr;
+}
+
+.pnm-shot.is-sheet {
+  background: #fff;
+}
+
+.pnm-shot.is-sheet img {
+  object-fit: contain;
+  aspect-ratio: auto;
+}
+
 .pnm-block {
   padding: 0.35rem 0 0.55rem;
 }
