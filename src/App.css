@@ -1470,59 +1470,41 @@ a {
     display: none;
   }
 
-  /* Bigger, bled off the edges — top/bottom/sides, like a cropped 14" frame. */
-  .prod-cardigan {
-    left: -22%;
-    top: -8%;
-    width: 58vw;
-  }
-
-  .prod-extra {
-    left: -20%;
-    top: 24%;
-    width: 44vw;
-  }
-
-  .prod-shirt {
-    left: -22%;
-    bottom: 2%;
-    width: 56vw;
-  }
-
-  .prod-pants {
-    left: -10%;
-    bottom: -14%;
-    width: 58vw;
-  }
-
+  /* A phone is not a small desktop. Eight photos crowding a 390px screen left
+     the logo, the line and the button fighting for room — so on a phone it is
+     four, one to a corner, bled off the edge, and the middle belongs to the
+     words. */
+  .prod-shirt,
+  .prod-tank,
+  .prod-extra,
   .prod-bag {
-    left: auto;
-    right: -12%;
-    top: -12%;
-    width: 52vw;
+    display: none;
+  }
+
+  .prod-cardigan {
+    left: -20%;
+    top: -4%;
+    width: 58vw;
   }
 
   .prod-sneaker {
     left: auto;
-    right: -20%;
-    top: -2%;
-    width: 60vw;
+    right: -14%;
+    top: 9%;
+    width: 56vw;
   }
 
-  /* Clear of the headline and the button — a collage behind the words, not
-     across them. */
-  .prod-tank {
-    left: auto;
-    right: -22%;
-    top: 30%;
-    width: 46vw;
+  .prod-pants {
+    left: -16%;
+    bottom: -6%;
+    width: 58vw;
   }
 
   .prod-tabi {
     left: auto;
-    right: -20%;
-    bottom: -10%;
-    width: 58vw;
+    right: -14%;
+    bottom: -4%;
+    width: 54vw;
   }
 
   .hero::before {
