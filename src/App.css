@@ -145,10 +145,19 @@ a {
   transform: rotate(18deg);
 }
 
+/*
+  Anchored to the right edge, not to a pixel count from the left.
+  These three were pinned at left: 1031px / 1026px / 1250px, which is ~72% of
+  a 1440px window and lands them where they belong — but only there. On a
+  larger monitor 1031px is barely past the middle, so the collage walked
+  inward and the tank came to rest on top of the wordmark. Percentages from
+  the right hold the same frame at any width; the values below are the exact
+  1440 positions, so that window renders pixel for pixel as before.
+*/
 .prod-sneaker {
-  left: 1031px;
-  top: -63px;
-  right: auto;
+  left: auto;
+  top: -7%;
+  right: 0.625%;
   bottom: auto;
   width: 400px;
 }
@@ -172,9 +181,9 @@ a {
 }
 
 .prod-tank {
-  left: 1026px;
-  top: 397px;
-  right: auto;
+  left: auto;
+  top: 44.1111%;
+  right: 12.0833%;
   bottom: auto;
   width: 240px;
 }
@@ -186,9 +195,9 @@ a {
 }
 
 .prod-bag {
-  left: 1250px;
-  top: -35px;
-  right: auto;
+  left: auto;
+  top: -3.8889%;
+  right: -6.25%;
   bottom: auto;
   width: 280px;
 }
