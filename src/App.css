@@ -208,16 +208,9 @@ a {
   width: 260px;
 }
 
-/* Desktop keeps the brightness tweaks these three photos were shipped with.
-   They used to sit inline on the image, where a stylesheet cannot reach them. */
-.prod-pants img {
-  filter: brightness(1.6);
-}
-
-.prod-bag img,
-.prod-extra img {
-  filter: brightness(1.4);
-}
+/* The brightness these three were shipped with compensated for multiply, which
+   darkens everything it blends. The cutouts are drawn straight onto the page
+   now, so the same numbers only blow the photo out — the jeans went neon. */
 
 /* Safari will not blend an element that is also rotated: the sticker composited
    as its own opaque group, so every cutout wore a white box on iphones while
@@ -1327,6 +1320,48 @@ a {
   making sense, so every breakpoint below re-anchors the stickers to the
   viewport edges and keeps the centre column (brand → line → cta) clear.
 */
+
+/*
+  Above 1440 — scale the collage with the window instead of leaving it behind.
+
+  Every piece was sized in fixed pixels for a 1440 window. Positions now hold
+  their place on a wider one, but 400px of sneaker on a 2560 monitor is half
+  the picture it is on a laptop: the clothes shrink into the corners and the
+  middle of the page empties out. These are the same proportions as 1440,
+  expressed as a share of the window, capped at each photo's real resolution
+  so nothing is upscaled into softness. Below 1441 nothing here applies and
+  the laptop layout is untouched.
+*/
+@media (min-width: 1441px) {
+  .prod-sneaker {
+    width: min(27.7778vw, 736px);
+  }
+
+  .prod-shirt,
+  .prod-cardigan {
+    width: min(25vw, 736px);
+  }
+
+  .prod-tabi {
+    width: min(22.9167vw, 736px);
+  }
+
+  .prod-tank {
+    width: min(16.6667vw, 735px);
+  }
+
+  .prod-pants {
+    width: min(22.2222vw, 736px);
+  }
+
+  .prod-bag {
+    width: min(19.4444vw, 736px);
+  }
+
+  .prod-extra {
+    width: min(18.0556vw, 736px);
+  }
+}
 
 /* Laptop and below — the pixel offsets only compose properly around 1440px */
 @media (max-width: 1400px) {
