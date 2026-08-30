@@ -109,6 +109,9 @@ function BetaCorner() {
   const { pathname } = useLocation()
   if (isNativeApp()) return null
   if (
+    // The homepage navbar carries its own "sign in", so the corner pill would
+    // only repeat it.
+    pathname === '/' ||
     pathname === '/beta' ||
     pathname === '/scan' ||
     pathname === '/create' ||
