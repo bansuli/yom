@@ -1,0 +1,207 @@
+.legal-page {
+  position: relative;
+  width: 100%;
+  min-height: 100dvh;
+  background: #fff;
+  color: #111;
+}
+
+.legal-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
+  background-size: 13px 13px;
+  -webkit-mask-image: radial-gradient(ellipse 45% 55% at 88% 8%, black 6%, transparent 72%);
+  mask-image: radial-gradient(ellipse 45% 55% at 88% 8%, black 6%, transparent 72%);
+  opacity: 0.4;
+}
+
+.legal-back {
+  position: fixed;
+  top: 1.5rem;
+  left: 2rem;
+  z-index: 9;
+  padding: 0.6rem 1.2rem;
+  border-radius: 999px;
+  background: #111;
+  color: #fff;
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.legal-back:hover {
+  opacity: 0.85;
+}
+
+.legal-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 6rem 1.5rem 5rem;
+}
+
+/* ── head ── */
+.legal-head {
+  padding-bottom: 1.6rem;
+  border-bottom: 1.5px solid #111;
+  margin-bottom: 2.2rem;
+}
+
+.legal-eyebrow {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8c8c86;
+  margin: 0 0 0.5rem;
+}
+
+.legal-head h1 {
+  font-family: 'Archivo Black', 'Archivo', sans-serif;
+  font-size: clamp(2rem, 6vw, 2.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+.legal-updated {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.88rem;
+  color: #6b6b66;
+  margin: 0.7rem 0 0;
+}
+
+/* ── body ── */
+.legal-body {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.legal-lead {
+  font-size: 1.1rem;
+  line-height: 1.55;
+  margin: 0 0 2.4rem;
+}
+
+.legal-body section {
+  margin-bottom: 2.4rem;
+}
+
+.legal-body h2 {
+  font-family: 'Archivo', sans-serif;
+  font-weight: 700;
+  font-size: 1.28rem;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.9rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e7e7e1;
+}
+
+.legal-body h3 {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.97rem;
+  margin: 1.4rem 0 0.4rem;
+}
+
+.legal-body p {
+  margin: 0 0 0.85rem;
+}
+
+.legal-body ul {
+  margin: 0 0 0.9rem;
+  padding-left: 1.15rem;
+}
+
+.legal-body li {
+  margin-bottom: 0.35rem;
+}
+
+.legal-body li::marker {
+  color: #a5a59e;
+}
+
+.legal-body a {
+  color: #111;
+  text-underline-offset: 3px;
+}
+
+.legal-body strong {
+  font-weight: 700;
+}
+
+/* Provider list: name on the left, what they do on the right. */
+.legal-table {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid #e7e7e1;
+}
+
+.legal-table li {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 0.5rem 1rem;
+  padding: 0.62rem 0;
+  border-bottom: 1px solid #f0f0ea;
+  margin: 0;
+}
+
+.legal-table span {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .legal-table li {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}
+
+/* ── foot ── */
+.legal-foot {
+  margin-top: 3rem;
+  padding-top: 1.4rem;
+  border-top: 1.5px solid #111;
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.9rem;
+  color: #6b6b66;
+}
+
+.legal-foot p {
+  margin: 0 0 0.6rem;
+}
+
+.legal-foot a {
+  color: #111;
+  text-underline-offset: 3px;
+}
+
+.legal-links {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.legal-links span {
+  color: #c4c4bd;
+}
+
+@media (max-width: 640px) {
+  .legal-wrap {
+    padding: 5rem 1.15rem 4rem;
+  }
+
+  .legal-back {
+    top: 0.9rem;
+    left: 0.9rem;
+  }
+}

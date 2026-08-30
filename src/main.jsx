@@ -17,6 +17,7 @@ import Me from './Me.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import Admin from './Admin.jsx'
+import { Privacy, Terms } from './Legal.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 import { bootPipeline } from './lib/pipeline-store.js'
@@ -158,6 +159,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/survey" element={<LegacyOnboarding />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/signin" element={<Beta />} />
         <Route path="/beta" element={<LegacySignin />} />
         <Route path="/scan" element={<Scan />} />
