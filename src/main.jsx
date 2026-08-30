@@ -84,6 +84,14 @@ function LooksHome() {
   return <Navigate to={`/scan${search}`} replace />
 }
 
+// Onboarding lives at /onboarding now. /survey was the old address, and it is
+// still printed on flyers and QR codes, so it keeps working — the query string
+// carries through so acquisition still attributes.
+function LegacyOnboarding() {
+  const { search, hash } = useLocation()
+  return <Navigate to={`/onboarding${search}${hash}`} replace />
+}
+
 function PageHits() {
   const location = useLocation()
   useEffect(() => {
@@ -112,7 +120,7 @@ function BetaCorner() {
     pathname === '/closet' ||
     pathname === '/everyone' ||
     pathname === '/admin' ||
-    pathname.startsWith('/survey') ||
+    pathname.startsWith('/onboarding') ||
     pathname.startsWith('/s/') ||
     pathname.startsWith('/l/')
   ) {
@@ -134,7 +142,8 @@ createRoot(document.getElementById('root')).render(
       <BetaCorner />
       <Routes>
         <Route path="/" element={<App />} />
-        <Route path="/survey" element={<Survey />} />
+        <Route path="/onboarding" element={<Survey />} />
+        <Route path="/survey" element={<LegacyOnboarding />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/beta" element={<Beta />} />

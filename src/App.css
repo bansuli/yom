@@ -57,7 +57,6 @@ a {
   width: 100%;
 }
 
-/* ── Risograph clothing collage ── */
 .collage {
   position: absolute;
   inset: 0;
@@ -72,179 +71,6 @@ a {
   opacity: 0.92;
   user-select: none;
   will-change: transform;
-}
-
-.sticker {
-  position: absolute;
-  z-index: 2;
-  pointer-events: none;
-  user-select: none;
-}
-
-.sticker-eye {
-  top: 12%;
-  left: 6%;
-  width: 110px;
-  transform: rotate(-18deg);
-}
-
-.sticker-scissors {
-  bottom: 28%;
-  right: 42%;
-  width: 48px;
-  transform: rotate(20deg);
-}
-
-/* ── Product image stickers (transparent *-nobg.webp assets) ── */
-.sticker img {
-  display: block;
-  width: 100%;
-  transform-origin: center center;
-}
-
-.prod-sneaker,
-.prod-shirt,
-.prod-cardigan,
-.prod-tabi,
-.prod-tank,
-.prod-pants,
-.prod-bag,
-.prod-extra {
-  display: block;
-}
-
-.prod-sneaker img {
-  transform: rotate(9deg);
-}
-
-.prod-shirt img {
-  transform: rotate(-16deg);
-}
-
-.prod-cardigan img {
-  transform: rotate(-7deg);
-}
-
-.prod-tabi img {
-  transform: rotate(13deg);
-}
-
-.prod-tank img {
-  transform: rotate(-11deg);
-}
-
-.prod-pants img {
-  transform: rotate(8deg);
-}
-
-.prod-bag img {
-  transform: rotate(-8deg);
-}
-
-.prod-extra img {
-  transform: rotate(18deg);
-}
-
-/*
-  Anchored to the right edge, not to a pixel count from the left.
-  These three were pinned at left: 1031px / 1026px / 1250px, which is ~72% of
-  a 1440px window and lands them where they belong — but only there. On a
-  larger monitor 1031px is barely past the middle, so the collage walked
-  inward and the tank came to rest on top of the wordmark. Percentages from
-  the right hold the same frame at any width; the values below are the exact
-  1440 positions, so that window renders pixel for pixel as before.
-*/
-.prod-sneaker {
-  left: auto;
-  top: -7%;
-  right: 0.625%;
-  bottom: auto;
-  width: 400px;
-}
-
-.prod-shirt {
-  bottom: 4%;
-  left: -1.5%;
-  width: 360px;
-}
-
-.prod-cardigan {
-  top: 10%;
-  left: -1.5%;
-  width: 360px;
-}
-
-.prod-tabi {
-  bottom: 3%;
-  right: -3%;
-  width: 330px;
-}
-
-.prod-tank {
-  left: auto;
-  top: 44.1111%;
-  right: 12.0833%;
-  bottom: auto;
-  width: 240px;
-}
-
-.prod-pants {
-  left: 10%;
-  bottom: -5%;
-  width: 320px;
-}
-
-.prod-bag {
-  left: auto;
-  top: -3.8889%;
-  right: -6.25%;
-  bottom: auto;
-  width: 280px;
-}
-
-.prod-extra {
-  left: 19%;
-  top: 36%;
-  width: 260px;
-}
-
-/* The brightness these three were shipped with compensated for multiply, which
-   darkens everything it blends. The cutouts are drawn straight onto the page
-   now, so the same numbers only blow the photo out — the jeans went neon. */
-
-/* Safari will not blend an element that is also rotated: the sticker composited
-   as its own opaque group, so every cutout wore a white box on iphones while
-   chrome looked right. Same tilt, moved to the image inside the sticker. */
-.prod-sneaker img {
-  transform: rotate(9deg);
-}
-
-.prod-shirt img {
-  transform: rotate(-16deg);
-}
-
-.prod-cardigan img {
-  transform: rotate(-7deg);
-}
-
-.prod-tabi img {
-  transform: rotate(13deg);
-}
-
-.prod-tank img {
-  transform: rotate(-11deg);
-}
-
-.prod-pants img {
-  transform: rotate(8deg);
-}
-
-.prod-bag img {
-  transform: rotate(-8deg);
-}
-
-.prod-extra img {
-  transform: rotate(18deg);
 }
 
 /* ── Motion ── */
@@ -503,7 +329,6 @@ a {
   gap: 0.02em;
 }
 
-
 .brand-y {
   margin-right: -0.12em;
 }
@@ -513,7 +338,6 @@ a {
   position: relative;
   display: inline-block;
 }
-
 
 .wavy-line {
   width: min(280px, 55vw);
@@ -723,7 +547,6 @@ a {
   max-width: 16rem;
 }
 
-/* ── Index collage (contact-page style) ── */
 .index {
   position: relative;
   min-height: 100vh;
@@ -781,34 +604,6 @@ a {
   text-transform: uppercase;
   justify-self: start;
   align-self: center;
-}
-
-.idx-sneaker {
-  top: 4%;
-  right: 3%;
-  width: 200px;
-  transform: rotate(11deg);
-}
-
-.idx-cardigan {
-  bottom: 8%;
-  left: -2%;
-  width: 185px;
-  transform: rotate(-10deg);
-}
-
-.idx-tank {
-  top: 50%;
-  left: 38%;
-  width: 130px;
-  transform: rotate(6deg);
-}
-
-.idx-tabi {
-  bottom: 6%;
-  right: -2%;
-  width: 165px;
-  transform: rotate(-13deg);
 }
 
 .index-foot {
@@ -1312,93 +1107,6 @@ a {
   max-width: 16rem;
 }
 
-/* ── Responsive ── */
-
-/*
-  The hero collage is pinned with pixel offsets tuned for a wide desktop
-  (e.g. .prod-sneaker at left: 1031px). Below ~1200px those offsets stop
-  making sense, so every breakpoint below re-anchors the stickers to the
-  viewport edges and keeps the centre column (brand → line → cta) clear.
-*/
-
-/*
-  Above 1440 — scale the collage with the window instead of leaving it behind.
-
-  Every piece was sized in fixed pixels for a 1440 window. Positions now hold
-  their place on a wider one, but 400px of sneaker on a 2560 monitor is half
-  the picture it is on a laptop: the clothes shrink into the corners and the
-  middle of the page empties out. These are the same proportions as 1440,
-  expressed as a share of the window, capped at each photo's real resolution
-  so nothing is upscaled into softness. Below 1441 nothing here applies and
-  the laptop layout is untouched.
-*/
-@media (min-width: 1441px) {
-  .prod-sneaker {
-    width: min(27.7778vw, 736px);
-  }
-
-  .prod-shirt,
-  .prod-cardigan {
-    width: min(25vw, 736px);
-  }
-
-  .prod-tabi {
-    width: min(22.9167vw, 736px);
-  }
-
-  .prod-tank {
-    width: min(16.6667vw, 735px);
-  }
-
-  .prod-pants {
-    width: min(22.2222vw, 736px);
-  }
-
-  .prod-bag {
-    width: min(19.4444vw, 736px);
-  }
-
-  .prod-extra {
-    width: min(18.0556vw, 736px);
-  }
-}
-
-/* Laptop and below — the pixel offsets only compose properly around 1440px */
-@media (max-width: 1400px) {
-  /* Clear of the tilted nav, which is a fixed ~125px tall. */
-  .prod-cardigan {
-    left: -5%;
-    top: 15%;
-    width: min(26vw, 300px);
-  }
-
-  .prod-sneaker {
-    left: auto;
-    right: -4%;
-    top: 7%;
-    width: min(26vw, 300px);
-  }
-
-  .prod-pants {
-    left: -3%;
-    bottom: -3%;
-    width: min(24vw, 280px);
-  }
-
-  .prod-tabi {
-    right: -3%;
-    bottom: 1%;
-    width: min(23vw, 260px);
-  }
-
-  .prod-bag,
-  .prod-extra,
-  .prod-tank,
-  .prod-shirt {
-    display: none;
-  }
-}
-
 /* Tablet */
 @media (max-width: 900px) {
   .steps {
@@ -1413,29 +1121,12 @@ a {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .prod-shirt,
-  .sticker-scissors,
-  .idx-tabi,
-  .idx-tank {
-    display: none;
-  }
-
   .edge-label {
     display: none;
   }
 
   .welcome {
     display: none;
-  }
-
-  .prod-cardigan,
-  .prod-sneaker {
-    width: min(30vw, 220px);
-  }
-
-  .prod-pants,
-  .prod-tabi {
-    width: min(28vw, 200px);
   }
 }
 
@@ -1459,8 +1150,6 @@ a {
     display: none;
   }
 
-  /* The nav and the two top stickers weight the upper half, so the cluster
-     is pushed just below the geometric centre to even the page out. */
   .hero-center {
     padding: 8.5rem 1.25rem 6.5rem;
   }
@@ -1469,7 +1158,6 @@ a {
     font-size: clamp(4.2rem, 23vw, 6rem);
   }
 
-  /* Two balanced lines — one long line runs into the side collage. */
   .hero-line {
     font-size: 1.12rem;
     max-width: 16.5rem;
@@ -1500,58 +1188,7 @@ a {
     padding: 0.85rem 0;
   }
 
-  .sticker-eye,
-  .sticker-spiral,
-  .idx-sneaker,
-  .idx-cardigan {
-    display: none;
-  }
-
   /* Hide items that crowd the center on mobile */
-  .prod-extra,
-  .prod-tank,
-  .prod-bag {
-    display: none;
-  }
-
-  /* Four stickers, one per corner. On a phone the frame is narrow enough
-     that a big bleed reads as a mistake rather than a crop, so each piece
-     stays mostly on-screen; the bottom pair sits high enough to close the
-     gap under the CTA and to leave the beta pill its own corner. */
-  .prod-cardigan {
-    left: -4%;
-    top: 16%;
-    width: 32vw;
-    max-width: 142px;
-    transform: rotate(-7deg);
-  }
-
-  .prod-sneaker {
-    left: auto;
-    right: -2%;
-    top: 8%;
-    width: 33vw;
-    max-width: 148px;
-    transform: rotate(9deg);
-  }
-
-  .prod-pants {
-    left: -3%;
-    bottom: 3%;
-    width: 40vw;
-    max-width: 175px;
-    transform: rotate(8deg);
-  }
-
-  .prod-tabi {
-    display: block;
-    left: auto;
-    right: -1%;
-    bottom: 10%;
-    width: 35vw;
-    max-width: 155px;
-    transform: rotate(13deg);
-  }
 
   /* The dot field is masked for a wide viewport; recentre it so a phone
      doesn't get a dense clump in one corner. */
@@ -1568,7 +1205,6 @@ a {
   }
 }
 
-/* Narrow phones — pull the collage further out of the way */
 @media (max-width: 380px) {
   .hero-center {
     padding: 7.5rem 1rem 5.5rem;
@@ -1578,24 +1214,8 @@ a {
     font-size: 1.05rem;
     max-width: 17rem;
   }
-
-  .prod-cardigan,
-  .prod-sneaker {
-    max-width: 108px;
-  }
-
-  .prod-pants {
-    max-width: 132px;
-  }
-
-  .prod-tabi {
-    max-width: 118px;
-  }
 }
 
-/* Short phones (SE-sized, and anything with a shallow viewport): the collage
-   is sized off the width, so on a short screen it grows into the cluster.
-   Scale it — and the cluster — down against the height instead. */
 @media (max-width: 640px) and (max-height: 700px) and (orientation: portrait) {
   .hero-center {
     padding: 6.5rem 1.25rem 5rem;
@@ -1613,33 +1233,9 @@ a {
 
   /* Sits beside the brand rather than above it, so it never slides
      under the nav pills. */
-  .prod-cardigan {
-    top: 24%;
-    width: 26vw;
-    max-width: 100px;
-  }
 
-  .prod-sneaker {
-    top: 6%;
-    width: 27vw;
-    max-width: 105px;
-  }
-
-  .prod-pants {
-    bottom: 2%;
-    width: 32vw;
-    max-width: 125px;
-  }
-
-  .prod-tabi {
-    bottom: 11%;
-    width: 28vw;
-    max-width: 112px;
-  }
 }
 
-/* Short viewports (phone landscape, split view) — there is no room for a
-   collage around the cluster, so keep only two far-corner stickers. */
 @media (max-height: 560px) and (orientation: landscape) {
   .hero-center {
     padding: 3.5rem 1.5rem;
@@ -1674,31 +1270,6 @@ a {
 
   .sticky-lime {
     display: none;
-  }
-
-  .prod-pants,
-  .prod-tabi,
-  .prod-shirt,
-  .prod-tank,
-  .prod-bag,
-  .prod-extra {
-    display: none;
-  }
-
-  .prod-cardigan {
-    left: -5%;
-    top: auto;
-    bottom: -6%;
-    width: 32vh;
-    max-width: 190px;
-  }
-
-  .prod-sneaker {
-    left: auto;
-    right: -4%;
-    top: -3%;
-    width: 32vh;
-    max-width: 190px;
   }
 }
 
@@ -1880,18 +1451,7 @@ a {
   }
 }
 
-/* Phone only: no clothing. A clean base — the pieces go back one at a time.
-   Desktop and tablet keep the full collage. Last in the file so it wins over
-   the phone rules above that place each piece. */
 @media (max-width: 640px) {
-  .prod-sneaker,
-  .prod-shirt,
-  .prod-cardigan,
-  .prod-tabi,
-  .prod-tank,
-  .prod-pants,
-  .prod-bag,
-  .prod-extra,
   .fit {
     display: none;
   }

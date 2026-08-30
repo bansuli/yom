@@ -1,23 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import sneakerImg from './assets/product-sneaker-nobg.webp'
-import shirtImg from './assets/product-shirt-nobg.webp'
-import cardiganImg from './assets/product-cardigan-nobg.webp'
-import tabiImg from './assets/product-tabi-nobg.webp'
-import tankImg from './assets/product-tank-nobg.webp'
-import pantsImg from './assets/PRECIOUS V3 PANTS BLUE & PINK BY COLD CULTURE-nobg.webp'
-import bagImg from './assets/Isabel Marant Maia Large Cognac Shoulder Bag & Authentic-nobg.webp'
-// Every product photo again with its background actually cut away. Phones get
-// these; the desktop collage keeps the original files exactly as they were.
-import cutSneaker from './assets/cut-sneaker.webp'
-import cutShirt from './assets/cut-shirt.webp'
-import cutCardigan from './assets/cut-cardigan.webp'
-import cutTabi from './assets/cut-tabi.webp'
-import cutTank from './assets/cut-tank.webp'
-import cutPants from './assets/cut-pants.webp'
-import cutBag from './assets/cut-bag.webp'
-import cutPuzzle from './assets/cut-puzzle.webp'
-import extraImg from './assets/8e33e8051d690d5d76801ad0d826fdc8-nobg.webp'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
 import './App.css'
@@ -68,55 +50,6 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <div className="sticker prod-sneaker">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutSneaker} />
-            <img src={sneakerImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-shirt">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutShirt} />
-            <img src={shirtImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-cardigan">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutCardigan} />
-            <img src={cardiganImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-tabi">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutTabi} />
-            <img src={tabiImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-tank">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutTank} />
-            <img src={tankImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-pants">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutPants} />
-            <img src={pantsImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-bag">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutBag} />
-            <img src={bagImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-        <div className="sticker prod-extra">
-          <picture>
-            <source media="(max-width: 640px)" srcSet={cutPuzzle} />
-            <img src={extraImg} alt="" aria-hidden="true" style={{ width: '100%', display: 'block' }} />
-          </picture>
-        </div>
-
         <nav className="tilted-nav" aria-label="Primary">
           {NAV.map((item) => (
             item.label === 'about' ? (
@@ -170,7 +103,7 @@ function App() {
             let's go on a shopping trip together
           </h1>
           <div className="cta-row">
-            <Link className="cta cta-primary" to="/survey">
+            <Link className="cta cta-primary" to="/onboarding">
               i'm in
             </Link>
           </div>
@@ -204,7 +137,7 @@ function App() {
                 {waitlistErr && <p className="waitlist-body" style={{ color: '#8b1e1e' }}>{waitlistErr}</p>}
                 <div className="waitlist-nudge">
                   <p>don&rsquo;t forget — take yom on a shopping trip too. that&rsquo;s how yom actually learns about you.</p>
-                  <Link to="/survey" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
+                  <Link to="/onboarding" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
                   <Link to="/beta" className="waitlist-trip-link" onClick={closeModal}>already in beta? log in →</Link>
                   <Link to="/scan" className="waitlist-trip-link" onClick={closeModal}>scan a piece on your phone →</Link>
                 </div>
@@ -215,7 +148,7 @@ function App() {
                 <p className="waitlist-body">we&rsquo;ll be in touch when yom is ready for you.</p>
                 <div className="waitlist-nudge">
                   <p>now — take yom on a shopping trip. that&rsquo;s how yom gets to know you before we launch.</p>
-                  <Link to="/survey" className="waitlist-cta" onClick={closeModal}>take yom shopping →</Link>
+                  <Link to="/onboarding" className="waitlist-cta" onClick={closeModal}>take yom shopping →</Link>
                 </div>
               </>
             )}

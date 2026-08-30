@@ -52,7 +52,7 @@ Every event should include: `source`, `campaign`, `surface` (`web` | `mobile_web
 | Event | When | Surface |
 |-------|------|---------|
 | `page_viewed` | every SPA route change (`path`, `search`, `referrer`) | web / mobile_web |
-| `landing_viewed` | `/` or `/survey` first paint | web |
+| `landing_viewed` | `/` or `/onboarding` first paint | web |
 | `qr_scanned` | URL has `qr=1` (or `/r/` entry) | web |
 | `signup_started` | beta create-account submit | web |
 | `signup_completed` | signup API success | web |
