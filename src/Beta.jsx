@@ -394,18 +394,25 @@ export default function Beta() {
   if (!authed) {
     return (
       <div className="beta-page">
-        <div className="beta-bg" />
-        <Link to="/" className="beta-back">
-          ← yom
+        <div className="beta-bg beta-bg-gate" />
+        <Link to="/" className="beta-close" aria-label="back to yom">
+          ×
         </Link>
         <div className="beta-gate">
           <div className="beta-card">
-            <p className="beta-eyebrow">beta</p>
-            <h1>{signup ? "create account." : "log in."}</h1>
-            <p>
-              {signup
-                ? "only emails on the beta list get in."
-                : "if you’re on the beta list, this is your door."}
+            <p className="beta-wordmark">yom</p>
+            <p className="beta-intro">
+              {signup ? (
+                <>
+                  your closet, your trips, your shopping memory — all in one
+                  place. <strong>only emails on the beta list get in.</strong>
+                </>
+              ) : (
+                <>
+                  your closet, your trips, your shopping memory — all in one
+                  place. <strong>log back in to yom.</strong>
+                </>
+              )}
             </p>
             <form onSubmit={enter}>
               <input
@@ -428,6 +435,10 @@ export default function Beta() {
                 {busy ? "one sec…" : signup ? "create account" : "log in"}
               </button>
             </form>
+            {err ? <p className="beta-err">{err}</p> : null}
+            <div className="beta-or">
+              <span>or</span>
+            </div>
             <button
               type="button"
               className="beta-toggle"
@@ -436,9 +447,8 @@ export default function Beta() {
                 setErr("");
               }}
             >
-              {signup ? "already have an account? log in" : "not yet? create account"}
+              {signup ? "log in instead" : "create an account"}
             </button>
-            {err ? <p className="beta-err">{err}</p> : null}
           </div>
         </div>
       </div>
