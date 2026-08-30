@@ -14,7 +14,7 @@ export default async function handler(req, res) {
     return;
   }
   if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
+    json(res, 503, { ok: false, error: "Sign-in is not configured yet." });
     return;
   }
 

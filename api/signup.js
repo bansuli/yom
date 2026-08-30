@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return;
   }
   if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
+    json(res, 503, { ok: false, error: "Sign-in is not configured yet." });
     return;
   }
 
@@ -18,11 +18,11 @@ export default async function handler(req, res) {
   const password = String(body.password || "");
   const name = String(body.name || "").trim() || email.split("@")[0];
   if (!email || !password) {
-    json(res, 400, { ok: false, error: "email and password, please." });
+    json(res, 400, { ok: false, error: "Email and password, please." });
     return;
   }
   if (password.length < 6) {
-    json(res, 400, { ok: false, error: "password needs at least 6 characters." });
+    json(res, 400, { ok: false, error: "Password needs at least 6 characters." });
     return;
   }
 
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     const msg = String(created.data?.msg || created.data?.message || created.data?.error_description || "");
     json(res, 400, {
       ok: false,
-      error: /already|registered|exists/i.test(msg) ? "that email already has an account. log in." : "could not create the account.",
+      error: /already|registered|exists/i.test(msg) ? "That email already has an account. Log in." : "Could not create the account.",
     });
     return;
   }

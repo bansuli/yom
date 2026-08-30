@@ -35,7 +35,7 @@ function App() {
     const res = await captureLead({ email, channel: 'waitlist', path: '/' })
     setWaitlistBusy(false)
     if (!res.ok && !res.fallback) {
-      setWaitlistErr(res.error || 'could not save — try again.')
+      setWaitlistErr(res.error || 'Could not save — try again.')
       return
     }
     track('signup_completed', { channel: 'waitlist', allowlisted: res.allowlisted })
@@ -47,9 +47,9 @@ function App() {
       <section className="hero" aria-label="yom homepage">
         <GooeyNavbar
           items={[
-            { label: 'about', to: '/about' },
-            { label: 'how it works', to: '/how-it-works' },
-            { label: 'sign in', to: '/signin' },
+            { label: 'About', to: '/about' },
+            { label: 'How it works', to: '/how-it-works' },
+            { label: 'Sign in', to: '/signin' },
           ]}
         />
 
@@ -60,11 +60,11 @@ function App() {
             <span className="brand-m">m</span>
           </p>
           <h1 className="hero-line">
-            let's go on a shopping trip together
+            Let&rsquo;s go on a shopping trip together
           </h1>
           <div className="cta-row">
             <Link className="cta cta-primary" to="/onboarding">
-              i'm in
+              I&rsquo;m in
             </Link>
           </div>
         </div>
@@ -77,13 +77,13 @@ function App() {
 
             {!submitted ? (
               <>
-                <h2 className="waitlist-headline">join the waitlist.</h2>
-                <p className="waitlist-body">be first to know when yom is ready for you.</p>
+                <h2 className="waitlist-headline">Join the waitlist</h2>
+                <p className="waitlist-body">Be first to know when Yom is ready for you.</p>
                 <form className="waitlist-form" onSubmit={handleSubmit}>
                   <input
                     type="email"
                     className="waitlist-input"
-                    placeholder="your email"
+                    placeholder="Your email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -91,24 +91,24 @@ function App() {
                   />
                   <input type="text" name="website" tabIndex={-1} autoComplete="off" className="yom-hp" aria-hidden="true" />
                   <button type="submit" className="waitlist-cta" disabled={waitlistBusy}>
-                    {waitlistBusy ? 'saving…' : 'join →'}
+                    {waitlistBusy ? 'Saving…' : 'Join →'}
                   </button>
                 </form>
                 {waitlistErr && <p className="waitlist-body" style={{ color: '#8b1e1e' }}>{waitlistErr}</p>}
                 <div className="waitlist-nudge">
-                  <p>don&rsquo;t forget — take yom on a shopping trip too. that&rsquo;s how yom actually learns about you.</p>
-                  <Link to="/onboarding" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
-                  <Link to="/signin" className="waitlist-trip-link" onClick={closeModal}>already have an account? sign in →</Link>
-                  <Link to="/scan" className="waitlist-trip-link" onClick={closeModal}>scan a piece on your phone →</Link>
+                  <p>Don&rsquo;t forget — take Yom on a shopping trip too. That&rsquo;s how Yom actually learns about you.</p>
+                  <Link to="/onboarding" className="waitlist-trip-link" onClick={closeModal}>Go on a trip with Yom →</Link>
+                  <Link to="/signin" className="waitlist-trip-link" onClick={closeModal}>Already have an account? Sign in →</Link>
+                  <Link to="/scan" className="waitlist-trip-link" onClick={closeModal}>Scan a piece on your phone →</Link>
                 </div>
               </>
             ) : (
               <>
-                <h2 className="waitlist-headline">you&rsquo;re on the list.</h2>
-                <p className="waitlist-body">we&rsquo;ll be in touch when yom is ready for you.</p>
+                <h2 className="waitlist-headline">You&rsquo;re on the list</h2>
+                <p className="waitlist-body">We&rsquo;ll be in touch when Yom is ready for you.</p>
                 <div className="waitlist-nudge">
-                  <p>now — take yom on a shopping trip. that&rsquo;s how yom gets to know you before we launch.</p>
-                  <Link to="/onboarding" className="waitlist-cta" onClick={closeModal}>take yom shopping →</Link>
+                  <p>Now — take Yom on a shopping trip. That&rsquo;s how Yom gets to know you before we launch.</p>
+                  <Link to="/onboarding" className="waitlist-cta" onClick={closeModal}>Take Yom shopping →</Link>
                 </div>
               </>
             )}

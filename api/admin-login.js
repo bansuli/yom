@@ -25,18 +25,18 @@ export default async function handler(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   if (!email || !password) {
-    json(res, 400, { ok: false, error: "email and password, please." });
+    json(res, 400, { ok: false, error: "Email and password, please." });
     return;
   }
   if (!isAdminEmail(email)) {
     // Same answer as a bad password: no hint about which addresses count.
-    json(res, 401, { ok: false, error: "wrong email or password." });
+    json(res, 401, { ok: false, error: "Wrong email or password." });
     return;
   }
 
   const auth = await signIn(email, password);
   if (!auth.ok || !auth.data?.access_token) {
-    json(res, 401, { ok: false, error: "wrong email or password." });
+    json(res, 401, { ok: false, error: "Wrong email or password." });
     return;
   }
 

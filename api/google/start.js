@@ -28,12 +28,12 @@ export default async function handler(req, res) {
   if (!googleConfigured()) {
     // The fix belongs in the logs, not in front of someone trying to sign in.
     console.warn("google start: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI");
-    json(res, 503, { ok: false, error: "google sign-in isn't switched on yet." });
+    json(res, 503, { ok: false, error: "Google sign-in isn't switched on yet." });
     return;
   }
   if (!supabaseConfigured()) {
     console.warn("google start: missing SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY");
-    json(res, 503, { ok: false, error: "sign-in isn't configured yet." });
+    json(res, 503, { ok: false, error: "Sign-in isn't configured yet." });
     return;
   }
 

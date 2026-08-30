@@ -12,7 +12,6 @@
     linear-gradient(180deg, #fafafa 0%, var(--scan-paper) 45%, #f0f0f0 100%);
   color: var(--scan-ink);
   font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
-  text-transform: lowercase;
   padding: max(0.75rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
 }
 
@@ -131,7 +130,6 @@
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  text-transform: lowercase;
   padding: 0.5rem 0.75rem;
   min-height: 2.2rem;
   cursor: pointer;
@@ -295,7 +293,6 @@
 }
 
 .scan-friend-votes strong {
-  text-transform: lowercase;
 }
 
 .scan-friend-vote {

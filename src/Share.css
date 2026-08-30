@@ -11,7 +11,6 @@
     #fff;
   color: var(--scan-ink);
   font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
-  text-transform: lowercase;
 }
 
 .share-card {
@@ -195,7 +194,6 @@
   margin: 0.35rem 0 0.9rem;
   font-size: 0.75rem;
   letter-spacing: 0.04em;
-  text-transform: lowercase;
 }
 
 .join-steps span {

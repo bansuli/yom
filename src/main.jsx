@@ -141,7 +141,7 @@ function BetaCorner() {
   }
   return (
     <Link to="/signin" className="beta-corner">
-      sign in
+      Sign in
     </Link>
   )
 }

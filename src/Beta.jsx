@@ -395,7 +395,7 @@ export default function Beta() {
     const res = await yomPhoneStart(full);
     setBusy(false);
     if (!res.ok) {
-      setErr(res.error || "couldn't send the code.");
+      setErr(res.error || "Couldn't send the code.");
       return;
     }
     setCodeSent(true);
@@ -409,7 +409,7 @@ export default function Beta() {
     const res = await yomPhoneVerify(full, code, onboardingExtra(""));
     setBusy(false);
     if (!res.ok || !res.access_token) {
-      setErr(res.error || "that code isn't right.");
+      setErr(res.error || "That code isn't right.");
       return;
     }
     setCode("");
@@ -423,7 +423,7 @@ export default function Beta() {
     const res = await startGoogleConnect(window.location.pathname, "signin");
     if (!res.ok) {
       setBusy(false);
-      setErr(res.error || "couldn't start google sign-in.");
+      setErr(res.error || "Couldn't start Google sign-in.");
     }
     // On success the browser is already navigating to Google.
   };
@@ -531,36 +531,36 @@ export default function Beta() {
     return (
       <div className="beta-page">
         <div className="beta-bg beta-bg-gate" />
-        <Link to="/" className="beta-close" aria-label="back to yom">
+        <Link to="/" className="beta-close" aria-label="Back to Yom">
           ×
         </Link>
         <div className="beta-gate">
           <div className="beta-card">
             <p className="beta-wordmark">yom</p>
             <p className="beta-intro">
-              your closet, your trips, your shopping memory — all in one place.{" "}
-              <strong>let&rsquo;s go shopping.</strong>
+              Your closet, your trips, your shopping memory — all in one place.{" "}
+              <strong>Let&rsquo;s go shopping.</strong>
             </p>
 
             {mode === "phone" ? (
               codeSent ? (
                 <form onSubmit={verifyCode}>
                   <p className="beta-sent">
-                    we texted a code to {dial} {phone}.
+                    We texted a code to {dial} {phone}.
                   </p>
                   <input
                     className="beta-code"
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    placeholder="six-digit code"
+                    placeholder="Six-digit code"
                     maxLength={6}
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                     required
                   />
                   <button className="beta-go" type="submit" disabled={busy || code.length < 6}>
-                    {busy ? "one sec…" : "continue"}
+                    {busy ? "One sec…" : "Continue"}
                   </button>
                   <button
                     type="button"
@@ -572,7 +572,7 @@ export default function Beta() {
                       setErr("");
                     }}
                   >
-                    use a different number
+                    Use a different number
                   </button>
                 </form>
               ) : (
@@ -592,14 +592,14 @@ export default function Beta() {
                     <input
                       type="tel"
                       autoComplete="tel-national"
-                      placeholder="phone number"
+                      placeholder="Phone number"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       required
                     />
                   </div>
                   <button className="beta-go" type="submit" disabled={busy || !phone.trim()}>
-                    {busy ? "sending…" : "continue"}
+                    {busy ? "Sending…" : "Continue"}
                   </button>
                 </form>
               )
@@ -608,7 +608,7 @@ export default function Beta() {
                 <input
                   type="email"
                   autoComplete="username"
-                  placeholder="email"
+                  placeholder="Email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -616,13 +616,13 @@ export default function Beta() {
                 <input
                   type="password"
                   autoComplete={signup ? "new-password" : "current-password"}
-                  placeholder="password"
+                  placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
                 <button className="beta-go" type="submit" disabled={busy}>
-                  {busy ? "one sec…" : signup ? "create account" : "log in"}
+                  {busy ? "One sec…" : signup ? "Create account" : "Log in"}
                 </button>
                 <button
                   type="button"
@@ -632,7 +632,7 @@ export default function Beta() {
                     setErr("");
                   }}
                 >
-                  {signup ? "already have an account? log in" : "new here? create an account"}
+                  {signup ? "Already have an account? Log in" : "New here? Create an account"}
                 </button>
               </form>
             )}
@@ -668,7 +668,7 @@ export default function Beta() {
                       d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
                     />
                   </svg>
-                  continue with google
+                  Continue with Google
                 </button>
                 <button
                   type="button"
@@ -678,7 +678,7 @@ export default function Beta() {
                     setErr("");
                   }}
                 >
-                  {mode === "phone" ? "use email instead" : "use a phone number instead"}
+                  {mode === "phone" ? "Use email instead" : "Use a phone number instead"}
                 </button>
               </>
             ) : null}

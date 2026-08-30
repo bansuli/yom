@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return;
   }
   if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "sign-in is not configured yet." });
+    json(res, 503, { ok: false, error: "Sign-in is not configured yet." });
     return;
   }
 
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const phone = normalisePhone(body.phone);
   const code = String(body.code || "").replace(/\D/g, "");
   if (!phone || !code) {
-    json(res, 400, { ok: false, error: "number and code, please." });
+    json(res, 400, { ok: false, error: "Number and code, please." });
     return;
   }
 
@@ -36,8 +36,8 @@ export default async function handler(req, res) {
     json(res, 401, {
       ok: false,
       error: /expired/i.test(msg)
-        ? "that code has expired — send a new one."
-        : "that code isn't right.",
+        ? "That code has expired — send a new one."
+        : "That code isn't right.",
     });
     return;
   }
@@ -58,6 +58,6 @@ export default async function handler(req, res) {
     });
   } catch (e) {
     console.warn("phone verify", e?.message || e);
-    json(res, 500, { ok: false, error: "signed in, but couldn't load your yom. try again." });
+    json(res, 500, { ok: false, error: "Signed in, but couldn't load your Yom. Try again." });
   }
 }

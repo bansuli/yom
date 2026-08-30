@@ -917,7 +917,6 @@ a {
   font-family: var(--font-hand);
   font-size: 1.25rem;
   font-weight: 700;
-  text-transform: lowercase;
 }
 
 .product-price {
