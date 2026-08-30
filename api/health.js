@@ -78,6 +78,36 @@ export default async function handler(req, res) {
     out.supabase.admin_users = await probe(`${url}/auth/v1/admin/users?page=1&per_page=1`, h);
   }
 
+  // ?probe=create attempts the one operation that is failing — creating a user
+  // — and reports exactly what Postgres said, then deletes what it made. This
+  // is a temporary diagnostic; remove it once signup is working.
+  if (req.query?.probe === "create" && url && service) {
+    const h = { apikey: service, "Content-Type": "application/json" };
+    if (service.startsWith("eyJ")) h.Authorization = `Bearer ${service}`;
+    const email = `probe-${Date.now()}@yom-healthcheck.invalid`;
+    try {
+      const create = await fetch(`${url}/auth/v1/admin/users`, {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({ email, password: `Pb-${Date.now()}-xQ`, email_confirm: true }),
+      });
+      const raw = await create.text();
+      out.probe = { status: create.status, body: raw.slice(0, 700) };
+      let id = null;
+      try {
+        id = JSON.parse(raw)?.id || null;
+      } catch {
+        /* body was not json */
+      }
+      if (id) {
+        const del = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: h });
+        out.probe.cleaned_up = del.ok;
+      }
+    } catch (e) {
+      out.probe = { status: 0, body: String(e?.message || e).slice(0, 300) };
+    }
+  }
+
   const healthy =
     out.supabase.url &&
     out.supabase.admin_users?.ok === true &&
