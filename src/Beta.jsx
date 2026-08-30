@@ -13,8 +13,11 @@ import {
   yomGoogleSync,
   yomLogin,
   yomMe,
+  yomPhoneStart,
+  yomPhoneVerify,
   yomSignup,
 } from "./lib/yom-api.js";
+import { claimGoogleGrant, startGoogleConnect } from "./lib/google-session.js";
 import { clearSurvey, loadSurvey } from "./lib/survey-store.js";
 import {
   ONBOARDING_VERSION,
@@ -158,6 +161,24 @@ function fromStored(stored) {
   return localAccount(stored.email);
 }
 
+const DIAL_CODES = [
+  { code: "US", dial: "+1" },
+  { code: "UK", dial: "+44" },
+  { code: "IE", dial: "+353" },
+  { code: "FR", dial: "+33" },
+  { code: "DE", dial: "+49" },
+  { code: "ES", dial: "+34" },
+  { code: "IT", dial: "+39" },
+  { code: "NL", dial: "+31" },
+  { code: "AU", dial: "+61" },
+  { code: "NZ", dial: "+64" },
+  { code: "IN", dial: "+91" },
+  { code: "SG", dial: "+65" },
+  { code: "AE", dial: "+971" },
+  { code: "KR", dial: "+82" },
+  { code: "JP", dial: "+81" },
+];
+
 export default function Beta() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
@@ -167,6 +188,11 @@ export default function Beta() {
   const [busy, setBusy] = useState(false);
   const [signup, setSignup] = useState(false);
   const [authed, setAuthed] = useState(() => fromStored(loadBetaSession()));
+  const [mode, setMode] = useState("phone");
+  const [dial, setDial] = useState("+1");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
   const [google, setGoogle] = useState({ loading: true });
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleBusy, setGoogleBusy] = useState(false);
@@ -175,6 +201,28 @@ export default function Beta() {
     const next = params.get("next");
     if (next && /^\/s\/[0-9a-f-]{36}$/i.test(next)) navigate(next);
   };
+
+  useEffect(() => {
+    const grant = params.get("grant");
+    if (!grant) return;
+    let cancelled = false;
+    claimGoogleGrant(grant).then((res) => {
+      if (cancelled) return;
+      const url = new URL(window.location.href);
+      url.searchParams.delete("grant");
+      window.history.replaceState({}, "", url.pathname + url.search);
+      if (res?.access_token) {
+        adopt(res);
+      } else {
+        setErr("couldn't finish google sign-in. try again.");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+    // adopt is stable enough for this one-shot claim on landing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
 
   useEffect(() => {
     const g = params.get("google");
@@ -250,7 +298,7 @@ export default function Beta() {
     }
     setGoogleBusy(true);
     setErr("");
-    const res = await yomGoogleStart(stored.access_token, "/beta");
+    const res = await yomGoogleStart(stored.access_token, "/signin");
     setGoogleBusy(false);
     if (!res.ok || !res.url) {
       setErr(res.error || "google oauth isn’t configured yet.");
@@ -290,6 +338,94 @@ export default function Beta() {
     setGoogleBusy(false);
     setGoogle({ loading: false, ready: true, connected: false });
     setGoogleEvents([]);
+  };
+
+  // Whatever the onboarding already learned, folded into whichever door the
+  // account comes through.
+  const onboardingExtra = (fallbackName) => {
+    const survey = loadSurvey();
+    const acquisition = signupAcquisitionPayload();
+    if (!survey) return { ...acquisition, name: fallbackName };
+    return {
+      name: survey.name || fallbackName,
+      trait: survey.trait,
+      preBuy: survey.preBuy,
+      read: survey.read,
+      headline: survey.headline,
+      closet: survey.closet || [],
+      ...acquisition,
+      acquisition_source: survey.acquisition_source || acquisition.acquisition_source,
+      acquisition_campaign: survey.acquisition_campaign || acquisition.acquisition_campaign,
+      activation_date: survey.activation_date || acquisition.activation_date,
+      utm_source: survey.utm_source || acquisition.utm_source,
+      utm_medium: survey.utm_medium || acquisition.utm_medium,
+      utm_campaign: survey.utm_campaign || acquisition.utm_campaign,
+      referrer_user_id: survey.referrer_user_id || acquisition.referrer_user_id,
+      first_surface: survey.first_surface || acquisition.first_surface,
+      onboarding_version: survey.onboarding_version || acquisition.onboarding_version,
+    };
+  };
+
+  const adopt = (res, { created } = {}) => {
+    if (res.closet) clearSurvey();
+    saveBetaSession({
+      email: res.user?.email || undefined,
+      access_token: res.access_token,
+      refresh_token: res.refresh_token,
+      user: res.user,
+      profile: res.profile,
+    });
+    setAuthed({ user: res.user, profile: res.profile });
+    if (res.user?.id) {
+      identifyUser(res.user.id, { email: res.user.email, name: res.profile?.name });
+    }
+    if (created) {
+      track("signup_completed");
+      track("yom_created", { onboarding_version: ONBOARDING_VERSION });
+    }
+    finishAuthRedirect();
+  };
+
+  const sendCode = async (e) => {
+    e?.preventDefault();
+    const full = `${dial}${phone.replace(/\D/g, "")}`;
+    setBusy(true);
+    setErr("");
+    track("signup_started", { channel: "phone" });
+    const res = await yomPhoneStart(full);
+    setBusy(false);
+    if (!res.ok) {
+      setErr(res.error || "couldn't send the code.");
+      return;
+    }
+    setCodeSent(true);
+  };
+
+  const verifyCode = async (e) => {
+    e?.preventDefault();
+    const full = `${dial}${phone.replace(/\D/g, "")}`;
+    setBusy(true);
+    setErr("");
+    const res = await yomPhoneVerify(full, code, onboardingExtra(""));
+    setBusy(false);
+    if (!res.ok || !res.access_token) {
+      setErr(res.error || "that code isn't right.");
+      return;
+    }
+    setCode("");
+    adopt(res, { created: res.created });
+  };
+
+  const googleIn = async () => {
+    setBusy(true);
+    setErr("");
+    track("signup_started", { channel: "google" });
+    const res = await startGoogleConnect(window.location.pathname, "signin");
+    if (!res.ok) {
+      setBusy(false);
+      setErr(res.error || "couldn't start google sign-in.");
+    }
+    // On success the browser is already navigating to Google.
   };
 
   const enter = async (e) => {
@@ -402,53 +538,150 @@ export default function Beta() {
           <div className="beta-card">
             <p className="beta-wordmark">yom</p>
             <p className="beta-intro">
-              {signup ? (
-                <>
-                  your closet, your trips, your shopping memory — all in one
-                  place. <strong>only emails on the beta list get in.</strong>
-                </>
-              ) : (
-                <>
-                  your closet, your trips, your shopping memory — all in one
-                  place. <strong>log back in to yom.</strong>
-                </>
-              )}
+              your closet, your trips, your shopping memory — all in one place.{" "}
+              <strong>let&rsquo;s go shopping.</strong>
             </p>
-            <form onSubmit={enter}>
-              <input
-                type="email"
-                autoComplete="username"
-                placeholder="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-              <input
-                type="password"
-                autoComplete={signup ? "new-password" : "current-password"}
-                placeholder="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <button className="beta-go" type="submit" disabled={busy}>
-                {busy ? "one sec…" : signup ? "create account" : "log in"}
-              </button>
-            </form>
+
+            {mode === "phone" ? (
+              codeSent ? (
+                <form onSubmit={verifyCode}>
+                  <p className="beta-sent">
+                    we texted a code to {dial} {phone}.
+                  </p>
+                  <input
+                    className="beta-code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="six-digit code"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    required
+                  />
+                  <button className="beta-go" type="submit" disabled={busy || code.length < 6}>
+                    {busy ? "one sec…" : "continue"}
+                  </button>
+                  <button
+                    type="button"
+                    className="beta-quiet"
+                    disabled={busy}
+                    onClick={() => {
+                      setCodeSent(false);
+                      setCode("");
+                      setErr("");
+                    }}
+                  >
+                    use a different number
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={sendCode}>
+                  <div className="beta-phone">
+                    <select
+                      aria-label="country code"
+                      value={dial}
+                      onChange={(e) => setDial(e.target.value)}
+                    >
+                      {DIAL_CODES.map((c) => (
+                        <option key={c.code} value={c.dial}>
+                          {c.code} {c.dial}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel"
+                      autoComplete="tel-national"
+                      placeholder="phone number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button className="beta-go" type="submit" disabled={busy || !phone.trim()}>
+                    {busy ? "sending…" : "continue"}
+                  </button>
+                </form>
+              )
+            ) : (
+              <form onSubmit={enter}>
+                <input
+                  type="email"
+                  autoComplete="username"
+                  placeholder="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                <input
+                  type="password"
+                  autoComplete={signup ? "new-password" : "current-password"}
+                  placeholder="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button className="beta-go" type="submit" disabled={busy}>
+                  {busy ? "one sec…" : signup ? "create account" : "log in"}
+                </button>
+                <button
+                  type="button"
+                  className="beta-quiet"
+                  onClick={() => {
+                    setSignup((v) => !v);
+                    setErr("");
+                  }}
+                >
+                  {signup ? "already have an account? log in" : "new here? create an account"}
+                </button>
+              </form>
+            )}
+
             {err ? <p className="beta-err">{err}</p> : null}
-            <div className="beta-or">
-              <span>or</span>
-            </div>
-            <button
-              type="button"
-              className="beta-toggle"
-              onClick={() => {
-                setSignup((v) => !v);
-                setErr("");
-              }}
-            >
-              {signup ? "log in instead" : "create an account"}
-            </button>
+
+            {!codeSent ? (
+              <>
+                <div className="beta-or">
+                  <span>or</span>
+                </div>
+                <button
+                  type="button"
+                  className="beta-oauth"
+                  onClick={googleIn}
+                  disabled={busy}
+                >
+                  <svg viewBox="0 0 18 18" aria-hidden="true" focusable="false">
+                    <path
+                      fill="currentColor"
+                      d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62Z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.33A9 9 0 0 0 9 18Z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M3.97 10.72a5.4 5.4 0 0 1 0-3.44V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.33Z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.95l3.01 2.33C4.68 5.16 6.66 3.58 9 3.58Z"
+                    />
+                  </svg>
+                  continue with google
+                </button>
+                <button
+                  type="button"
+                  className="beta-quiet"
+                  onClick={() => {
+                    setMode(mode === "phone" ? "email" : "phone");
+                    setErr("");
+                  }}
+                >
+                  {mode === "phone" ? "use email instead" : "use a phone number instead"}
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
       </div>

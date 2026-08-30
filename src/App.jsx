@@ -49,7 +49,7 @@ function App() {
           items={[
             { label: 'about', to: '/about' },
             { label: 'how it works', to: '/how-it-works' },
-            { label: 'sign in', to: '/beta' },
+            { label: 'sign in', to: '/signin' },
           ]}
         />
 
@@ -98,7 +98,7 @@ function App() {
                 <div className="waitlist-nudge">
                   <p>don&rsquo;t forget — take yom on a shopping trip too. that&rsquo;s how yom actually learns about you.</p>
                   <Link to="/onboarding" className="waitlist-trip-link" onClick={closeModal}>go on a trip with yom →</Link>
-                  <Link to="/beta" className="waitlist-trip-link" onClick={closeModal}>already in beta? log in →</Link>
+                  <Link to="/signin" className="waitlist-trip-link" onClick={closeModal}>already have an account? sign in →</Link>
                   <Link to="/scan" className="waitlist-trip-link" onClick={closeModal}>scan a piece on your phone →</Link>
                 </div>
               </>

@@ -45,12 +45,16 @@ export default async function handler(req, res) {
   const token = bearer(req);
   const account = token ? await accountFromToken(token) : null;
   const userId = account?.profile?.id || null;
+  // Signing in asks for identity only; connecting calendar and mail is a
+  // separate, later consent.
+  const signin = String(req.query?.intent || "") === "signin";
 
   const url = authUrl({
     userId,
     returnTo,
     guest: !userId,
     origin: clientOrigin(req),
+    signin,
   });
-  json(res, 200, { ok: true, url, guest: !userId });
+  json(res, 200, { ok: true, url, guest: !userId, signin });
 }

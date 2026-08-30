@@ -64,7 +64,7 @@ initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
 
-const APP_ROUTES = /^\/(scan|join|lineup|me|profile|looks|everyone|closet|beta)(\/|$)/;
+const APP_ROUTES = /^\/(scan|join|lineup|me|profile|looks|everyone|closet|signin|beta)(\/|$)/;
 
 function PipelineBoot() {
   const { pathname } = useLocation()
@@ -92,6 +92,14 @@ function LegacyOnboarding() {
   return <Navigate to={`/onboarding${search}${hash}`} replace />
 }
 
+// Signing in is not a beta door any more, so it lives at /signin. The old
+// address stays: it is in emails already sent, and the native app's stored
+// links point at it.
+function LegacySignin() {
+  const { search, hash } = useLocation()
+  return <Navigate to={`/signin${search}${hash}`} replace />
+}
+
 function PageHits() {
   const location = useLocation()
   useEffect(() => {
@@ -112,6 +120,7 @@ function BetaCorner() {
     // The homepage navbar carries its own "sign in", so the corner pill would
     // only repeat it.
     pathname === '/' ||
+    pathname === '/signin' ||
     pathname === '/beta' ||
     pathname === '/scan' ||
     pathname === '/create' ||
@@ -130,8 +139,8 @@ function BetaCorner() {
     return null
   }
   return (
-    <Link to="/beta" className="beta-corner">
-      beta login
+    <Link to="/signin" className="beta-corner">
+      sign in
     </Link>
   )
 }
@@ -149,7 +158,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/survey" element={<LegacyOnboarding />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/beta" element={<Beta />} />
+        <Route path="/signin" element={<Beta />} />
+        <Route path="/beta" element={<LegacySignin />} />
         <Route path="/scan" element={<Scan />} />
         <Route path="/join" element={<Join />} />
         <Route path="/looks" element={<LooksHome />} />

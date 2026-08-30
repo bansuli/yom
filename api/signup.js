@@ -1,6 +1,6 @@
 import { json, preflight, readJson } from "../lib/http.js";
 import { assembleAccount, ingestOnboarding, seedFounderIfNeeded } from "../lib/profile.js";
-import { createAuthUser, one, rest, sbAdmin, signIn, supabaseConfigured } from "../lib/supabase.js";
+import { createAuthUser, signIn, supabaseConfigured } from "../lib/supabase.js";
 
 export default async function handler(req, res) {
   if (preflight(req, res)) return;
@@ -23,12 +23,6 @@ export default async function handler(req, res) {
   }
   if (password.length < 6) {
     json(res, 400, { ok: false, error: "password needs at least 6 characters." });
-    return;
-  }
-
-  const listed = await sbAdmin(rest("allowlist", `email=eq.${email}&select=email,name`));
-  if (!one(listed.data)) {
-    json(res, 403, { ok: false, error: "that email isn't on the beta list." });
     return;
   }
 

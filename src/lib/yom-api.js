@@ -108,6 +108,14 @@ export function yomSignup(email, password, name, extra = {}) {
   return post("/api/signup", { email, password, name, ...extra });
 }
 
+export function yomPhoneStart(phone) {
+  return post("/api/phone/start", { phone });
+}
+
+export function yomPhoneVerify(phone, code, extra = {}) {
+  return post("/api/phone/verify", { phone, code, ...extra });
+}
+
 export function yomCloset(token, body) {
   return post("/api/closet", body, token);
 }
@@ -120,8 +128,9 @@ export function yomGoogleStatus(token) {
   return get("/api/google/status", token);
 }
 
-export function yomGoogleStart(token, returnTo = "/looks") {
-  return get(`/api/google/start?returnTo=${encodeURIComponent(returnTo)}`, token);
+export function yomGoogleStart(token, returnTo = "/looks", intent = "") {
+  const q = intent ? `&intent=${encodeURIComponent(intent)}` : "";
+  return get(`/api/google/start?returnTo=${encodeURIComponent(returnTo)}${q}`, token);
 }
 
 export function yomGoogleSync(token, body = { calendar: true, gmail: true }) {

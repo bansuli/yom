@@ -51,9 +51,9 @@ export async function claimGoogleGrant(grant) {
   return res;
 }
 
-export async function startGoogleConnect(returnTo = "/looks") {
+export async function startGoogleConnect(returnTo = "/looks", intent = "") {
   const session = loadBetaSession();
-  const res = await yomGoogleStart(session?.access_token, returnTo);
+  const res = await yomGoogleStart(session?.access_token, returnTo, intent);
   if (!res.ok || !res.url) {
     const raw = String(res.error || "");
     const error = /user store/i.test(raw)

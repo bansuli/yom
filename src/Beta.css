@@ -251,6 +251,107 @@
   background: #f5f5f5;
 }
 
+/* Country code and number read as one field, split by a hairline. */
+.beta-phone {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.beta-phone:focus-within {
+  border-color: #111;
+  box-shadow: 0 0 0 3px #c8f060;
+}
+
+.beta-phone select {
+  flex: 0 0 auto;
+  border: none;
+  border-right: 1px solid #ececec;
+  background: transparent;
+  padding: 1rem 0.75rem 1rem 1.15rem;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.beta-phone input {
+  flex: 1;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.beta-code {
+  text-align: center;
+  letter-spacing: 0.4em;
+  font-size: 1.15rem !important;
+}
+
+.beta-sent {
+  text-align: center;
+  font-size: 0.92rem;
+  color: #5a5a5a;
+}
+
+/* Same shape as the primary button, but reading as a choice rather than the
+   choice — so the two do not compete at the same weight. */
+.beta-oauth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 1.05rem 24px;
+  border: 1.5px solid #111;
+  border-radius: 999px;
+  background: #fff;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  color: #111;
+  cursor: pointer;
+}
+
+.beta-oauth:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.beta-oauth:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.beta-oauth svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+/* The way out of whichever door you are standing in. */
+.beta-quiet {
+  align-self: center;
+  margin-top: 0.15rem;
+  padding: 0.5rem 0.25rem;
+  border: none;
+  background: none;
+  font-family: "Schibsted Grotesk", sans-serif;
+  font-size: 0.9rem;
+  color: #5a5a5a;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.beta-quiet:hover:not(:disabled) {
+  color: #111;
+}
+
 .beta-err {
   color: #8a3a00;
   font-size: 0.88rem;

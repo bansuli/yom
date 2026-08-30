@@ -90,15 +90,19 @@ export default async function handler(req, res) {
       scopes: tokens.scope || GOOGLE_SCOPES,
     };
 
-    try {
-      await syncCalendar(userId, account);
-    } catch (e) {
-      console.warn("google calendar sync", e?.message || e);
-    }
-    try {
-      await syncGmail(userId, account);
-    } catch (e) {
-      console.warn("google gmail sync", e?.message || e);
+    // A sign-in was never granted calendar or mail, so there is nothing to
+    // pull and asking would only log a confusing permission error.
+    if (!state.signin) {
+      try {
+        await syncCalendar(userId, account);
+      } catch (e) {
+        console.warn("google calendar sync", e?.message || e);
+      }
+      try {
+        await syncGmail(userId, account);
+      } catch (e) {
+        console.warn("google gmail sync", e?.message || e);
+      }
     }
 
     const qs = new URLSearchParams({ google: "connected" });
