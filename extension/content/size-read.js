@@ -163,7 +163,7 @@ function normalizeLabel(raw, family = "clothes") {
 
   const alpha = alphaKey(s);
   if (alpha) {
-    return { raw: original, label: alpha.toUpperCase(), system: "alpha", value: alpha, family };
+    return { raw: original, label: alpha, system: "alpha", value: alpha, family };
   }
 
   const tagged = s.match(/^(us|uk|eu|fr|it)\s*[:.]?\s*(\d+(?:\.\d+)?)$/i) || s.match(/^(\d+(?:\.\d+)?)\s*(us|uk|eu|fr|it)$/i);
@@ -174,7 +174,7 @@ function normalizeLabel(raw, family = "clothes") {
     const kind = family === "shoes" ? `shoe_${system}` : system;
     return {
       raw: original,
-      label: `${system.toUpperCase()} ${value}`,
+      label: `${system} ${value}`,
       system: kind,
       value: String(Number(value) === Number(value) ? value.replace(/\.0$/, "") : value),
       family,
@@ -203,10 +203,10 @@ function normalizeLabel(raw, family = "clothes") {
     if (n == null) return null;
     if (family === "shoes") {
       if (n >= 34 && n <= 46) {
-        return { raw: original, label: `EU ${value}`, system: "shoe_eu", value, family };
+        return { raw: original, label: `eu ${value}`, system: "shoe_eu", value, family };
       }
       if (n >= 2 && n <= 12) {
-        return { raw: original, label: `US ${value}`, system: "shoe_us", value, family };
+        return { raw: original, label: `us ${value}`, system: "shoe_us", value, family };
       }
       if (n >= 13 && n <= 15) return null;
     }
@@ -215,10 +215,10 @@ function normalizeLabel(raw, family = "clothes") {
     }
     if (family === "clothes") {
       if (n >= 30 && n <= 52 && n % 2 === 0) {
-        return { raw: original, label: `EU ${value}`, system: "eu", value, family };
+        return { raw: original, label: `eu ${value}`, system: "eu", value, family };
       }
       if ((n >= 0 && n <= 18 && (n % 2 === 0 || n === 0)) || value === "00") {
-        return { raw: original, label: `US ${value}`, system: "us", value, family };
+        return { raw: original, label: `us ${value}`, system: "us", value, family };
       }
     }
     return { raw: original, label: value, system: "unknown", value, family };
@@ -273,38 +273,38 @@ function equivalents(parsed, family) {
   if (parsed.system === "us" || (parsed.system === "unknown" && family === "clothes")) {
     const alpha = US_TO_ALPHA[v] || US_TO_ALPHA[String(Number(v))];
     if (alpha) {
-      alpha.forEach((key) => out.push({ system: "alpha", value: key, label: key.toUpperCase(), family: "clothes" }));
+      alpha.forEach((key) => out.push({ system: "alpha", value: key, label: key, family: "clothes" }));
     }
     const eu = US_TO_EU_CLOTHES[v] || US_TO_EU_CLOTHES[String(Number(v))];
-    if (eu) out.push({ system: "eu", value: eu, label: `EU ${eu}`, family: "clothes" });
+    if (eu) out.push({ system: "eu", value: eu, label: `eu ${eu}`, family: "clothes" });
   }
 
   if (parsed.system === "alpha") {
     Object.entries(US_TO_ALPHA).forEach(([us, keys]) => {
       if (keys[0] === parsed.value) {
-        out.push({ system: "us", value: us, label: `US ${us}`, family: "clothes" });
+        out.push({ system: "us", value: us, label: `us ${us}`, family: "clothes" });
       }
     });
   }
 
   if (parsed.system === "eu" && family === "clothes") {
     Object.entries(US_TO_EU_CLOTHES).forEach(([us, eu]) => {
-      if (eu === v) out.push({ system: "us", value: us, label: `US ${us}`, family: "clothes" });
+      if (eu === v) out.push({ system: "us", value: us, label: `us ${us}`, family: "clothes" });
     });
   }
 
   if (parsed.system === "shoe_us" || (family === "shoes" && parsed.system === "us")) {
     const key = String(Number(v));
     const eu = US_SHOE_TO_EU[key] || US_SHOE_TO_EU[v];
-    (eu || []).forEach((e) => out.push({ system: "shoe_eu", value: e, label: `EU ${e}`, family: "shoes" }));
+    (eu || []).forEach((e) => out.push({ system: "shoe_eu", value: e, label: `eu ${e}`, family: "shoes" }));
     const uk = US_SHOE_TO_UK[key] || US_SHOE_TO_UK[v];
-    (uk || []).forEach((u) => out.push({ system: "shoe_uk", value: u, label: `UK ${u}`, family: "shoes" }));
+    (uk || []).forEach((u) => out.push({ system: "shoe_uk", value: u, label: `uk ${u}`, family: "shoes" }));
   }
 
   if (parsed.system === "shoe_eu" || (family === "shoes" && parsed.system === "eu")) {
     Object.entries(US_SHOE_TO_EU).forEach(([us, list]) => {
       if (list.includes(v) || list.includes(String(Number(v)))) {
-        out.push({ system: "shoe_us", value: us, label: `US ${us}`, family: "shoes" });
+        out.push({ system: "shoe_us", value: us, label: `us ${us}`, family: "shoes" });
       }
     });
   }
@@ -382,22 +382,22 @@ function statusOf(best) {
 
 function lineFor(match) {
   const { known, userLabel, listingLabel, status, fitNote, model } = match;
-  if (!known) return "no size on file yet — what usually fits you?";
+  if (!known) return "no size on file yet. what usually fits you?";
   if (status === "one_size") return "one size.";
   let core = "";
   if (status === "sold_out") {
     core = `${listingLabel || userLabel} is sold out.`;
   } else if (status === "not_offered") {
-    core = `you wear ${userLabel}; this listing doesn't have it.`;
+    core = `you wear ${userLabel}. this listing doesn't have it.`;
   } else if (status === "converted") {
     core = `you wear ${userLabel} → ${listingLabel} here${match.available === false ? ", sold out" : ", in stock"}.`;
   } else {
     core = `your ${userLabel} is in stock.`;
-    if (match.selected) core = `${listingLabel} is selected — that's your size.`;
+    if (match.selected) core = `${listingLabel} is selected. that's your size.`;
   }
   const extra = [fitNote, model && `model wears ${model}`].filter(Boolean)[0];
   const withExtra = extra ? `${core} ${extra}.`.replace(/\.\s*\./g, ".") : core;
-  return clip(withExtra.replace(/\s+/g, " ").replace(/\s+\./g, "."), 160);
+  return clip(withExtra.replace(/\s+/g, " ").replace(/\s+\./g, "."), 160).toLowerCase();
 }
 
 /**
@@ -437,7 +437,7 @@ function matchUserSize(extracted = {}, sizes = {}, { brand = "" } = {}) {
       listingLabel: options.find((o) => o.selected)?.label || "",
       ask: true,
       chips: options.map((o) => o.label).filter(Boolean).slice(0, 12),
-      line: lineFor({ known: false, fitNote, model, quote }),
+      line: lineFor({ known: false, fitNote, model, quote }).toLowerCase(),
       fitNote,
       model,
       quote,
@@ -482,7 +482,7 @@ function formatQuote(quote) {
   const channel = quote.channel === "reddit" ? "reddit" : quote.channel || "review";
   let text = clip(quote.text, 140).replace(/^["“]+|["”]+$/g, "");
   if (!/[.!?]$/.test(text)) text = `${text}`;
-  return `${channel}: “${text}”`;
+  return `${channel}: "${text.toLowerCase()}"`;
 }
 
 function sizeDisplay(match, quote) {

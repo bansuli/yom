@@ -53,6 +53,15 @@
   pointer-events: auto !important;
 }
 
+.yom-tile-note,
+.yom-pdp-note,
+.yom-ask,
+.yom-fb,
+.yom-whisper,
+.yom-sos-sheet {
+  text-transform: lowercase !important;
+}
+
 .yom-chip,
 .yom-fb-btn,
 .yom-fb-chip,

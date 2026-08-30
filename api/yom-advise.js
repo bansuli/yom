@@ -53,6 +53,7 @@ Output rules:
 - resolve = only if there is a concrete fix
 - never repeat the same fact in title and body
 - quiet=true if the response would still make sense for another product AND another person
+- all user-facing copy is lowercase: title, body, resolve, size, reviews, shipping, stamp, regretLabel. same voice as scan.
 
 GOOD:
 {"quiet":false,"stamp":"occasion","kind":"love","title":"this works for saturday","body":"column midi, estimated delivery aug 25-26. 3 days before maya's wedding.","resolve":null,"checkable":true,"decision_hint":"buy"}
@@ -102,7 +103,7 @@ function parseAdvice(text) {
     const regret = Number(raw.regret);
     return {
       quiet: Boolean(raw.quiet),
-      stamp: raw.stamp || null,
+      stamp: raw.stamp ? humanizeVerdictText(String(raw.stamp)).slice(0, 40) : null,
       kind: raw.kind === "love" || raw.kind === "warn" ? raw.kind : "neutral",
       title: humanizeVerdictText(String(raw.title || "")).slice(0, 120),
       body: humanizeVerdictText(String(raw.body || "")).slice(0, 280),
@@ -116,7 +117,7 @@ function parseAdvice(text) {
       reviews: raw.reviews ? humanizeVerdictText(String(raw.reviews)).slice(0, 240) : null,
       shipping: raw.shipping ? humanizeVerdictText(String(raw.shipping)).slice(0, 180) : null,
       regret: Number.isFinite(regret) ? Math.max(0, Math.min(100, Math.round(regret))) : null,
-      regretLabel: raw.regretLabel ? String(raw.regretLabel).slice(0, 40) : null,
+      regretLabel: raw.regretLabel ? humanizeVerdictText(String(raw.regretLabel)).slice(0, 40) : null,
     };
   } catch {
     return null;
@@ -322,11 +323,17 @@ export default async function handler(req, res) {
   }
 
   if (advice && !advice.quiet) {
-    if (!advice.size && payload.product?.size_read?.line) advice.size = payload.product.size_read.line;
+    if (!advice.size && payload.product?.size_read?.line) {
+      advice.size = humanizeVerdictText(payload.product.size_read.line).slice(0, 180);
+    }
     if (!advice.reviews) {
       const line = reviewLine(payload.web_reviews);
-      if (line) advice.reviews = line;
+      if (line) advice.reviews = humanizeVerdictText(line).slice(0, 240);
     }
+    if (advice.size) advice.size = humanizeVerdictText(advice.size).slice(0, 180);
+    if (advice.reviews) advice.reviews = humanizeVerdictText(advice.reviews).slice(0, 240);
+    if (advice.shipping) advice.shipping = humanizeVerdictText(advice.shipping).slice(0, 180);
+    if (advice.regretLabel) advice.regretLabel = humanizeVerdictText(advice.regretLabel).slice(0, 40);
     const delta = reviewRegretDelta(payload.web_reviews);
     if (Number.isFinite(Number(advice.regret))) {
       advice.regret = Math.max(0, Math.min(100, Math.round(Number(advice.regret) + delta)));

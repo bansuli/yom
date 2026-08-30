@@ -32,10 +32,10 @@ test("detects shoes vs denim vs clothes", () => {
 });
 
 test("normalizes US numeric, alpha, EU clothes", () => {
-  eq(normalizeLabel("4", "clothes").label, "US 4", "bare 4");
+  eq(normalizeLabel("4", "clothes").label, "us 4", "bare 4");
   eq(normalizeLabel("US 4", "clothes").system, "us", "tagged us");
   eq(normalizeLabel("S", "clothes").value, "s", "alpha");
-  eq(normalizeLabel("36", "clothes").label, "EU 36", "eu dress");
+  eq(normalizeLabel("36", "clothes").label, "eu 36", "eu dress");
   eq(normalizeLabel("one size", "clothes").system, "os", "os");
   eq(normalizeLabel("Size guide", "clothes"), null, "junk");
   eq(normalizeLabel("4.5 stars", "clothes"), null, "stars");
@@ -58,7 +58,7 @@ test("US 4 matches Reformation 4", () => {
   const extracted = { family: "clothes", options: collectOptions(["0", "2", "4", "6", "8"], "clothes") };
   const m = matchUserSize(extracted, { us: "US 4" });
   eq(m.status, "in_stock", "status");
-  eq(m.listingLabel, "US 4", "listing");
+  eq(m.listingLabel, "us 4", "listing");
   assert(/in stock/i.test(m.line), m.line);
 });
 
@@ -66,14 +66,14 @@ test("US 4 maps to S on an alpha listing", () => {
   const extracted = { family: "clothes", options: collectOptions(["XXS", "XS", "S", "M", "L"], "clothes") };
   const m = matchUserSize(extracted, { us: "4" });
   eq(m.status, "converted", "converted");
-  eq(m.listingLabel, "S", "S");
-  assert(m.line.includes("S"), m.line);
+  eq(m.listingLabel, "s", "s");
+  assert(m.line.includes("s"), m.line);
 });
 
 test("US 4 maps to EU 36", () => {
   const extracted = { family: "clothes", options: collectOptions(["32", "34", "36", "38", "40"], "clothes") };
   const m = matchUserSize(extracted, { us: "US 4" });
-  eq(m.listingLabel, "EU 36", "eu 36");
+  eq(m.listingLabel, "eu 36", "eu 36");
   eq(m.status, "converted", "converted");
 });
 
@@ -97,14 +97,14 @@ test("sold out is called sold out", () => {
 test("brand-specific size beats usual US", () => {
   const extracted = { family: "clothes", options: collectOptions(["XS", "S", "M"], "clothes") };
   const m = matchUserSize(extracted, { us: "4", brands: { Aritzia: "M" } }, { brand: "Aritzia" });
-  eq(m.listingLabel, "M", "brand M");
+  eq(m.listingLabel, "m", "brand m");
   eq(m.source, "brand", "source");
 });
 
 test("shoe US 7.5 matches EU 38", () => {
   const extracted = { family: "shoes", options: collectOptions(["36", "37", "38", "39", "40"], "shoes") };
   const m = matchUserSize(extracted, { shoes: "7.5" });
-  eq(m.listingLabel, "EU 38", "eu 38");
+  eq(m.listingLabel, "eu 38", "eu 38");
   eq(m.family, "shoes", "family");
 });
 
@@ -112,7 +112,7 @@ test("shoe EU 38 matches listing 38", () => {
   const extracted = { family: "shoes", options: collectOptions(["36", "37", "38", "39"], "shoes") };
   const m = matchUserSize(extracted, { shoes: "EU 38" });
   eq(m.status, "in_stock", "in stock");
-  eq(m.listingLabel, "EU 38", "label");
+  eq(m.listingLabel, "eu 38", "label");
 });
 
 test("denim 26 matches 26x32", () => {
@@ -126,7 +126,7 @@ test("unknown size asks instead of guessing", () => {
   const m = matchUserSize(extracted, {});
   eq(m.known, false, "unknown");
   eq(m.ask, true, "ask");
-  assert(m.chips.includes("US 4"), `chips ${m.chips}`);
+  assert(m.chips.includes("us 4"), `chips ${m.chips}`);
 });
 
 test("one size does not ask", () => {

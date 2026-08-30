@@ -163,7 +163,7 @@ export default function Admin() {
         });
         const body = await res.json().catch(() => null);
         if (!res.ok || !body?.ok) {
-          setErr(res.status === 401 ? "That login didn’t work." : body?.error || "Could not load.");
+          setErr(res.status === 401 ? "that login didn’t work." : body?.error || "could not load.");
           setData(null);
           if (res.status === 401) {
             setToken("");
@@ -182,7 +182,7 @@ export default function Admin() {
           }
         }
       } catch {
-        setErr("Could not reach the API.");
+        setErr("could not reach the API.");
       }
       setBusy(false);
     },
@@ -202,7 +202,7 @@ export default function Admin() {
       .catch(() => null);
     setBusy(false);
     if (!res?.ok || !res.access_token) {
-      setErr(res?.error || "Could not log in.");
+      setErr(res?.error || "could not log in.");
       return;
     }
     setPassword("");

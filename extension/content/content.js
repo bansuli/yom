@@ -419,9 +419,21 @@
 
   function formatRegretLabel(n) {
     const tone = regretTone(n);
-    if (tone === "keep") return "keep";
-    if (tone === "ok") return "ok";
-    return "return";
+    if (tone === "keep") return "you'd keep it";
+    if (tone === "ok") return "could go either way";
+    return "likely regret";
+  }
+
+  function voice(text) {
+    if (text == null || text === "") return text;
+    return String(text)
+      .toLowerCase()
+      .replace(/\s+[—–−‒―]\s+/g, ". ")
+      .replace(/(\w)[—―](\w)/g, "$1. $2")
+      .replace(/\s+-{2,}\s+/g, ". ")
+      .replace(/(\w)\s+-\s+(\w)/g, "$1. $2")
+      .replace(/\s{2,}/g, " ")
+      .trim();
   }
 
   function parseTracking(node) {
@@ -1151,6 +1163,10 @@
     }
   }
 
+  function sayBrand(info) {
+    return String(shopBrand(info) || "this brand").toLowerCase();
+  }
+
   function productRecord(info = {}, extra = {}) {
     const href = info.href || (isPdp() ? location.href : "");
     const name = info.name || info.alt || extra.name || "this piece";
@@ -1240,7 +1256,7 @@
     const fam = SIZES?.familyOf?.(info) || kindOf(info || {});
     if (fam === "shoes" || isShoeProduct(info)) return ["6", "6.5", "7", "7.5", "8", "8.5", "9"];
     if (fam === "denim" || kindOf(info || {}) === "jeans") return ["24", "25", "26", "27", "28", "29"];
-    return ["XXS", "XS", "S", "M", "L"];
+    return ["xxs", "xs", "s", "m", "l"];
   }
 
   function listingPack(info) {
@@ -1391,13 +1407,13 @@
   }
 
   function paintFitCheck(host, ctx, size) {
-    const brand = shopBrand(ctx.info);
+    const brand = sayBrand(ctx.info);
     host.innerHTML = "";
-    host.appendChild(el("p", { class: "yom-fb-ask" }, `does ${size} usually fit you in ${brand}?`));
+    host.appendChild(el("p", { class: "yom-fb-ask" }, `does ${String(size).toLowerCase()} usually fit you in ${brand}?`));
     [
-      { label: "yes, it fits", fit: "true to size", note: `${size} fits well in ${brand}.` },
-      { label: "I size up", run: "small", note: `sizes up from ${size} in ${brand}.` },
-      { label: "I size down", run: "large", note: `sizes down from ${size} in ${brand}.` },
+      { label: "yes, it fits", fit: "true to size", note: `${String(size).toLowerCase()} fits well in ${brand}.` },
+      { label: "i size up", run: "small", note: `sizes up from ${String(size).toLowerCase()} in ${brand}.` },
+      { label: "i size down", run: "large", note: `sizes down from ${String(size).toLowerCase()} in ${brand}.` },
     ].forEach((opt) => {
       host.appendChild(
         fbButton(opt.label, "yom-fb-chip", () => {
@@ -1409,10 +1425,10 @@
   }
 
   function paintPastFit(host, ctx, item) {
-    const brand = shopBrand(ctx.info);
-    const name = clipAsk(item.item || "that piece");
+    const brand = sayBrand(ctx.info);
+    const name = clipAsk(item.item || "that piece").toLowerCase();
     host.innerHTML = "";
-    host.appendChild(el("p", { class: "yom-fb-ask" }, `you kept ${name} — did that size fit well?`));
+    host.appendChild(el("p", { class: "yom-fb-ask" }, `you kept ${name}. did that size fit well?`));
     [
       { label: "yes", note: `${name} from ${brand} fit well. use that size here.` },
       { label: "too small", run: "small", note: `${name} from ${brand} ran small.` },
@@ -1433,17 +1449,18 @@
   }
 
   function paintSizeAsk(host, ctx) {
-    const brand = shopBrand(ctx.info);
+    const brand = sayBrand(ctx.info);
     host.innerHTML = "";
     host.appendChild(el("p", { class: "yom-fb-ask" }, `what size do you wear in ${brand}?`));
     sizeOptions(ctx.info).forEach((size) => {
+      const chip = String(size).toLowerCase();
       host.appendChild(
-        fbButton(size, "yom-fb-chip", () => {
+        fbButton(chip, "yom-fb-chip", () => {
           applyLearn(ctx, {
-            size,
-            note: `wears ${size} in ${brand} for ${pieceName(ctx.info)}.`,
+            size: chip,
+            note: `wears ${chip} in ${brand} for ${pieceName(ctx.info).toLowerCase()}.`,
           });
-          paintFitCheck(host, ctx, size);
+          paintFitCheck(host, ctx, chip);
         })
       );
     });
@@ -1459,11 +1476,11 @@
     input.addEventListener("keydown", (e) => {
       e.stopPropagation();
       if (e.key !== "Enter") return;
-      const size = input.value.trim();
+      const size = input.value.trim().toLowerCase();
       if (!size) return;
       applyLearn(ctx, {
         size,
-        note: `wears ${size} in ${brand} for ${pieceName(ctx.info)}.`,
+        note: `wears ${size} in ${brand} for ${pieceName(ctx.info).toLowerCase()}.`,
       });
       paintFitCheck(host, ctx, size);
     });
@@ -1472,7 +1489,7 @@
   }
 
   function paintFollow(host, ctx, follow) {
-    const brand = shopBrand(ctx.info);
+    const brand = sayBrand(ctx.info);
     const options =
       follow === "brand-run"
         ? [
@@ -2339,14 +2356,16 @@
 
   function sizeRead(info) {
     const pack = listingPack(info);
-    if (pack?.match?.line) return pack.match.line;
+    if (pack?.match?.line) return voice(pack.match.line);
     const sizes = learnedSizes();
     const kind = kindOf(info);
     if (kind === "shoes" || isShoeProduct(info)) {
-      return sizes.shoes ? `you wear ${sizes.shoes}.` : "no shoe size on file yet.";
+      return sizes.shoes ? `you wear ${String(sizes.shoes).toLowerCase()}.` : "no shoe size on file yet.";
     }
-    if (kind === "jeans") return sizes.denim ? `you wear a ${sizes.denim} in denim.` : "no denim size on file yet.";
-    if (sizes.us) return `you usually take a ${sizes.us}.`;
+    if (kind === "jeans") {
+      return sizes.denim ? `you wear a ${String(sizes.denim).toLowerCase()} in denim.` : "no denim size on file yet.";
+    }
+    if (sizes.us) return `you usually take a ${String(sizes.us).toLowerCase()}.`;
     return "";
   }
 
@@ -2394,21 +2413,21 @@
       body: "let me look at it against what you actually wear.",
     };
     const reviews = reviewsRead(info);
-    const size = sizeRead(info) || "no size on file yet — check the chart against how this brand runs.";
+    const size = sizeRead(info) || "no size on file yet. check the chart against how this brand runs.";
     const shipping = shippingRead();
     const regret = regretScore(info, prior);
     const extra = checkResult(info).resolve;
     return {
-      title: prior.title,
-      body: prior.body,
-      stamp: prior.stamp,
+      title: voice(prior.title),
+      body: voice(prior.body),
+      stamp: voice(prior.stamp) || prior.stamp,
       closetKey: prior.closetKey,
-      size,
-      reviews,
-      shipping,
+      size: voice(size),
+      reviews: voice(reviews),
+      shipping: voice(shipping),
       regret,
-      regretLabel: formatRegretLabel(regret),
-      resolve: extra || null,
+      regretLabel: voice(formatRegretLabel(regret)),
+      resolve: extra ? voice(extra) : null,
     };
   }
 
@@ -2419,16 +2438,16 @@
     }
     const regret = Number.isFinite(Number(advice.regret)) ? Number(advice.regret) : local.regret;
     return {
-      title: advice.title || local.title,
-      body: advice.body || local.body,
-      stamp: advice.stamp || local.stamp,
+      title: voice(advice.title || local.title),
+      body: voice(advice.body || local.body),
+      stamp: voice(advice.stamp || local.stamp) || local.stamp,
       closetKey: local.closetKey,
-      size: advice.size || local.size,
-      reviews: advice.reviews || local.reviews,
-      shipping: local.shipping,
+      size: voice(advice.size || local.size),
+      reviews: voice(advice.reviews || local.reviews),
+      shipping: voice(local.shipping),
       regret,
-      regretLabel: advice.regretLabel || formatRegretLabel(regret),
-      resolve: local.resolve || advice.resolve,
+      regretLabel: voice(advice.regretLabel || formatRegretLabel(regret)),
+      resolve: voice(local.resolve || advice.resolve) || null,
     };
   }
 
@@ -2796,7 +2815,7 @@
       body: `${name}. ${check.body}`,
       stamp: prior?.stamp || "checked",
       closetKey: prior?.closetKey,
-      size: sizeRead(info) || "no size on file yet — check the chart against how this brand runs.",
+      size: sizeRead(info) || "no size on file yet. check the chart against how this brand runs.",
       reviews: reviewsRead(info),
       shipping: shippingRead(),
       regret,

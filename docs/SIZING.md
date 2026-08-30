@@ -22,6 +22,10 @@ The size line on the PDP is produced **in the extension** before the model speak
 
 If you change conversion tables, edit `lib/size-read.js` and regenerate the extension copy (the generate step in that conversation, or re-run the same wrap). Do not hand-edit `extension/content/size-read.js`.
 
+## Voice
+
+All tips, size lines, asks, and advise/scan copy are **lowercase**. Same voice as the rest of yom: short, specific, no em-dashes. Size tokens in speech are `us 4`, `s`, `eu 38` — not `US 4` / `S`. Stored profile values may still arrive as `US 4`; we lowercase them when we say them.
+
 ## What we store on the person
 
 `profiles.sizes` is a JSON object, not a single number:
@@ -112,14 +116,14 @@ If two listing options could match, we pick the **higher-scoring in-stock** one 
 
 | Status | Meaning | Example line |
 |---|---|---|
-| `in_stock` | Her size is on the listing and available | `your US 4 is in stock.` |
-| `converted` | Same person, different system on the shop | `you wear US 4 → S here, in stock.` |
-| `sold_out` | We found her size; it’s OOS | `US 4 is sold out.` |
-| `not_offered` | Her size is not on this grid | `you wear US 14; this listing doesn't have it.` |
+| `in_stock` | Her size is on the listing and available | `your us 4 is in stock.` |
+| `converted` | Same person, different system on the shop | `you wear us 4 → s here, in stock.` |
+| `sold_out` | We found her size; it’s OOS | `us 4 is sold out.` |
+| `not_offered` | Her size is not on this grid | `you wear us 14. this listing doesn't have it.` |
 | `one_size` | Listing is OS / OSFA | `one size.` |
-| `unknown` | No size on file | `no size on file yet — what usually fits you?` |
+| `unknown` | No size on file | `no size on file yet. what usually fits you?` |
 
-If she already selected her size on the page: `4 is selected — that's your size.`
+If she already selected her size on the page: `4 is selected. that's your size.`
 
 Fit note / model wearing may be appended as a second beat, still one line. Review copy is a **separate** reviews line, not stuffed into size.
 
@@ -127,15 +131,15 @@ Fit note / model wearing may be appended as a second beat, still one line. Revie
 
 On a PDP, if we don’t know a size for this family/brand, the overlay asks **using this listing’s chips**, not hardcoded `US 2/4/6/8`.
 
-After she picks: **does that usually fit you in {brand}?** → yes / I size up / I size down.
+After she picks: **does that usually fit you in {brand}?** → yes / i size up / i size down.
 
-If closet/Gmail shows a **kept** piece from this brand and we already know a size, we ask once: **you kept {item} — did that size fit well?**
+If closet/Gmail shows a **kept** piece from this brand and we already know a size, we ask once: **you kept {item}. did that size fit well?**
 
 That writes:
 
 - `sizes.brands[brand]`
 - `sizes.us` / `denim` / `shoes` depending on family
-- a memory note (`sizes up from 4 in Reformation`)
+- a memory note (`sizes up from 4 in reformation`)
 
 Once per brand per session so we don’t nag.
 
@@ -169,7 +173,7 @@ On a live PDP: reload the unpacked extension, open a product, read the **size** 
 ## FAQ
 
 **Why did it say S when she wears a 4?**  
-The listing is letter sizes. US 4 maps to S on the usual RTW chart. The line should say `you wear US 4 → S here`.
+The listing is letter sizes. US 4 maps to S on the usual RTW chart. The line should say `you wear us 4 → s here`.
 
 **Why didn’t it convert?**  
 The listing already has `4`. Conversion only runs across systems.

@@ -268,7 +268,7 @@ window.YOM_SIZES = (() => {
       READ().matchUserSize?.(extracted, sizes, { brand }) || {
         known: false,
         ask: true,
-        line: "no size on file yet — what usually fits you?",
+        line: "no size on file yet. what usually fits you?",
         chips: extracted?.labels || [],
         options: extracted?.options || [],
       }
@@ -286,7 +286,7 @@ window.YOM_SIZES = (() => {
     const fam = extracted?.family || familyOf(info || {});
     if (fam === "shoes") return ["6", "6.5", "7", "7.5", "8", "8.5", "9"];
     if (fam === "denim") return ["24", "25", "26", "27", "28", "29"];
-    return ["XXS", "XS", "S", "M", "L"];
+    return ["xxs", "xs", "s", "m", "l"];
   }
 
   return { extract, match, read, chips, familyOf };
