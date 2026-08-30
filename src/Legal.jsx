@@ -265,7 +265,9 @@ export function Terms() {
       <section>
         <h2>law</h2>
         <p>
-          These terms are governed by the laws of the State of California, United States.
+          These terms are governed by the laws of the State of Delaware, United States,
+          where yom is incorporated. If you live somewhere whose consumer protection law
+          gives you rights this agreement cannot take away, you keep those rights.
         </p>
       </section>
     </Shell>
