@@ -108,6 +108,37 @@ export default async function handler(req, res) {
     }
   }
 
+  // ?probe=email&email=… reports, read-only, whether an auth user and a profile
+  // row already exist for one address and whether they point at the same id.
+  // A profile whose email is taken by a different id makes the signup trigger
+  // fail with exactly the 500 we are chasing.
+  if (req.query?.probe === "email" && url && service) {
+    const want = String(req.query?.email || "").trim().toLowerCase();
+    const h = { apikey: service };
+    if (service.startsWith("eyJ")) h.Authorization = `Bearer ${service}`;
+    const report = { email: want };
+    try {
+      const ur = await fetch(`${url}/auth/v1/admin/users?page=1&per_page=200`, { headers: h });
+      const ud = await ur.json().catch(() => null);
+      const users = Array.isArray(ud?.users) ? ud.users : [];
+      report.total_auth_users = users.length;
+      const hit = users.find((u) => String(u.email || "").toLowerCase() === want);
+      report.auth_user = hit ? { id: hit.id, created_at: hit.created_at } : null;
+
+      const pr = await fetch(
+        `${url}/rest/v1/profiles?email=eq.${encodeURIComponent(want)}&select=id,email,name,created_at`,
+        { headers: h }
+      );
+      const pd = await pr.json().catch(() => null);
+      report.profile_rows = Array.isArray(pd) ? pd : pd;
+      report.mismatch =
+        Array.isArray(pd) && pd.length > 0 && (!hit || pd[0].id !== hit.id);
+    } catch (e) {
+      report.error = String(e?.message || e).slice(0, 200);
+    }
+    out.probe = report;
+  }
+
   const healthy =
     out.supabase.url &&
     out.supabase.admin_users?.ok === true &&
