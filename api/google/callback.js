@@ -112,7 +112,8 @@ export default async function handler(req, res) {
     res.writeHead(302, { Location: `${base}${returnTo}?${qs}` });
     res.end();
   } catch (e) {
-    console.warn("google callback", e?.message || e);
+    // The detail goes to the logs and to /api/health, not to the person.
+    console.warn("google callback", e?.status || "", e?.message || e, e?.detail || "");
     res.writeHead(302, {
       Location: `${base}${returnTo}?google=error&msg=${encodeURIComponent(e?.message || "failed")}`,
     });
