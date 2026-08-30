@@ -49,7 +49,7 @@ function App() {
           items={[
             { label: 'about', to: '/about' },
             { label: 'how it works', to: '/how-it-works' },
-            { label: 'join waitlist', onSelect: () => setWaitlistOpen(true) },
+            { label: 'sign in', to: '/beta' },
           ]}
         />
 
