@@ -126,10 +126,17 @@ window.YOM_EXTRACT = (() => {
     const sizeNote =
       (blob.match(/((?:true to size|runs? (?:small|large|big|long|short)|size up|size down|fits (?:true|small|large))[^.!?]{0,90})/i) ||
         [])[1] || "";
+    let sizing = null;
+    try {
+      sizing = window.YOM_SIZES?.extract?.(root, { name: document.querySelector("h1")?.textContent, href: location.href, category: location.pathname });
+    } catch {
+      sizing = null;
+    }
     return {
       reviews: reviews.slice(0, 4).join(" · "),
       shipping: /regret|look into|checking this|whether you/i.test(ship) ? "" : clip(ship, 180),
-      sizeNote: clip(sizeNote, 180),
+      sizeNote: clip(sizing?.fitNote || sizeNote, 180),
+      sizing,
     };
   }
 
@@ -264,7 +271,7 @@ window.YOM_EXTRACT = (() => {
       root.querySelector(".product-detail img, [class*='pdp'] img, picture img") ||
       document.querySelector("meta[property='og:image']");
     const image = img?.currentSrc || img?.src || img?.content || "";
-    return {
+    const info = {
       name,
       price: priceIn(root, product),
       color,
@@ -276,6 +283,12 @@ window.YOM_EXTRACT = (() => {
       category: (product?.category || location.pathname).toString().toLowerCase(),
       text: `${name} ${color} ${desc} ${location.pathname}`,
     };
+    try {
+      info.sizing = window.YOM_SIZES?.extract?.(root, info) || null;
+    } catch {
+      info.sizing = null;
+    }
+    return info;
   }
 
   function findTiles() {

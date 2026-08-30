@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:sheet": "node scripts/test-sheet-webhook.mjs",
+    "test:size": "node scripts/test-size-read.mjs",
     "hero:cut": "node scripts/knockout-hero-images.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npm run cap:sync && npx cap open ios",

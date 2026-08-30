@@ -1343,23 +1343,11 @@
   margin-bottom: 1.25rem;
 }
 
-.results-personal-read {
-  margin-bottom: 3.5rem;
-}
-
-.results-personal-read p {
-  font-family: var(--font-body);
-  font-size: 1.1rem;
-  line-height: 1.75;
-  margin: 0;
-  color: #111;
-}
-
 .results-archetype-section {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  padding: 0 0 3rem;
+  padding: 0 0 1.75rem;
   border-top: none;
   border-bottom: none;
   margin-bottom: 0;
@@ -1639,6 +1627,7 @@
   border-radius: 18px;
   padding: 1.4rem 1.6rem;
   width: 100%;
+  margin: 0 0 2rem;
 }
 
 .results-personal-read p {

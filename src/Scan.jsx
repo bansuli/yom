@@ -6,6 +6,7 @@ import { captureAcquisitionFromUrl, getAnonId, getSurface, loadAcquisition, trac
 import { flushLeadQueue } from "./lib/lead-queue.js";
 import { recordScanVisit } from "./lib/capture-lead.js";
 import { isYomReady, loadJoinEmail, loadJoinProfile, loadLastCheck, saveJoinProfile, saveLastCheck, unlockIfTest } from "./lib/join-store.js";
+import { closetNoteForPrompt, loadSurvey } from "./lib/survey-store.js";
 import { appendScanHistory, formatScanHistoryForPrompt } from "./lib/scan-history.js";
 import { loadBetaSession, yomLinkPreview, yomShare } from "./lib/yom-api.js";
 import { canNativeShare, newShareId, openSystemShare } from "./lib/share-out.js";
@@ -170,7 +171,7 @@ function scrubTake(data) {
         title: `looks like ${label}`,
         body: cousins.length
           ? `no brand readable on this shot. closest: ${cousins.join(", ")}. scan the hangtag or insole.`
-          : "no brand readable on this shot. scan the hangtag or insole — that's the read.",
+          : "no brand readable on this shot. scan the hangtag or insole. that's the read.",
         resolve: "scan the price tag next.",
         decision_hint: "save",
         kind: "neutral",
@@ -191,11 +192,11 @@ function scanFailMessage(res, data) {
     path: "/scan",
   });
   if (data?.error) return data.error;
-  if (res.status === 413) return "photo is too heavy — crop closer and try again.";
-  if (res.status === 503) return "yom’s brain is warming up — try again in a moment.";
-  if (res.status === 404 || res.status === 405) return "couldn’t reach yom — check your connection.";
-  if (res.status === 504 || res.status === 502) return "couldn’t read that — try again.";
-  return "couldn’t read that — try a clearer photo, another link, or a shorter description.";
+  if (res.status === 413) return "photo is too heavy. crop closer and try again.";
+  if (res.status === 503) return "yom’s brain is warming up. try again in a moment.";
+  if (res.status === 404 || res.status === 405) return "couldn’t reach yom. check your connection.";
+  if (res.status === 504 || res.status === 502) return "couldn’t read that. try again.";
+  return "couldn’t read that. try a clearer photo, another link, or a shorter description.";
 }
 
 function asHttpLink(raw) {
@@ -330,7 +331,7 @@ export default function Scan() {
         setCamReady(true);
       } catch {
         setCamReady(false);
-        setErr("camera blocked — use the upload button instead.");
+        setErr("camera blocked. use the upload button instead.");
       }
     },
     [facing]
@@ -461,7 +462,7 @@ export default function Scan() {
         // Say what it is looking at, or it reads a grid as one strange garment.
         note:
           files.length > 1
-            ? `${files.length} separate photos of pieces i want to wear together as one outfit — read them as one look, not as separate items.`
+            ? `${files.length} separate photos of pieces i want to wear together as one outfit. read them as one look, not as separate items.`
             : undefined,
       });
     } catch {
@@ -538,6 +539,7 @@ export default function Scan() {
 
     const session = loadBetaSession();
     const joinProfile = loadJoinProfile();
+    const survey = loadSurvey() || {};
     const acq = loadAcquisition();
     if (previewJob) {
       listingImage = listingImage || (await previewJob);
@@ -563,8 +565,11 @@ export default function Scan() {
           shopping_context: joinProfile.context || acq.shopping_context || "berkeley_fpr_2026",
           recruitment_round: joinProfile.round || acq.recruitment_round || pickDay || "",
           shopping_context_label: joinProfile.contextOther || "",
-          shopper_name: joinProfile.name || "",
-          trait: joinProfile.trait || "",
+          shopper_name: joinProfile.name || survey.name || "",
+          trait: joinProfile.trait || survey.trait || "",
+          pre_buy: joinProfile.preBuy || survey.preBuy || "",
+          read: joinProfile.read || survey.read || "",
+          closet_note: closetNoteForPrompt(survey),
           scan_memory: formatScanHistoryForPrompt(),
           occasion: occasion || joinProfile.occasion || "",
           occasion_label: occasion || joinProfile.occasion || joinProfile.contextOther || "",
@@ -580,7 +585,7 @@ export default function Scan() {
     } catch (e) {
       if (gen !== checkGen.current) return;
       console.warn("yom-scan request", e);
-      setErr("couldn’t reach yom — check your connection and try again.");
+      setErr("couldn’t reach yom. check your connection and try again.");
       setPhase("error");
       return;
     }
@@ -836,12 +841,22 @@ export default function Scan() {
     verdict.spotting ||
     (cousins.length ? cousins.map((item) => item.name).join(" · ") : "")
   );
-  const peopleTalk =
+  const rawTalk =
     result?.reviews?.summary || result?.reviews?.highlights?.length
       ? result.reviews
       : verdict.reviews?.summary || verdict.reviews?.highlights?.length
         ? verdict.reviews
         : null;
+  const peopleTalk = rawTalk
+    ? {
+        ...rawTalk,
+        summary: humanizeTake(rawTalk.summary || ""),
+        fit_note: humanizeTake(rawTalk.fit_note || ""),
+        highlights: Array.isArray(rawTalk.highlights)
+          ? rawTalk.highlights.map((hit) => ({ ...hit, text: humanizeTake(hit.text || "") }))
+          : [],
+      }
+    : null;
 
   const noClothes = Boolean(verdict.quiet) || isNonClothingScan(product, verdict);
 
@@ -1007,7 +1022,7 @@ export default function Scan() {
             <p className="pnm-sub">yom picked {advisedDay.wear}. tap another if you disagree.</p>
           ) : (
             <p className="pnm-sub">
-              yom said {advisedDay.wear} — saving it for {chosenDay?.wear || "another day"}.
+              yom said {advisedDay.wear}. saving it for {chosenDay?.wear || "another day"}.
             </p>
           )}
           {/* An outfit is one look, not one garment — asking her to call a dress

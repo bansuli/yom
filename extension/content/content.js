@@ -1,11 +1,12 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.40") return;
-  window.__YOM_BUILD__ = "1.1.40";
+  if (window.__YOM_BUILD__ === "1.1.41") return;
+  window.__YOM_BUILD__ = "1.1.41";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
   const DATA = window.YOM_DEMO;
   const EXTRACT = window.YOM_EXTRACT;
+  const SIZES = window.YOM_SIZES;
   const Sites = window.YOM_SITES;
   const pageHost = location.hostname;
   if (
@@ -43,7 +44,7 @@
     preBuy: null,
     keepLean: null,
     read: null,
-    learned: { notes: [], brands: {}, likes: [] },
+    learned: { notes: [], brands: {}, likes: [], askedBrand: {}, askedPast: {} },
   });
 
   const PROFILE_FIELDS = [
@@ -1128,6 +1129,8 @@
     if (!Array.isArray(state.learned.notes)) state.learned.notes = [];
     if (!state.learned.brands || typeof state.learned.brands !== "object") state.learned.brands = {};
     if (!Array.isArray(state.learned.likes)) state.learned.likes = [];
+    if (!state.learned.askedBrand || typeof state.learned.askedBrand !== "object") state.learned.askedBrand = {};
+    if (!state.learned.askedPast || typeof state.learned.askedPast !== "object") state.learned.askedPast = {};
     return state.learned;
   }
 
@@ -1231,9 +1234,34 @@
   }
 
   function sizeOptions(info) {
-    if (kindOf(info || {}) === "shoes" || isShoeProduct(info)) return ["36", "37", "38", "39", "40"];
-    if (kindOf(info || {}) === "jeans") return ["24", "25", "26", "27", "28", "29"];
-    return ["US 2", "US 4", "US 6", "US 8"];
+    const pack = listingPack(info);
+    const fromPage = SIZES?.chips?.(pack?.extracted, info);
+    if (fromPage?.length) return fromPage;
+    const fam = SIZES?.familyOf?.(info) || kindOf(info || {});
+    if (fam === "shoes" || isShoeProduct(info)) return ["6", "6.5", "7", "7.5", "8", "8.5", "9"];
+    if (fam === "denim" || kindOf(info || {}) === "jeans") return ["24", "25", "26", "27", "28", "29"];
+    return ["XXS", "XS", "S", "M", "L"];
+  }
+
+  function listingPack(info) {
+    if (listingPack.path === location.pathname && listingPack.cache) return listingPack.cache;
+    let pack = null;
+    try {
+      const root = EXTRACT.pdpRoot?.() || document.body;
+      pack = SIZES?.read?.(root, info || pdpInfo(), learnedSizes(), shopBrand(info)) || null;
+    } catch {
+      pack = null;
+    }
+    listingPack.path = location.pathname;
+    listingPack.cache = pack;
+    return pack;
+  }
+
+  function brandPurchases(brand) {
+    const rows = liveAccount?.profile?.purchases || [];
+    const b = String(brand || "").toLowerCase();
+    if (!b) return [];
+    return rows.filter((p) => String(p.brand || "").toLowerCase() === b);
   }
 
   function interventionKind(ctx = {}) {
@@ -1319,9 +1347,11 @@
     }
     if (patch.size) {
       L.brands[brand] = patch.size;
-      if (kind === "shoes" || isShoeProduct(info)) L.shoes = /eu/i.test(patch.size) ? patch.size : `EU ${patch.size}`;
+      if (kind === "shoes" || isShoeProduct(info)) L.shoes = /eu/i.test(patch.size) ? patch.size : patch.size;
       else if (kind === "jeans") L.denim = String(patch.size).replace(/^us\s*/i, "");
-      else L.us = /us/i.test(patch.size) ? patch.size : `US ${patch.size}`;
+      else L.us = /us/i.test(patch.size) ? patch.size : patch.size;
+      listingPack.path = "";
+      listingPack.cache = null;
     }
     if (patch.run) L.notes.push(`${brand} runs ${patch.run} for them.`);
     if (patch.fit) L.notes.push(`fit preference: ${patch.fit}.`);
@@ -1360,6 +1390,48 @@
     host.appendChild(el("span", { class: "yom-fb-done" }, ackCopy()));
   }
 
+  function paintFitCheck(host, ctx, size) {
+    const brand = shopBrand(ctx.info);
+    host.innerHTML = "";
+    host.appendChild(el("p", { class: "yom-fb-ask" }, `does ${size} usually fit you in ${brand}?`));
+    [
+      { label: "yes, it fits", fit: "true to size", note: `${size} fits well in ${brand}.` },
+      { label: "I size up", run: "small", note: `sizes up from ${size} in ${brand}.` },
+      { label: "I size down", run: "large", note: `sizes down from ${size} in ${brand}.` },
+    ].forEach((opt) => {
+      host.appendChild(
+        fbButton(opt.label, "yom-fb-chip", () => {
+          applyLearn(ctx, opt);
+          markNoted(host);
+        })
+      );
+    });
+  }
+
+  function paintPastFit(host, ctx, item) {
+    const brand = shopBrand(ctx.info);
+    const name = clipAsk(item.item || "that piece");
+    host.innerHTML = "";
+    host.appendChild(el("p", { class: "yom-fb-ask" }, `you kept ${name} — did that size fit well?`));
+    [
+      { label: "yes", note: `${name} from ${brand} fit well. use that size here.` },
+      { label: "too small", run: "small", note: `${name} from ${brand} ran small.` },
+      { label: "too big", run: "large", note: `${name} from ${brand} ran large.` },
+    ].forEach((opt) => {
+      host.appendChild(
+        fbButton(opt.label, "yom-fb-chip", () => {
+          applyLearn(ctx, opt);
+          markNoted(host);
+        })
+      );
+    });
+  }
+
+  function clipAsk(text) {
+    const s = String(text || "").replace(/\s+/g, " ").trim();
+    return s.length > 42 ? `${s.slice(0, 40)}…` : s;
+  }
+
   function paintSizeAsk(host, ctx) {
     const brand = shopBrand(ctx.info);
     host.innerHTML = "";
@@ -1369,9 +1441,9 @@
         fbButton(size, "yom-fb-chip", () => {
           applyLearn(ctx, {
             size,
-            note: `wears ${size} in ${brand}, not the size yom assumed for ${pieceName(ctx.info)}.`,
+            note: `wears ${size} in ${brand} for ${pieceName(ctx.info)}.`,
           });
-          markNoted(host);
+          paintFitCheck(host, ctx, size);
         })
       );
     });
@@ -1391,9 +1463,9 @@
       if (!size) return;
       applyLearn(ctx, {
         size,
-        note: `wears ${size} in ${brand}, not the size yom assumed for ${pieceName(ctx.info)}.`,
+        note: `wears ${size} in ${brand} for ${pieceName(ctx.info)}.`,
       });
-      markNoted(host);
+      paintFitCheck(host, ctx, size);
     });
     host.appendChild(input);
     setTimeout(() => input.focus(), 30);
@@ -1463,6 +1535,22 @@
 
   function mountFeedback(host, ctx) {
     if (!host || ctx.checking) return;
+    const L = learnedState();
+    const brand = shopBrand(ctx.info);
+    const pack = isPdp() ? listingPack(ctx.info) : null;
+    if (pack?.match?.ask && !L.askedBrand[brand]) {
+      L.askedBrand[brand] = true;
+      saveState();
+      paintSizeAsk(host, ctx);
+      return;
+    }
+    const past = brandPurchases(brand).find((p) => p.item && p.kept !== false);
+    if (isPdp() && past && pack?.match?.known && !L.askedPast[brand]) {
+      L.askedPast[brand] = true;
+      saveState();
+      paintPastFit(host, ctx, past);
+      return;
+    }
     host.innerHTML = "";
     host.appendChild(
       fbButton("makes sense", "yom-fb-btn yom-fb-ok", () => {
@@ -2223,7 +2311,7 @@
 
   function pageFacts() {
     if (pageFacts.path === location.pathname && pageFacts.cache) return pageFacts.cache;
-    let facts = { reviews: "", shipping: "", sizeNote: "" };
+    let facts = { reviews: "", shipping: "", sizeNote: "", sizing: null };
     try {
       facts = EXTRACT.pageFacts?.() || facts;
     } catch {
@@ -2250,20 +2338,21 @@
   }
 
   function sizeRead(info) {
-    const sizes = activePersona().sizes || {};
+    const pack = listingPack(info);
+    if (pack?.match?.line) return pack.match.line;
+    const sizes = learnedSizes();
     const kind = kindOf(info);
-    let base = "";
     if (kind === "shoes" || isShoeProduct(info)) {
-      base = sizes.shoes ? `you wear ${sizes.shoes}.` : "no shoe size on file yet.";
-    } else if (kind === "jeans") base = sizes.denim ? `you wear a ${sizes.denim} in denim.` : "no denim size on file yet.";
-    else if (sizes.us) base = `you usually take a ${sizes.us}.`;
-    if (runsLong(info) && !isShoeProduct(info)) {
-      return [base, "reviews say it runs long."].filter(Boolean).join(" ");
+      return sizes.shoes ? `you wear ${sizes.shoes}.` : "no shoe size on file yet.";
     }
-    return base;
+    if (kind === "jeans") return sizes.denim ? `you wear a ${sizes.denim} in denim.` : "no denim size on file yet.";
+    if (sizes.us) return `you usually take a ${sizes.us}.`;
+    return "";
   }
 
   function reviewsRead(info) {
+    const facts = pageFacts();
+    if (facts.reviews) return facts.reviews.split(" · ")[0];
     return checkResult(info).body;
   }
 
@@ -2273,12 +2362,21 @@
     if (prior?.warn) n += 16;
     if (prior?.closetKey === "green") n -= 16;
     if (prior?.closetKey === "similar") n += 18;
-    if (isShoeProduct(info) && !isGift()) n += 22;
+    if (isShoeProduct(info) && !isGift()) n += 8;
     if (state.budget != null && Number(info.price) > remainingBudget()) n += 20;
+    const pack = listingPack(info);
+    const match = pack?.match || {};
+    if (match.status === "sold_out") n += 10;
+    if (match.status === "not_offered") n += 16;
+    if (match.ask) n += 4;
+    if (/runs small|size up|tight/i.test(match.fitNote || "")) n += 8;
+    if (/runs large|size down|roomy/i.test(match.fitNote || "")) n += 4;
+    const facts = pageFacts();
+    const reviewBlob = `${facts.reviews || ""} ${facts.sizeNote || ""}`;
+    if (/pilling|thinner|cheap|see-?through|fell apart|returned/i.test(reviewBlob)) n += 12;
+    if (/true to size|kept it|worth it/i.test(reviewBlob)) n -= 6;
     const reviews = checkResult(info);
-    if (reviews === DATA.reviews.mixed || /thinner|pilling|mixed/i.test(reviews.body || "")) n += 10;
-    if (reviews === DATA.reviews.long || /long|hem/i.test(reviews.body || "")) n += 6;
-    if (reviews === DATA.reviews.strong) n -= 8;
+    if (!facts.reviews && (reviews === DATA.reviews.mixed || /thinner|pilling|mixed/i.test(reviews.body || ""))) n += 10;
     if (purposeMeta()?.kind === "wedding" && isDress(info)) n -= 10;
     return Math.max(8, Math.min(92, n));
   }
@@ -2326,7 +2424,7 @@
       stamp: advice.stamp || local.stamp,
       closetKey: local.closetKey,
       size: advice.size || local.size,
-      reviews: local.reviews,
+      reviews: advice.reviews || local.reviews,
       shipping: local.shipping,
       regret,
       regretLabel: advice.regretLabel || formatRegretLabel(regret),
@@ -2774,6 +2872,7 @@
       let done = false;
       const productUrl = product.href || (isPdp() ? location.href : "");
       const prior = findPrior(product);
+      const pack = isPdp() ? listingPack(product) : null;
       const payload = {
         surface,
         product: {
@@ -2788,6 +2887,9 @@
           href: productUrl,
           url: productUrl,
           site: location.hostname,
+          brand: shopBrand(product),
+          sizing: pack?.extracted || product.sizing || null,
+          size_read: pack?.match || null,
         },
         profile: {
           userId: activePersona().userId,
@@ -2811,6 +2913,7 @@
               }
             : null,
           facts: isPdp() ? pageFacts() : {},
+          size_read: pack?.match?.line || "",
         },
       };
       chrome.runtime.sendMessage({ type: "YOM_ADVISE", payload }, (res) => {

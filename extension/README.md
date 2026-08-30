@@ -39,6 +39,10 @@ Profiles, closet, saves, takes, outcomes, and the beta allowlist live in Postgre
 
 Without login, yom still styles from the product page. It will not invent a closet or calendar.
 
+## Sizing
+
+How the companion reads the picker, matches her clothes/denim/shoe size, and when it asks: [`../docs/SIZING.md`](../docs/SIZING.md).
+
 ## Google Calendar + Gmail
 
 See [`../supabase/GOOGLE.md`](../supabase/GOOGLE.md).

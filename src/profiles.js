@@ -29,7 +29,7 @@ export const PROFILES = {
     keepLean: "black",
     from: "member from apr 2026",
     headline: "knows the options. still asks the group chat.",
-    read: "you know the options better than the salesperson and still walk away unsure. you need fewer choices, not more data. you default to black because it always works — that's also how pieces disappear.",
+    read: "you know the options better than the salesperson and still walk away unsure. you need fewer choices, not more data. you default to black because it always works, and that's also how pieces disappear.",
     sizes: [
       { label: "dresses / tops", value: "US 6" },
       { label: "denim", value: "28" },
@@ -39,7 +39,7 @@ export const PROFILES = {
     style: [
       "black and tailoring first",
       "shops gifts harder than clothes for herself",
-      "hates 'true to size' — always wants the real fit note",
+      "hates 'true to size'. always wants the real fit note",
       "returns pointed anything, keeps the clean line",
     ],
     purchases: [
@@ -62,7 +62,7 @@ export const PROFILES = {
     keepLean: "green",
     from: "member from apr 2026",
     headline: "nothing to wear. closet says otherwise.",
-    read: "you know what's available everywhere and still feel like you own nothing. the gap isn't supply — you've never mapped what you already have. you keep coming back to green.",
+    read: "you know what's available everywhere and still feel like you own nothing. the gap isn't supply. you've never mapped what you already have. you keep coming back to green.",
     sizes: [
       { label: "dresses / tops", value: "US 4" },
       { label: "denim", value: "26" },

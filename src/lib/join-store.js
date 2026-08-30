@@ -115,6 +115,8 @@ export function loadJoinProfile() {
       return {
         name: survey.name || "",
         trait: survey.trait || "",
+        preBuy: survey.preBuy || "",
+        read: survey.read || "",
         email: survey.email || loadJoinEmail(),
         context: survey.context || BERKELEY_FPR_CONTEXT_ID,
         contextOther: survey.contextOther || "",
@@ -125,7 +127,7 @@ export function loadJoinProfile() {
   } catch {
     /* ignore */
   }
-  return { name: "", trait: "", email: loadJoinEmail(), context: "general_shopping", contextOther: "", round: "", occasion: "" };
+  return { name: "", trait: "", preBuy: "", read: "", email: loadJoinEmail(), context: "general_shopping", contextOther: "", round: "", occasion: "" };
 }
 
 export const LAST_CHECK_KEY = "yom_last_check";

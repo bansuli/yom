@@ -3,17 +3,19 @@ import { loadStylistContext } from "../lib/google-context.js";
 import { accountFromToken } from "../lib/profile.js";
 import { STYLIST_VOICE } from "../lib/stylist.js";
 import { supabaseConfigured } from "../lib/supabase.js";
-import { formatReviewsForPrompt, researchProductReviews } from "../lib/review-research.js";
+import { formatReviewsForPrompt, researchProductReviews, reviewLine, reviewRegretDelta } from "../lib/review-research.js";
+import { matchUserSize } from "../lib/size-read.js";
+import { humanizeVerdictText } from "../lib/scan-brain.js";
 
 const SYSTEM = `${STYLIST_VOICE}
 
-You are sitting on the store page with them. The job is a buy decision for THIS exact product — not a vibe check, not a caption.
+You are sitting on the store page with them. The job is a buy decision for THIS exact product. not a vibe check, not a caption.
 
 Anchor every take in at least one concrete thing:
 - silhouette / fabric / color on the listing
 - exact price / remaining budget
-- size or fit note (page or their sizes)
-- review pattern from page_reviews AND web_reviews (reddit, amazon, tiktok, brand site, clothing/sizing forums). do not invent quotes or sources.
+- size or fit note (page_sizes + their sizes. clothes vs shoes vs denim)
+- review pattern from page_reviews AND web_reviews across try-on hauls, shopmy, ltk, instagram posts/reels, reddit, amazon, brand site, substack, forums. do not invent quotes or sources. you cannot read instagram stories.
 - shipping vs a named calendar date
 - closet / gmail orders / returns
 - a learned behavior (impulse, panic before events, etc.)
@@ -22,9 +24,9 @@ You MAY have a style opinion from the garment itself. Do not go quiet just becau
 quiet=true ONLY if this is not clothing/fashion.
 
 Prefer useful calls:
-- "size up — reviews say the bust runs tight"
+- "size up. reviews say the bust runs tight"
 - "$84 over your remaining budget"
-- "you already own this job — same column as the black midi in gmail last april"
+- "you already own this job. same column as the black midi in gmail last april"
 - "arrives 3 days before maya's wedding"
 - "final sale"
 - "too casual for preference, fine for unity"
@@ -53,7 +55,7 @@ Output rules:
 - quiet=true if the response would still make sense for another product AND another person
 
 GOOD:
-{"quiet":false,"stamp":"occasion","kind":"love","title":"this works for saturday","body":"column midi, estimated delivery aug 25–26 — 3 days before maya's wedding.","resolve":null,"checkable":true,"decision_hint":"buy"}
+{"quiet":false,"stamp":"occasion","kind":"love","title":"this works for saturday","body":"column midi, estimated delivery aug 25-26. 3 days before maya's wedding.","resolve":null,"checkable":true,"decision_hint":"buy"}
 
 GOOD:
 {"quiet":false,"stamp":"closet","kind":"warn","title":"you already have this job","body":"gmail shows an aritzia black slip last month. this is the same neckline.","resolve":null,"checkable":false,"decision_hint":"skip"}
@@ -74,10 +76,10 @@ If surface is pdp or check, also return:
 
 Check / PDP rules:
 - continue prior_take. deepen it; don't replace a closet warning with generic "reviews are good"
-- size: one line for THIS person's sizes vs how this piece runs
-- reviews: 1–2 lines from page_reviews + web_reviews (name the channel: "reddit says…", "amazon reviewers…")
+- size: one line for THIS person's sizes vs how this piece actually sizes on the page (use page_sizes / size_read). clothes vs shoes vs denim. never guess a number that is not on the listing.
+- reviews: 1 short line from whatever we actually found (haul, shopmy, ltk, instagram, reddit, amazon, brand). name the channel. not an essay. empty if nothing real.
 - shipping: one line from page_shipping plus a named calendar date when you have one
-- regret: 0–100 whether THIS person keeps it
+- regret: 0–100 whether THIS person keeps it. ground it in fit + review consensus + their sizes. if web_reviews.regret_delta is present, stay close to it.
 - regretLabel: 2–4 words ("you'd keep it", "low regret", "could go either way", "likely regret")
 - decision_hint required for clothing
 `;
@@ -102,17 +104,17 @@ function parseAdvice(text) {
       quiet: Boolean(raw.quiet),
       stamp: raw.stamp || null,
       kind: raw.kind === "love" || raw.kind === "warn" ? raw.kind : "neutral",
-      title: String(raw.title || "").slice(0, 120),
-      body: String(raw.body || "").slice(0, 280),
-      resolve: raw.resolve ? String(raw.resolve).slice(0, 320) : null,
+      title: humanizeVerdictText(String(raw.title || "")).slice(0, 120),
+      body: humanizeVerdictText(String(raw.body || "")).slice(0, 280),
+      resolve: raw.resolve ? humanizeVerdictText(String(raw.resolve)).slice(0, 320) : null,
       checkable: Boolean(raw.checkable),
       decision_hint:
         raw.decision_hint === "buy" || raw.decision_hint === "skip" || raw.decision_hint === "save"
           ? raw.decision_hint
           : null,
-      size: raw.size ? String(raw.size).slice(0, 180) : null,
-      reviews: raw.reviews ? String(raw.reviews).slice(0, 240) : null,
-      shipping: raw.shipping ? String(raw.shipping).slice(0, 180) : null,
+      size: raw.size ? humanizeVerdictText(String(raw.size)).slice(0, 180) : null,
+      reviews: raw.reviews ? humanizeVerdictText(String(raw.reviews)).slice(0, 240) : null,
+      shipping: raw.shipping ? humanizeVerdictText(String(raw.shipping)).slice(0, 180) : null,
       regret: Number.isFinite(regret) ? Math.max(0, Math.min(100, Math.round(regret))) : null,
       regretLabel: raw.regretLabel ? String(raw.regretLabel).slice(0, 40) : null,
     };
@@ -151,10 +153,21 @@ function userBlock(payload) {
     `over_budget: ${over}`,
     `gift: ${Boolean(profile.gift)}`,
     profile.memory ? `memory: ${profile.memory}` : "memory: none (do not invent a closet)",
-    profile.google_prompt || "google: not connected — do not invent calendar events or order history.",
+    profile.google_prompt || "google: not connected. do not invent calendar events or order history.",
     `sizes: ${JSON.stringify(profile.sizes || {})}`,
+    profile.size_read ? `size_read: ${profile.size_read}` : "size_read: none yet",
+    product.size_read?.line ? `matched_size: ${product.size_read.line}` : "",
+    product.sizing
+      ? `page_sizes: ${JSON.stringify({
+          family: product.sizing.family,
+          labels: (product.sizing.options || product.sizing.labels || []).slice(0, 16),
+          selected: product.sizing.selected || "",
+          fitNote: product.sizing.fitNote || "",
+          model: product.sizing.modelSize || product.sizing.model || "",
+        })}`
+      : "page_sizes: none scraped",
     profile.prior
-      ? `prior_take: ${JSON.stringify(profile.prior)} — continue this. do not overwrite it.`
+      ? `prior_take: ${JSON.stringify(profile.prior)}. continue this. do not overwrite it.`
       : "prior_take: none",
     `page_reviews: ${profile.facts?.reviews || "none scraped"}`,
     `web_reviews: ${formatReviewsForPrompt(payload.web_reviews) || "none found"}`,
@@ -162,7 +175,9 @@ function userBlock(payload) {
     `page_size_note: ${profile.facts?.sizeNote || "none scraped"}`,
     "this is the hovered/open product. name it or a trait unique to it. do not describe the listing page.",
     "write a read that would not apply to a different user_id OR a different product.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function callAnthropic(key, surface, user) {
@@ -265,7 +280,7 @@ export default async function handler(req, res) {
         }
       } catch (e) {
         console.warn("advise google context", e?.message || e);
-        payload.profile.google_prompt = "google: not connected — do not invent calendar events or order history.";
+        payload.profile.google_prompt = "google: not connected. do not invent calendar events or order history.";
       }
     }
   }
@@ -285,6 +300,14 @@ export default async function handler(req, res) {
     }
   }
 
+  const extracted = payload.product?.sizing;
+  if (extracted && (extracted.options || extracted.labels)) {
+    payload.product.size_read = matchUserSize(extracted, payload.profile?.sizes || {}, {
+      brand: payload.product?.brand || "",
+    });
+    if (payload.profile) payload.profile.size_read = payload.product.size_read.line;
+  }
+
   const user = userBlock(payload);
 
   let advice = null;
@@ -296,6 +319,18 @@ export default async function handler(req, res) {
   if (!advice && anthropic) {
     advice = await callAnthropic(anthropic, surface, user);
     if (advice) brain = "anthropic";
+  }
+
+  if (advice && !advice.quiet) {
+    if (!advice.size && payload.product?.size_read?.line) advice.size = payload.product.size_read.line;
+    if (!advice.reviews) {
+      const line = reviewLine(payload.web_reviews);
+      if (line) advice.reviews = line;
+    }
+    const delta = reviewRegretDelta(payload.web_reviews);
+    if (Number.isFinite(Number(advice.regret))) {
+      advice.regret = Math.max(0, Math.min(100, Math.round(Number(advice.regret) + delta)));
+    }
   }
 
   json(res, 200, { ok: true, advice, brain });

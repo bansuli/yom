@@ -225,19 +225,19 @@ function getStyleArchetype(yesCount, noCount) {
   if (ratio >= 0.68) return {
     name: 'the bold collector',
     tag: 'maximalist energy',
-    desc: 'you say yes to almost everything — texture, color, risk. you dress for attention, even when you say you don\'t.',
+    desc: 'you said yes to almost everything. texture, color, risk. you dress to be seen, even when you pretend you don\'t.',
     yesRate: Math.round(ratio * 100),
   }
   if (ratio >= 0.42) return {
     name: 'the curated eye',
     tag: 'selective taste',
-    desc: 'your yeses are deliberate and your nos are firm. you have a specific vision — you just don\'t always know how to execute it.',
+    desc: 'your yeses are deliberate and your nos are firm. you already know the look. getting it on your body is the part that stalls.',
     yesRate: Math.round(ratio * 100),
   }
   return {
     name: 'the selective edit',
     tag: 'minimalist instinct',
-    desc: 'almost nothing gets a yes from you. that\'s not a limitation — that\'s taste. you\'re harder to dress, and more rewarding when it clicks.',
+    desc: 'almost nothing gets a yes. that\'s taste. you\'re harder to dress, and sharper when it lands.',
     yesRate: Math.round(ratio * 100),
   }
 }
@@ -246,22 +246,22 @@ const TRAIT_INSIGHTS = {
   "i buy things i never wear": {
     label: 'shopping habit',
     badge: 'impulse buyer',
-    insight: 'you shop with your eyes, not your wardrobe. the thrill of a new piece tends to outweigh whether it actually fits your life — or your other clothes.',
+    insight: 'you shop with your eyes. the new piece wins before it has to work with anything you own.',
   },
   "i always think i have nothing to wear": {
     label: 'shopping habit',
     badge: 'wardrobe blind spot',
-    insight: 'your closet probably has more than you think. the problem isn\'t quantity — it\'s that you can\'t see the combinations. you need a system, not more shopping.',
+    insight: 'the closet is bigger than it feels. you can\'t see the combinations, so it reads as empty.',
   },
   "i panic before trips & events": {
     label: 'shopping habit',
     badge: 'occasion dresser',
-    insight: 'your day-to-day wardrobe runs on autopilot, but anything with a dress code sends you into a last-minute spiral. the fix is planning, not panic-buying.',
+    insight: 'weekday dressing is autopilot. a dress code still sends you shopping the night before.',
   },
   "i spend forever deciding what to buy": {
     label: 'shopping habit',
     badge: 'analysis paralysis',
-    insight: 'you care deeply about getting it right and still walk away second-guessing. you don\'t need more research — you need a framework to trust what you already know.',
+    insight: 'you care about getting it right and still walk away unsure. you need a call, not more tabs.',
   },
 }
 
@@ -269,67 +269,67 @@ const PRE_BUY_INSIGHTS = {
   "i ask my friends": {
     label: 'decision style',
     badge: 'social validator',
-    insight: 'you trust people over algorithms. your style decisions are collaborative — which makes you influenced, but also well-edited when the right people are in your corner.',
+    insight: 'you trust people over algorithms. useful when they know you. noisy when they don\'t.',
   },
   "i scroll pinterest or tiktok": {
     label: 'decision style',
     badge: 'feed shopper',
-    insight: 'you\'re visually driven and trend-aware. you shop what you see, which means your style is current — but sometimes borrowed instead of truly yours.',
+    insight: 'you shop what you see. current, sometimes borrowed.',
   },
   "i compare 20 websites": {
     label: 'decision style',
     badge: 'methodical researcher',
-    insight: 'every purchase earns its place. you almost never have regrets — but you lose hours in the process and sometimes talk yourself out of things you actually wanted.',
+    insight: 'every purchase earns its place. you lose hours, and sometimes the thing you actually wanted.',
   },
   "i just wing it": {
     label: 'decision style',
     badge: 'instinct-led',
-    insight: 'you\'re spontaneous and confident. sometimes it\'s exactly right. sometimes it sits in your closet with tags on. there\'s no middle ground with you.',
+    insight: 'you buy on instinct. sometimes it\'s exact. sometimes it sits with tags on.',
   },
 }
 
-function getPersonalRead(trait, preBuy, archetype) {
+function getPersonalRead(trait, preBuy) {
   if (trait === "i buy things i never wear") {
     if (preBuy === "i just wing it")
-      return "you shop on feeling and then wonder why nothing feels right. you're not impulsive — you're optimistic. you believe every new thing will be the thing that pulls your wardrobe together. it won't. but you'll buy it anyway."
+      return "you buy on a feeling and hope it pulls the closet together. check it against what you already wear before you pay."
     if (preBuy === "i scroll pinterest or tiktok")
-      return "the algorithm has been dressing you, and it doesn't know your body, your life, or what you already own. you're not buying bad things — you're buying the right things for someone else's wardrobe."
+      return "the algorithm has been dressing you. it doesn't know your body or what you already own, so you keep buying the right thing for someone else."
     if (preBuy === "i compare 20 websites")
-      return "you do all the research and still end up with things you don't wear. that's because research tells you if something is good — it can't tell you if it's right for you. you've been optimising the wrong variable."
+      return "you research whether something is good, then still don't wear it. good isn't the test. right for your closet is."
     if (preBuy === "i ask my friends")
-      return "your friends have their own bodies, their own wardrobes, and their own taste — none of which is yours. you outsource the decision because you don't fully trust your own eye yet. but your instinct got you this far. it's worth backing."
+      return "you ask people whose bodies and closets aren't yours. your eye got you this far. back it before you outsource the call."
   }
   if (trait === "i always think i have nothing to wear") {
     if (preBuy === "i scroll pinterest or tiktok")
-      return "you've been consuming so much curated content that your own closet looks like a disappointment by comparison. you're not comparing your wardrobe to other wardrobes — you're comparing it to an algorithm's highlight reel. of course it feels like nothing."
+      return "you've looked at so much curated content that your own closet looks like a letdown. you're comparing it to a highlight reel, not a real wardrobe."
     if (preBuy === "i compare 20 websites")
-      return "you know exactly what's available everywhere, and somehow still feel like you own nothing. the problem isn't supply — it's that you've never properly mapped what you have. you keep buying to fill a gap you haven't actually identified."
+      return "you know what's for sale everywhere and still feel like you own nothing. map what you have before you fill a gap you haven't named."
     if (preBuy === "i just wing it")
-      return "you buy fast, forget faster, and rediscover things in your closet like you're meeting them for the first time. your wardrobe is bigger than it feels. you just need a system to see it."
+      return "you buy fast, forget faster, and find things in your closet like they're new. you need a system to see it, not another piece."
     if (preBuy === "i ask my friends")
-      return "you don't trust what you own until someone else validates it. the problem is your friends aren't there every morning. you've trained yourself to need external confirmation for something that should feel intuitive."
+      return "you don't trust what you own until someone else likes it. they aren't there every morning."
   }
   if (trait === "i panic before trips & events") {
     if (preBuy === "i compare 20 websites")
-      return "you plan everything except the part where your closet needs to actually work in real time. you research purchases for weeks and still end up at the store the night before a flight. your preparation is thorough and completely theoretical."
+      return "you plan everything except the part where the closet has to work on the day. you still end up shopping the night before a flight."
     if (preBuy === "i scroll pinterest or tiktok")
-      return "you save looks constantly and have boards full of inspo that's never translated into actual clothes in your actual closet. when the event comes, all of that is useless. you've been curating a fantasy wardrobe, not building a real one."
+      return "you save looks constantly and none of them are in your closet when the event comes. the boards aren't a wardrobe."
     if (preBuy === "i just wing it")
-      return "you live in total denial until the deadline, then throw money at the problem. the wild part is it usually works. you are accidentally great at last-minute decisions and have never properly credited yourself for it."
+      return "you wait until the deadline, then throw money at it. it often works. credit the instinct, skip the spiral."
     if (preBuy === "i ask my friends")
-      return "the group chat goes into overdrive before every trip and you usually leave looking good. you've built a styling system that runs entirely on other people's energy. it works — but it's exhausting everyone, including you."
+      return "the group chat styles every trip and you usually leave looking good. it works, and it wears everyone out."
   }
   if (trait === "i spend forever deciding what to buy") {
     if (preBuy === "i compare 20 websites")
-      return "you are the most overprepared person in any room. you know the options better than the salesperson and still walk away unsure. the issue isn't information — you have too much of it. you need fewer choices, not more data."
+      return "you know the options better than the salesperson and still walk away unsure. fewer choices, not more data."
     if (preBuy === "i ask my friends")
-      return "you need a second opinion on everything — not because you have bad taste, but because you've never fully trusted that your own instinct is worth backing. the irony: you probably have better taste than most of the people you're asking."
+      return "you ask for a second opinion because you don't trust your own yet. you probably have better taste than the people you're asking."
     if (preBuy === "i scroll pinterest or tiktok")
-      return "you use the feed to confirm what you already want. if you see it there, it feels valid. if you don't, you spiral. your taste is completely real — it's the confidence that needs work. you already know what you like."
+      return "you use the feed to confirm what you already want. if it isn't there, you spiral. your taste is real. the confidence is the work."
     if (preBuy === "i just wing it")
-      return "you overthink it for days, walk into the store, and immediately buy the first thing you touched. you are structured chaos in human form — and the interesting part is your instinct is usually right. the weeks of deliberation were just background noise."
+      return "you overthink for days, then buy the first thing you touch. the instinct is usually right. the weeks of tabs were noise."
   }
-  return "you have a specific vision of what you want and a complicated relationship with actually getting it. the good news: you already know the problem. you just haven't built the system to solve it yet."
+  return "you know what you want and stall on getting it. you already named the problem. next is a system."
 }
 
 const IconThumbUp = () => (
@@ -582,7 +582,8 @@ export default function Survey() {
   const archetype = getStyleArchetype(yesCount, noCount)
   const traitInsight = TRAIT_INSIGHTS[selectedTrait]
   const preBuyInsight = PRE_BUY_INSIGHTS[selectedPreBuy]
-  const firstName = userName.trim() ? userName.trim().split(' ')[0] : 'you'
+  const personalRead = getPersonalRead(selectedTrait, selectedPreBuy)
+  const firstName = userName.trim() ? userName.trim().split(' ')[0] : ''
   const toggleCard = (id) => setOpenCards(prev => ({ ...prev, [id]: !prev[id] }))
 
   return (
@@ -847,11 +848,18 @@ export default function Survey() {
           </div>
         ) : step === 'results' ? (
           <div className="results-wrap">
+            {firstName ? <p className="results-kicker">{firstName.toLowerCase()}, this is you.</p> : null}
 
             <div className="results-archetype-section">
               <h2 className="results-archetype-name">{archetype.name}</h2>
               <p className="results-archetype-desc">{archetype.desc}</p>
             </div>
+
+            {personalRead ? (
+              <div className="results-personal-read">
+                <p>{personalRead}</p>
+              </div>
+            ) : null}
 
             <div className="insight-cards">
               {traitInsight && (
@@ -870,7 +878,7 @@ export default function Survey() {
 
             <div className="results-signoff">
               <p className="results-signoff-main">your yom is ready.</p>
-              <p className="results-signoff-sub">we'll remember all of this — next, point the camera at a piece.</p>
+              <p className="results-signoff-sub">we'll remember all of this. next, point the camera at a piece.</p>
               <a
                 href={new URLSearchParams(window.location.search).get('next') || '/scan'}
                 className="results-home-link"

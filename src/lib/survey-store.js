@@ -119,3 +119,19 @@ export function clearSurvey() {
     /* ignore */
   }
 }
+
+/** One line the scan brain can use: what she kept, what she regretted. */
+export function closetNoteForPrompt(survey) {
+  const closet = Array.isArray(survey?.closet) ? survey.closet : [];
+  if (!closet.length) return "";
+  return closet
+    .map((item) => {
+      const name = String(item?.item || "").trim();
+      if (!name) return "";
+      const why = String(item?.note || item?.return_reason || "").trim();
+      const verb = item?.kept === false ? "regretted" : "kept";
+      return why ? `${verb} ${name} (${why})` : `${verb} ${name}`;
+    })
+    .filter(Boolean)
+    .join(". ");
+}

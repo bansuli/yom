@@ -263,7 +263,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
       title: `looks like ${label}`,
       body: cousins.length
         ? `no brand readable on this shot. closest: ${cousins.join(", ")}. scan the hangtag or insole.`
-        : "no brand readable on this shot. scan the hangtag or insole — that's the read.",
+        : "no brand readable on this shot. scan the hangtag or insole. that's the read.",
       resolve: "scan the price tag next.",
       decision_hint: "save",
       ...extra,
@@ -277,7 +277,7 @@ function usefulVerdict(product, similar, verdict = {}, context = {}) {
     body: cousins.length
       ? `if it's not this exact style, it's close to ${cousins.join(", ")}.`
       : "named from what we can see. scan the tag to lock the style.",
-    resolve: verdict.resolve ? String(verdict.resolve).toLowerCase() : "scan the tag if you want the exact sku.",
+    resolve: verdict.resolve ? humanizeVerdictText(String(verdict.resolve).toLowerCase()) : "scan the tag if you want the exact sku.",
     decision_hint: verdict.decision_hint || "save",
     ...extra,
   };
@@ -445,13 +445,13 @@ export default async function handler(req, res) {
     json(res, 400, {
       ok: false,
       error: sourceUrl
-        ? "couldn’t open that store page — try a screenshot or describe the piece."
+        ? "couldn’t open that store page. try a screenshot or describe the piece."
         : "need a photo, a store link, or a description.",
     });
     return;
   }
   if (imageUrl && imageUrl.length > 6_500_000) {
-    json(res, 413, { ok: false, error: "image too large — try again closer / lower res" });
+    json(res, 413, { ok: false, error: "image too large. try again closer / lower res" });
     return;
   }
 
@@ -485,8 +485,10 @@ export default async function handler(req, res) {
     shopper_name: body.shopper_name || "",
     scan_memory: body.scan_memory || "",
     trait: body.trait || "",
+    preBuy: body.pre_buy || body.preBuy || "",
+    closet_note: body.closet_note || "",
     memory: "",
-    read: "",
+    read: String(body.read || "").trim(),
     google_prompt: "",
   };
 
@@ -495,7 +497,9 @@ export default async function handler(req, res) {
     const account = await accountFromToken(token);
     if (account?.profile) {
       context.memory = account.profile.memory || "";
-      context.read = account.profile.read || "";
+      context.read = account.profile.read || context.read;
+      context.trait = account.profile.trait || context.trait;
+      context.preBuy = account.profile.preBuy || context.preBuy;
       context.shopper_name = context.shopper_name || account.profile.name || "";
       try {
         const google = await loadStylistContext(account.profile.id, { refresh: true });
