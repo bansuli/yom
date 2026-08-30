@@ -1,14 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import GooeyNavbar from './components/GooeyNavbar.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
 import './App.css'
-
-const NAV = [
-  { label: 'about', angle: -3 },
-  { label: 'how it works', angle: 2 },
-  { label: 'join waitlist', angle: -1 },
-]
 
 function App() {
   const [waitlistOpen, setWaitlistOpen] = useState(false)
@@ -50,48 +45,13 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <nav className="tilted-nav" aria-label="Primary">
-          {NAV.map((item) => (
-            item.label === 'about' ? (
-              <Link
-                key={item.label}
-                to="/about"
-                className="nav-pill"
-                style={{ '--angle': `${item.angle}deg` }}
-              >
-                {item.label}
-              </Link>
-            ) : item.label === 'how it works' ? (
-              <Link
-                key={item.label}
-                to="/how-it-works"
-                className="nav-pill"
-                style={{ '--angle': `${item.angle}deg` }}
-              >
-                {item.label}
-              </Link>
-            ) : item.label === 'join waitlist' ? (
-              <a
-                key={item.label}
-                href="#waitlist"
-                className="nav-pill nav-pill-waitlist"
-                style={{ '--angle': `${item.angle}deg` }}
-                onClick={e => { e.preventDefault(); setWaitlistOpen(true) }}
-              >
-                {item.label}
-              </a>
-            ) : (
-              <a
-                key={item.label}
-                href={`#${item.label.toLowerCase().replace(/ /g, '-')}`}
-                className="nav-pill"
-                style={{ '--angle': `${item.angle}deg` }}
-              >
-                {item.label}
-              </a>
-            )
-          ))}
-        </nav>
+        <GooeyNavbar
+          items={[
+            { label: 'about', to: '/about' },
+            { label: 'how it works', to: '/how-it-works' },
+            { label: 'join waitlist', onSelect: () => setWaitlistOpen(true) },
+          ]}
+        />
 
         <div className="hero-center">
           <p className="brand" aria-label="yom">
