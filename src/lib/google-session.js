@@ -55,11 +55,7 @@ export async function startGoogleConnect(returnTo = "/looks", intent = "") {
   const session = loadBetaSession();
   const res = await yomGoogleStart(session?.access_token, returnTo, intent);
   if (!res.ok || !res.url) {
-    const raw = String(res.error || "");
-    const error = /user store/i.test(raw)
-      ? "google calendar + gmail need supabase env on the server (SUPABASE_URL + keys). that is not a login wall."
-      : raw || "couldn’t start google connect.";
-    return { ok: false, error };
+    return { ok: false, error: String(res.error || "") || "couldn’t start google sign-in." };
   }
   window.location.href = res.url;
   return { ok: true };

@@ -26,18 +26,14 @@ export default async function handler(req, res) {
     return;
   }
   if (!googleConfigured()) {
-    json(res, 503, {
-      ok: false,
-      error: "google oauth is not configured. set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI.",
-    });
+    // The fix belongs in the logs, not in front of someone trying to sign in.
+    console.warn("google start: missing GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / GOOGLE_REDIRECT_URI");
+    json(res, 503, { ok: false, error: "google sign-in isn't switched on yet." });
     return;
   }
   if (!supabaseConfigured()) {
-    json(res, 503, {
-      ok: false,
-      error:
-        "google calendar + gmail need SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY on the server (to keep tokens). that is not a beta login.",
-    });
+    console.warn("google start: missing SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY");
+    json(res, 503, { ok: false, error: "sign-in isn't configured yet." });
     return;
   }
 
