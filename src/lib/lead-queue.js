@@ -134,7 +134,7 @@ function collectLocalEmails() {
       push(survey.email, {
         name: survey.name || undefined,
         channel: "recovery_survey",
-        path: "/survey",
+        path: "/onboarding",
         metadata: {
           recovered: true,
           shopping_context: survey.context || undefined,

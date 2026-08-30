@@ -422,8 +422,8 @@ export default function Survey() {
 
   useEffect(() => {
     const acq = captureAcquisitionFromUrl()
-    track('landing_viewed', { path: '/survey' })
-    if (acq.qr) track('qr_scanned', { path: '/survey' })
+    track('landing_viewed', { path: '/onboarding' })
+    if (acq.qr) track('qr_scanned', { path: '/onboarding' })
     if (!creationStarted.current) {
       creationStarted.current = true
       track('yom_creation_started', { onboarding_version: ONBOARDING_VERSION })
@@ -789,7 +789,7 @@ export default function Survey() {
                       email,
                       name: userName,
                       channel: 'survey',
-                      path: '/survey',
+                      path: '/onboarding',
                     })
                     if (res.ok || res.fallback) {
                       track('signup_completed', { channel: 'survey', allowlisted: res.allowlisted })
@@ -808,7 +808,7 @@ export default function Survey() {
                       email,
                       name: userName,
                       channel: 'survey',
-                      path: '/survey',
+                      path: '/onboarding',
                     })
                     if (res.ok || res.fallback) {
                       track('signup_completed', { channel: 'survey', allowlisted: res.allowlisted })
