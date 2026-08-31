@@ -166,12 +166,10 @@
 
 /* ── "You are" card ── */
 .ap-you {
-  padding: 3rem 2rem;
-  border: 1px solid #ecece6;
-  border-radius: 4px;
-  background: linear-gradient(180deg, #fbfbf7 0%, #fff 100%);
+  padding: 0 0 2.6rem;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 2.4rem;
+  border-bottom: 1px solid #ecece6;
 }
 
 .ap-you-eyebrow {
