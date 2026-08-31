@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
@@ -31,6 +32,16 @@ function App() {
             <span className="brand-m">m</span>
           </p>
           <div className="brand-rule" aria-hidden="true" />
+
+          {/* Help has no page of its own, so it goes where the help actually
+              is rather than to a route invented to receive it. */}
+          <nav className="brand-links" aria-label="Site">
+            <Link to="/about">About yom</Link>
+            <Link to="/how-it-works">How it works</Link>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <a href="mailto:support@youryom.com">Help</a>
+          </nav>
         </div>
       </section>
     </div>

@@ -17,6 +17,7 @@
   --font-brand: '080203', sans-serif;
   --font-hand: 'Caveat', cursive;
   --font-body: 'Schibsted Grotesk', 'Helvetica Neue', sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 *,
@@ -308,7 +309,7 @@ a {
   align-items: center;
   justify-content: flex-end;
   text-align: center;
-  padding: 6rem 1.5rem clamp(2.25rem, 6vh, 4rem);
+  padding: 6rem 1.5rem clamp(1.25rem, 3.5vh, 2.5rem);
   pointer-events: none;
 }
 
@@ -322,10 +323,10 @@ a {
      size. The floor is what still fits a narrow phone inside the gutters. */
   font-size: clamp(5.5rem, 26vw, 30rem);
   font-weight: 900;
-  /* Also what sets the gap down to the rule: the border sits on the bottom of
-     the line box, and at 0.82 the box left far more slack under the glyphs
-     than an underline wants. */
-  line-height: 0.74;
+  /* Also what sets the gap down to the rule, which is stacked directly under
+     the line box rather than positioned: the slack beneath the glyphs is the
+     gap. Nothing else controls it. */
+  line-height: 0.715;
   letter-spacing: -0.01em;
   display: flex;
   align-items: baseline;
@@ -344,6 +345,47 @@ a {
   width: 100vw;
   height: 1px;
   background: var(--ink);
+}
+
+/*
+ * The row under the rule: light monospace capitals, spread the width of the
+ * page. Set wide — at this size the letterspacing is doing as much of the work
+ * as the face is, and without it the words close up into blocks.
+ */
+.brand-links {
+  width: 100vw;
+  margin-top: 0.85rem;
+  padding-inline: clamp(1rem, 4vw, 3.5rem);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1.5rem;
+  /* .hero-center turns pointer events off; the links have to turn them on. */
+  pointer-events: auto;
+}
+
+.brand-links a {
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: clamp(0.62rem, 0.78vw, 0.76rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.brand-links a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.35em;
+}
+
+/* Spread reads as spread on a wide screen and as a crowd on a narrow one. */
+@media (max-width: 640px) {
+  .brand-links {
+    justify-content: center;
+    gap: 0.55rem 1.25rem;
+  }
 }
 
 .brand-y {
