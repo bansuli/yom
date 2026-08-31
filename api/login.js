@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return;
   }
   if (!supabaseConfigured()) {
-    json(res, 503, { ok: false, error: "user store is not configured" });
+    json(res, 503, { ok: false, error: "Sign-in is not configured yet." });
     return;
   }
 
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
   if (!email || !password) {
-    json(res, 400, { ok: false, error: "email and password, please." });
+    json(res, 400, { ok: false, error: "Email and password, please." });
     return;
   }
 
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     const msg = String(auth.data?.error_description || auth.data?.msg || auth.data?.message || "");
     json(res, 401, {
       ok: false,
-      error: /invalid/i.test(msg) ? "wrong email or password." : "could not log in.",
+      error: /invalid/i.test(msg) ? "Wrong email or password." : "Could not log in.",
     });
     return;
   }

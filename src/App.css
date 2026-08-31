@@ -212,6 +212,23 @@ a {
 }
 
 /* Tilted Studio Dogu–style nav */
+/* The gooey navbar sits at the top of the hero, centred over the wordmark. */
+.hero > .gooey-nav {
+  position: absolute;
+  top: 1.6rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+@media (max-width: 640px) {
+  .hero > .gooey-nav {
+    top: 0.9rem;
+    left: 0.9rem;
+    transform: none;
+  }
+}
+
 .tilted-nav {
   position: absolute;
   top: 1rem;
@@ -900,7 +917,6 @@ a {
   font-family: var(--font-hand);
   font-size: 1.25rem;
   font-weight: 700;
-  text-transform: lowercase;
 }
 
 .product-price {

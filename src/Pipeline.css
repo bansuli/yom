@@ -18,7 +18,6 @@
     #fff;
   color: var(--scan-ink);
   font-family: "Schibsted Grotesk", "Helvetica Neue", sans-serif;
-  text-transform: lowercase;
   padding: max(0.85rem, env(safe-area-inset-top)) 1.2rem max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
   -webkit-tap-highlight-color: transparent;
 }
@@ -207,7 +206,6 @@
   font-weight: 400;
   line-height: 1.08;
   margin: 1rem 0 0.4rem;
-  text-transform: lowercase;
 }
 
 .pnm-title em,
@@ -871,7 +869,6 @@
   font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  text-transform: lowercase;
   color: var(--scan-muted);
   white-space: nowrap;
   overflow: hidden;

@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   if (!supabaseConfigured()) {
     json(res, 503, {
       ok: false,
-      error: "google session needs SUPABASE_* on the server to finish connect.",
+      error: "Sign-in is not configured yet.",
     });
     return;
   }
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   const body = readJson(req);
   const grant = verifyState(body.grant || req.query?.grant);
   if (!grant?.userId || grant.kind !== "session_grant") {
-    json(res, 400, { ok: false, error: "invalid or expired google grant." });
+    json(res, 400, { ok: false, error: "Invalid or expired Google sign-in. Try again." });
     return;
   }
 
@@ -33,6 +33,6 @@ export default async function handler(req, res) {
     json(res, 200, { ok: true, ...session });
   } catch (e) {
     console.warn("google claim", e?.message || e);
-    json(res, 500, { ok: false, error: e?.message || "could not finish google login." });
+    json(res, 500, { ok: false, error: e?.message || "Could not finish Google sign-in." });
   }
 }

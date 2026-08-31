@@ -17,6 +17,8 @@ import Me from './Me.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import Admin from './Admin.jsx'
+import { Privacy, Terms } from './Legal.jsx'
+import AccountMenu from './components/AccountMenu.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 import { bootPipeline } from './lib/pipeline-store.js'
@@ -64,7 +66,7 @@ initAnalytics()
 recoverLocalLeads()
 startLeadFlush()
 
-const APP_ROUTES = /^\/(scan|join|lineup|me|profile|looks|everyone|closet|beta)(\/|$)/;
+const APP_ROUTES = /^\/(scan|join|lineup|me|profile|looks|everyone|closet|signin|beta)(\/|$)/;
 
 function PipelineBoot() {
   const { pathname } = useLocation()
@@ -92,6 +94,14 @@ function LegacyOnboarding() {
   return <Navigate to={`/onboarding${search}${hash}`} replace />
 }
 
+// Signing in is not a beta door any more, so it lives at /signin. The old
+// address stays: it is in emails already sent, and the native app's stored
+// links point at it.
+function LegacySignin() {
+  const { search, hash } = useLocation()
+  return <Navigate to={`/signin${search}${hash}`} replace />
+}
+
 function PageHits() {
   const location = useLocation()
   useEffect(() => {
@@ -105,10 +115,13 @@ function PageHits() {
   return null
 }
 
-function BetaCorner() {
+// The account corner: an avatar when signed in, a Sign in pill when not. Held
+// back on the screens that carry their own header or their own way out.
+function AccountCorner() {
   const { pathname } = useLocation()
   if (isNativeApp()) return null
   if (
+    pathname === '/signin' ||
     pathname === '/beta' ||
     pathname === '/scan' ||
     pathname === '/create' ||
@@ -120,17 +133,15 @@ function BetaCorner() {
     pathname === '/closet' ||
     pathname === '/everyone' ||
     pathname === '/admin' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/s/') ||
     pathname.startsWith('/l/')
   ) {
     return null
   }
-  return (
-    <Link to="/beta" className="beta-corner">
-      beta login
-    </Link>
-  )
+  return <AccountMenu />
 }
 
 createRoot(document.getElementById('root')).render(
@@ -139,14 +150,17 @@ createRoot(document.getElementById('root')).render(
       <Analytics />
       <PageHits />
       <PipelineBoot />
-      <BetaCorner />
+      <AccountCorner />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/onboarding" element={<Survey />} />
         <Route path="/survey" element={<LegacyOnboarding />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/beta" element={<Beta />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/signin" element={<Beta />} />
+        <Route path="/beta" element={<LegacySignin />} />
         <Route path="/scan" element={<Scan />} />
         <Route path="/join" element={<Join />} />
         <Route path="/looks" element={<LooksHome />} />

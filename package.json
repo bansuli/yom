@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:sheet": "node scripts/test-sheet-webhook.mjs",
+    "test:phone": "node scripts/test-phone-auth.mjs",
     "test:size": "node scripts/test-size-read.mjs",
     "test:size:live": "node scripts/test-size-live.mjs",
     "test:size:browser": "node scripts/test-size-browser.mjs",
