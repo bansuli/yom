@@ -365,7 +365,7 @@ a {
      renders identically everywhere. */
   height: 1px;
   background: rgba(17, 17, 17, 0.22);
-  margin-bottom: clamp(5rem, 20vw, 22rem);
+  margin-bottom: clamp(2.5rem, 12vw, 14rem);
 }
 
 /*
