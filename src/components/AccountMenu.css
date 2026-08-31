@@ -7,19 +7,11 @@
 
 /* ── Signed in ── */
 .acct-avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 38px;
   height: 38px;
   padding: 0;
   border: none;
   border-radius: 50%;
-  color: #fff;
-  font-family: 'Schibsted Grotesk', sans-serif;
-  font-size: 0.88rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(17, 17, 17, 0.12);
   transition: transform 0.15s ease;
@@ -37,7 +29,6 @@
 .acct-avatar-sm {
   width: 32px;
   height: 32px;
-  font-size: 0.78rem;
   cursor: default;
   flex: 0 0 auto;
   box-shadow: none;

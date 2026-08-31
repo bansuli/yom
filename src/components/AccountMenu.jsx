@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AVATAR_COLORS, defaultAvatarColor, initialsOf } from "../../lib/avatar.js";
+import { AVATAR_COLORS, defaultAvatarColor } from "../../lib/avatar.js";
 import {
   clearBetaSession,
   loadBetaSession,
@@ -87,7 +87,6 @@ export default function AccountMenu() {
   const email = profile?.email || user?.email || "";
   const phone = profile?.phone || "";
   const color = profile?.avatarColor || defaultAvatarColor(user?.id || email);
-  const initials = initialsOf(name, email);
 
   return (
     <div className="acct" ref={wrapRef}>
@@ -99,16 +98,12 @@ export default function AccountMenu() {
         aria-expanded={open}
         aria-label={`Account menu for ${name || email}`}
         onClick={() => setOpen((v) => !v)}
-      >
-        {initials}
-      </button>
+      />
 
       {open && (
         <div className="acct-menu" role="menu">
           <div className="acct-head">
-            <span className="acct-avatar acct-avatar-sm" style={{ background: color }} aria-hidden="true">
-              {initials}
-            </span>
+            <span className="acct-avatar acct-avatar-sm" style={{ background: color }} aria-hidden="true" />
             <span className="acct-who">
               <strong>{name || "Your account"}</strong>
               <span>{email || phone}</span>
