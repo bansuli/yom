@@ -121,9 +121,6 @@ function AccountCorner() {
   const { pathname } = useLocation()
   if (isNativeApp()) return null
   if (
-    // The homepage menu carries the account link, and its toggle sits in this
-    // exact corner.
-    pathname === '/' ||
     pathname === '/signin' ||
     pathname === '/beta' ||
     pathname === '/scan' ||
