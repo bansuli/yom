@@ -100,13 +100,13 @@ export default async function handler(req, res) {
     // which sbAdmin adds to every non-GET) and once without. GoTrue is not
     // PostgREST, and that header is the only difference between the call that
     // fails in production and the one that passes here.
-    const attempt = async (label, extraHeaders, addr) => {
+    const attempt = async (extraHeaders, addr, pw) => {
       const create = await fetch(`${url}/auth/v1/admin/users`, {
         method: "POST",
         headers: { ...h, ...extraHeaders },
         body: JSON.stringify({
           email: addr,
-          password: `Pb-${Date.now()}-xQ`,
+          password: pw,
           email_confirm: true,
           user_metadata: { name },
         }),
@@ -122,9 +122,14 @@ export default async function handler(req, res) {
       return { status: create.status, created: Boolean(id), body: raw.slice(0, 200) };
     };
     try {
+      // The app generates a 76-character password (two UUIDs plus "Aa1!").
+      // bcrypt caps at 72 bytes. This is the only remaining difference between
+      // the failing call and the passing one.
+      const long76 = `${"a".repeat(72)}Aa1!`;
+      const short20 = `Pb-${Date.now()}-xQ`;
       out.probe = {
-        with_prefer: await attempt("prefer", { Prefer: "return=representation" }, `p1-${Date.now()}@yom-healthcheck.invalid`),
-        without_prefer: await attempt("plain", {}, `p2-${Date.now()}@yom-healthcheck.invalid`),
+        password_76_chars: await attempt({}, `p1-${Date.now()}@yom-healthcheck.invalid`, long76),
+        password_20_chars: await attempt({}, `p2-${Date.now()}@yom-healthcheck.invalid`, short20),
       };
     } catch (e) {
       out.probe = { status: 0, body: String(e?.message || e).slice(0, 300) };
