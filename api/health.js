@@ -91,12 +91,21 @@ export default async function handler(req, res) {
   if (req.query?.probe === "create" && url && service) {
     const h = { apikey: service, "Content-Type": "application/json" };
     if (service.startsWith("eyJ")) h.Authorization = `Bearer ${service}`;
-    const email = `probe-${Date.now()}@yom-healthcheck.invalid`;
+    // Same body shape createAuthUser sends, and optionally the same address,
+    // so a pass here really does mean the real call would pass.
+    const email = String(req.query?.email || "").trim().toLowerCase() ||
+      `probe-${Date.now()}@yom-healthcheck.invalid`;
+    const name = String(req.query?.name || "Probe User");
     try {
       const create = await fetch(`${url}/auth/v1/admin/users`, {
         method: "POST",
         headers: h,
-        body: JSON.stringify({ email, password: `Pb-${Date.now()}-xQ`, email_confirm: true }),
+        body: JSON.stringify({
+          email,
+          password: `Pb-${Date.now()}-xQ`,
+          email_confirm: true,
+          user_metadata: { name },
+        }),
       });
       const raw = await create.text();
       out.probe = { status: create.status, body: raw.slice(0, 700) };
