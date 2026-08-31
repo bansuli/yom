@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AVATAR_COLORS, defaultAvatarColor, initialsOf } from "../../lib/avatar.js";
+import { AVATAR_COLORS, defaultAvatarColor } from "../../lib/avatar.js";
 import {
   clearBetaSession,
   loadBetaSession,
@@ -111,7 +111,6 @@ export default function AccountPanel() {
   const email = profile?.email || user?.email || "";
   const phone = profile?.phone || "";
   const color = profile?.avatarColor || defaultAvatarColor(user?.id || email);
-  const initials = initialsOf(name, email);
   const first = String(name || "").trim().split(/\s+/)[0] || "your";
   const provider = PROVIDER_LABEL[profile?.provider] || "";
 
@@ -158,9 +157,7 @@ export default function AccountPanel() {
     <div className="ap">
       {/* ── Hero ── */}
       <div className="ap-hero">
-        <span className="ap-face" style={{ background: color }} aria-hidden="true">
-          {initials}
-        </span>
+        <span className="ap-face" style={{ background: color }} aria-hidden="true" />
         <button type="button" className="ap-chip" onClick={() => setPicking((v) => !v)}>
           {picking ? "Done" : "Change colour"}
         </button>
