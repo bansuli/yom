@@ -308,7 +308,7 @@ a {
   align-items: center;
   justify-content: flex-end;
   text-align: center;
-  padding: 6rem 1.5rem clamp(1.5rem, 4vh, 2.75rem);
+  padding: 6rem 1.5rem clamp(2.25rem, 6vh, 4rem);
   pointer-events: none;
 }
 
@@ -343,7 +343,7 @@ a {
 .brand-rule {
   width: 100vw;
   height: 1px;
-  background: rgba(17, 17, 17, 0.2);
+  background: var(--ink);
 }
 
 .brand-y {
