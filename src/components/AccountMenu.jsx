@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AVATAR_COLORS, defaultAvatarColor } from "../../lib/avatar.js";
+import { defaultAvatarColor } from "../../lib/avatar.js";
 import {
   clearBetaSession,
   loadBetaSession,
-  saveBetaSession,
-  yomProfileUpdate,
 } from "../lib/yom-api.js";
 import { resetAnalytics } from "../lib/analytics.js";
 import "./AccountMenu.css";
@@ -19,8 +17,6 @@ export default function AccountMenu() {
   const navigate = useNavigate();
   const [session, setSession] = useState(() => loadBetaSession());
   const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
   const wrapRef = useRef(null);
 
   // The session is written by the sign-in page and by the Google claim, so
@@ -28,22 +24,15 @@ export default function AccountMenu() {
   useEffect(() => {
     setSession(loadBetaSession());
     setOpen(false);
-    setEditing(false);
   }, [pathname]);
 
   useEffect(() => {
     if (!open) return undefined;
     const onDown = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
-        setOpen(false);
-        setEditing(false);
-      }
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
     };
     const onKey = (e) => {
-      if (e.key === "Escape") {
-        setOpen(false);
-        setEditing(false);
-      }
+      if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -56,20 +45,6 @@ export default function AccountMenu() {
   const profile = session?.profile || null;
   const user = session?.user || null;
   const signedIn = Boolean(session?.access_token && (profile || user));
-
-  const pickColor = useCallback(
-    async (color) => {
-      setBusy(true);
-      const res = await yomProfileUpdate(session?.access_token, { avatarColor: color });
-      setBusy(false);
-      if (!res.ok) return;
-      const next = { ...session, user: res.user, profile: res.profile };
-      saveBetaSession(next);
-      setSession(next);
-      setEditing(false);
-    },
-    [session]
-  );
 
   const signOut = () => {
     clearBetaSession();
@@ -87,13 +62,14 @@ export default function AccountMenu() {
   const email = profile?.email || user?.email || "";
   const phone = profile?.phone || "";
   const color = profile?.avatarColor || defaultAvatarColor(user?.id || email);
+  const photo = profile?.avatarUrl || "";
 
   return (
     <div className="acct" ref={wrapRef}>
       <button
         type="button"
         className="acct-avatar"
-        style={{ background: color }}
+        style={photo ? { backgroundImage: `url(${photo})` } : { background: color }}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Account menu for ${name || email}`}
@@ -103,33 +79,16 @@ export default function AccountMenu() {
       {open && (
         <div className="acct-menu" role="menu">
           <div className="acct-head">
-            <span className="acct-avatar acct-avatar-sm" style={{ background: color }} aria-hidden="true" />
+            <span
+              className="acct-avatar acct-avatar-sm"
+              style={photo ? { backgroundImage: `url(${photo})` } : { background: color }}
+              aria-hidden="true"
+            />
             <span className="acct-who">
               <strong>{name || "Your account"}</strong>
               <span>{email || phone}</span>
             </span>
           </div>
-
-          {editing ? (
-            <div className="acct-colors" role="group" aria-label="Avatar colour">
-              {AVATAR_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className={`acct-swatch${c === color ? " on" : ""}`}
-                  style={{ background: c }}
-                  disabled={busy}
-                  aria-label={`Use ${c}`}
-                  aria-pressed={c === color}
-                  onClick={() => pickColor(c)}
-                />
-              ))}
-            </div>
-          ) : (
-            <button type="button" className="acct-item" role="menuitem" onClick={() => setEditing(true)}>
-              Change avatar colour
-            </button>
-          )}
 
           <Link to="/me" className="acct-item" role="menuitem" onClick={() => setOpen(false)}>
             Your profile

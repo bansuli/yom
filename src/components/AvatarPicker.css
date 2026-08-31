@@ -1,0 +1,122 @@
+.avp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.4rem 1.2rem 1.2rem;
+  border: 1px solid #ecece6;
+  border-radius: 14px;
+  background: #fbfbf7;
+  max-width: 32rem;
+  width: 100%;
+}
+
+.avp-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.55rem;
+}
+
+.avp-or {
+  margin: 0.2rem 0 0;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #8a8a82;
+}
+
+.avp-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.6rem;
+}
+
+.avp-swatch {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.06);
+}
+
+.avp-swatch:hover:not(:disabled) {
+  transform: scale(1.08);
+}
+
+.avp-swatch:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.avp-swatch:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+
+/* ── Camera ── */
+.avp-camera {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.avp-video {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #ecece6;
+  transform: scaleX(-1); /* a mirror, which is what a front camera should feel like */
+}
+
+/* The input is driven by the buttons above it. */
+.avp-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.avp-err {
+  margin: 0;
+  font-size: 0.87rem;
+  color: #8a1f1f;
+  text-align: center;
+}
+
+.avp-busy {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6e6e68;
+}
+
+.avp-done {
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 520px) {
+  .avp-swatches {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .avp-video {
+    width: 220px;
+    height: 220px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avp-swatch:hover:not(:disabled) {
+    transform: none;
+  }
+}

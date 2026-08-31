@@ -116,6 +116,17 @@ export function yomPhoneVerify(phone, code, extra = {}) {
   return post("/api/phone/verify", { phone, code, ...extra });
 }
 
+export function yomAvatarUpload(token, image) {
+  return post("/api/avatar", { image }, token);
+}
+
+export function yomAvatarClear(token) {
+  return send("/api/avatar", {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${token}` },
+  });
+}
+
 export function yomAccountDelete(token) {
   return post("/api/account-delete", { confirm: "DELETE" }, token);
 }

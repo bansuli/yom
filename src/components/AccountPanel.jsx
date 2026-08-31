@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AVATAR_COLORS, defaultAvatarColor } from "../../lib/avatar.js";
+import { defaultAvatarColor } from "../../lib/avatar.js";
+import AvatarPicker from "./AvatarPicker.jsx";
 import {
   clearBetaSession,
   loadBetaSession,
   saveBetaSession,
   yomAccountDelete,
+  yomAvatarClear,
+  yomAvatarUpload,
   yomMe,
   yomProfileUpdate,
 } from "../lib/yom-api.js";
@@ -83,6 +86,7 @@ export default function AccountPanel() {
   const [session, setSession] = useState(() => loadBetaSession());
   const [err, setErr] = useState("");
   const [picking, setPicking] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -111,6 +115,7 @@ export default function AccountPanel() {
   const email = profile?.email || user?.email || "";
   const phone = profile?.phone || "";
   const color = profile?.avatarColor || defaultAvatarColor(user?.id || email);
+  const photo = profile?.avatarUrl || "";
   const first = String(name || "").trim().split(/\s+/)[0] || "your";
   const provider = PROVIDER_LABEL[profile?.provider] || "";
 
@@ -131,6 +136,35 @@ export default function AccountPanel() {
     saveBetaSession(next);
     setSession(next);
     return true;
+  };
+
+  const savePhoto = async (dataUrl) => {
+    setAvatarBusy(true);
+    setErr("");
+    const res = await yomAvatarUpload(session.access_token, dataUrl);
+    setAvatarBusy(false);
+    if (!res.ok) {
+      setErr(res.error || "Couldn't save that photo.");
+      return;
+    }
+    const next = { ...session, user: res.user, profile: res.profile };
+    saveBetaSession(next);
+    setSession(next);
+    setPicking(false);
+  };
+
+  const clearPhoto = async () => {
+    setAvatarBusy(true);
+    setErr("");
+    const res = await yomAvatarClear(session.access_token);
+    setAvatarBusy(false);
+    if (!res.ok) {
+      setErr(res.error || "Couldn't remove that photo.");
+      return;
+    }
+    const next = { ...session, user: res.user, profile: res.profile };
+    saveBetaSession(next);
+    setSession(next);
   };
 
   const doDelete = async () => {
@@ -157,24 +191,23 @@ export default function AccountPanel() {
     <div className="ap">
       {/* ── Hero ── */}
       <div className="ap-hero">
-        <span className="ap-face" style={{ background: color }} aria-hidden="true" />
+        {photo ? (
+          <img className="ap-face" src={photo} alt="" />
+        ) : (
+          <span className="ap-face" style={{ background: color }} aria-hidden="true" />
+        )}
         <button type="button" className="ap-chip" onClick={() => setPicking((v) => !v)}>
-          {picking ? "Done" : "Change colour"}
+          {picking ? "Done" : photo ? "Change photo" : "Add a photo"}
         </button>
         {picking ? (
-          <div className="ap-swatches" role="group" aria-label="Avatar colour">
-            {AVATAR_COLORS.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`ap-swatch${c === color ? " on" : ""}`}
-                style={{ background: c }}
-                aria-label={`Use ${c}`}
-                aria-pressed={c === color}
-                onClick={() => patch({ avatarColor: c })}
-              />
-            ))}
-          </div>
+          <AvatarPicker
+            current={photo}
+            busy={avatarBusy}
+            onPhoto={savePhoto}
+            onColor={(c) => patch({ avatarColor: c })}
+            onClear={clearPhoto}
+            onClose={() => setPicking(false)}
+          />
         ) : null}
         <h1 className="ap-title">{first}&rsquo;s yom</h1>
         <p className="ap-sub">
