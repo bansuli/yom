@@ -21,25 +21,13 @@ const LAYER_RIDE = 640; // ms a band takes to fall
 const LINK_STEP = 60;
 
 export default function LayerNav({ items = [], email = "", socials = [] }) {
+  // The sheet is always in the DOM. Mounting it at the moment it opens gave
+  // the browser no first frame to transition away from, so the bands arrived
+  // already in place — opening jumped while closing swept. Nothing here is
+  // expensive to keep around: four spans and some text.
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const panelRef = useRef(null);
   const toggleRef = useRef(null);
-
-  // Kept mounted through the close so the bands can run backwards, then
-  // unmounted so nothing invisible sits over the page.
-  useEffect(() => {
-    if (open) {
-      setMounted(true);
-      return undefined;
-    }
-    if (!mounted) return undefined;
-    const t = setTimeout(
-      () => setMounted(false),
-      LAYER_RIDE + LAYER_STEP * (LAYERS.length - 1)
-    );
-    return () => clearTimeout(t);
-  }, [open, mounted]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -89,8 +77,7 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
 
   return (
     <>
-      {mounted && (
-        <div className={`lnav-sheet${open ? " is-open" : ""}`} aria-hidden={!open}>
+      <div className={`lnav-sheet${open ? " is-open" : ""}`} aria-hidden={!open}>
           {LAYERS.map((color, i) => (
             <span
               key={color}
@@ -147,9 +134,8 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
                 </>
               ) : null}
             </div>
-          </div>
         </div>
-      )}
+      </div>
 
       {/* Above the bands, so the mark and the icon stay on top of them. */}
       <div className={`lnav-bar${open ? " is-open" : ""}`}>

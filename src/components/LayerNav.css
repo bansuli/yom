@@ -105,12 +105,21 @@
 .lnav-panel {
   position: relative;
   height: 100%;
+  /* Hidden once the bands are gone, so nothing inside stays in the tab order
+     while the menu is shut. Delayed so it does not vanish mid-sweep. */
+  visibility: hidden;
+  transition: visibility 0s linear 900ms;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
   gap: 2rem 3rem;
   padding: 7.5rem 2.5rem 2.5rem;
   color: #fff;
+}
+
+.lnav-sheet.is-open .lnav-panel {
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .lnav-col {
