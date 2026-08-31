@@ -4,10 +4,10 @@ import AccountMenu from "./AccountMenu.jsx";
 import "./LayerNav.css";
 
 /*
- * PARKED, NOT DEAD. Nothing imports this today — the homepage went back to the
- * pill row in GooeyNavbar — but it is kept whole and working so it can be put
- * back in one import. Do not delete it as unused code.
- * docs/LAYERED_NAV.md has the three edits that switch it back on.
+ * PARKED, NOT DEAD. Nothing imports this today — the homepage is a blank
+ * canvas — but it is kept whole and working so it can be put back in one
+ * import. Do not delete it as unused code.
+ * docs/NAVBARS.md has the edits that switch it back on.
  *
  * A layered menu that drops from the top.
  *

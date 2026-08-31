@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom'
 import './GooeyNavbar.css'
 
 /*
+ * PARKED, NOT DEAD. Nothing imports this today — the homepage is a blank
+ * canvas — but it is kept whole and working so it can be put back in one
+ * import. Do not delete it as unused code.
+ * docs/NAVBARS.md has the edits that switch it back on.
+ *
  * A row of separate pills that grow a waist to their neighbours when one is
  * hovered or marks the page being viewed. The shape is drawn, not blurred:
  * every pill is a rounded rectangle and every join is a fillet tangent to the
@@ -13,13 +18,13 @@ import './GooeyNavbar.css'
  * independent numbers.
  */
 
-const PAD_X = 24
-const PAD_Y = 15
-const GAP = 16
-const PUSH = 10
+const PAD_X = 18
+const PAD_Y = 11
+const GAP = 12
+const PUSH = 8
 const NECK_RATIO = 0.4
 const RADIUS = 999
-const HALO = 90
+const HALO = 70
 
 // Spring the joins open and shut on: stiffness 260, damping 30, mass 1.
 const STIFFNESS = 260
@@ -275,30 +280,77 @@ export default function GooeyNavbar({ items, activePath }) {
       style={metrics ? { width, height } : undefined}
     >
       {metrics && (
-        <svg
-          className="gooey-nav-shape"
-          width={width}
-          height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          aria-hidden="true"
-          focusable="false"
-        >
-          <defs>
-            <clipPath id="gooey-nav-clip">
-              <path d={shape} />
-            </clipPath>
-            <radialGradient id="gooey-nav-halo">
-              <stop offset="0%" stopColor="var(--lime)" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="var(--lime)" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-          <path d={shape} fill="var(--ink)" />
-          {cursor && (
-            <g clipPath="url(#gooey-nav-clip)">
-              <circle cx={cursor.x} cy={cursor.y} r={HALO} fill="url(#gooey-nav-halo)" />
-            </g>
-          )}
-        </svg>
+        <>
+          {/*
+           * What is behind the row, blurred and clipped to its exact outline.
+           * A DOM element rather than an SVG filter because backdrop-filter is
+           * the only thing that can reach the page behind an element, and the
+           * clip is the same path the shape is drawn from, so the blur ends
+           * precisely where the glass does — waists included.
+           */}
+          <div className="gooey-nav-blur" style={{ clipPath: 'url(#gooey-nav-clip)' }} />
+
+          {/*
+           * The colour. Soft blobs bled into one another and cropped to the
+           * row, so each pill shows whatever part of the field it happens to
+           * be sitting over and no two are the same. Kept as blurred CSS
+           * gradients rather than filtered SVG because it never changes: only
+           * the clip moves as the joins open, so the field is painted once and
+           * the compositor does the rest.
+           *
+           * The blur is on an oversized inner layer. Blurring the clipped one
+           * would sample transparency past its own edge and fade the colour
+           * out exactly where the rim needs it most.
+           */}
+          <div className="gooey-nav-tint" style={{ clipPath: 'url(#gooey-nav-clip)' }}>
+            <span className="gooey-nav-tint-field" />
+          </div>
+
+          <svg
+            className="gooey-nav-shape"
+            width={width}
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            aria-hidden="true"
+            focusable="false"
+          >
+            <defs>
+              <clipPath id="gooey-nav-clip">
+                <path d={shape} />
+              </clipPath>
+              <radialGradient id="gooey-nav-halo">
+                <stop offset="0%" stopColor="var(--lime)" stopOpacity="0.55" />
+                <stop offset="100%" stopColor="var(--lime)" stopOpacity="0" />
+              </radialGradient>
+              {/*
+               * The bevel: light gathered hard against the top and bottom
+               * edges and nothing across the middle, which is what a lens does
+               * to the light passing through its rim. The middle staying clear
+               * is the whole point — a wash over the full height would be a
+               * tint, and a tint is the thing this is not.
+               *
+               * It is a second fill of the same union path, not a stroke.
+               * Stroking would outline every subpath, and the waists run
+               * through the pills, so their outlines would be drawn as lines
+               * across the inside of the shape. Filling twice cannot do that.
+               */}
+              <linearGradient id="gooey-nav-sheen" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.75" />
+                <stop offset="11%" stopColor="#ffffff" stopOpacity="0.1" />
+                <stop offset="46%" stopColor="#ffffff" stopOpacity="0" />
+                <stop offset="88%" stopColor="#ffffff" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0.5" />
+              </linearGradient>
+            </defs>
+            <path d={shape} fill="var(--nav-glass)" />
+            <path d={shape} fill="url(#gooey-nav-sheen)" />
+            {cursor && (
+              <g clipPath="url(#gooey-nav-clip)">
+                <circle cx={cursor.x} cy={cursor.y} r={HALO} fill="url(#gooey-nav-halo)" />
+              </g>
+            )}
+          </svg>
+        </>
       )}
 
       <ul className="gooey-nav-items">

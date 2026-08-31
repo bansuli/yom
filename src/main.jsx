@@ -121,6 +121,9 @@ function AccountCorner() {
   const { pathname } = useLocation()
   if (isNativeApp()) return null
   if (
+    // The homepage is a blank canvas being rebuilt — nothing on it but the
+    // wordmark, this corner included.
+    pathname === '/' ||
     pathname === '/signin' ||
     pathname === '/beta' ||
     pathname === '/scan' ||
