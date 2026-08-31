@@ -298,7 +298,7 @@ a {
   81%  { transform: rotate(var(--angle, -1deg)) translate(0, 0); }
 }
 
-/* Center brand cluster */
+/* The wordmark, sat on the floor of the hero */
 .hero-center {
   position: absolute;
   inset: 0;
@@ -306,9 +306,9 @@ a {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   text-align: center;
-  padding: 6rem 1.5rem 4rem;
+  padding: 6rem 1.5rem clamp(2rem, 5vh, 4rem);
   pointer-events: none;
 }
 
@@ -318,9 +318,11 @@ a {
 
 .brand {
   font-family: var(--font-brand);
-  font-size: clamp(4.5rem, 14vw, 9rem);
+  /* Sized off the viewport so it holds the same share of the width at any
+     size. The floor is what still fits a narrow phone inside the gutters. */
+  font-size: clamp(5.5rem, 26vw, 30rem);
   font-weight: 900;
-  line-height: 0.9;
+  line-height: 0.82;
   letter-spacing: -0.01em;
   display: flex;
   align-items: baseline;
