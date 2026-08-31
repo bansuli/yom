@@ -15,11 +15,11 @@ import "./AccountPanel.css";
 const PROVIDER_LABEL = {
   google: "Google",
   phone: "a phone number",
-  email: "email and password",
+  email: "email",
 };
 
-/** One editable line: label, value, and an inline field when you click Edit. */
-function Field({ label, value, placeholder, multiline, onSave, max }) {
+/** An attribute with an inline editor behind an Edit link. */
+function Attr({ label, value, placeholder, multiline, max, onSave }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value || "");
   const [busy, setBusy] = useState(false);
@@ -36,18 +36,19 @@ function Field({ label, value, placeholder, multiline, onSave, max }) {
   };
 
   return (
-    <div className="ap-field">
-      <span className="ap-label">{label}</span>
+    <div className="ap-attr">
+      <div className="ap-attr-top">
+        <span className="ap-attr-label">{label}</span>
+        {!editing ? (
+          <button type="button" className="ap-link" onClick={() => setEditing(true)}>
+            Edit
+          </button>
+        ) : null}
+      </div>
       {editing ? (
         <div className="ap-edit">
           {multiline ? (
-            <textarea
-              value={draft}
-              maxLength={max}
-              rows={3}
-              onChange={(e) => setDraft(e.target.value)}
-              autoFocus
-            />
+            <textarea value={draft} maxLength={max} rows={3} onChange={(e) => setDraft(e.target.value)} autoFocus />
           ) : (
             <input
               type="text"
@@ -61,7 +62,7 @@ function Field({ label, value, placeholder, multiline, onSave, max }) {
               autoFocus
             />
           )}
-          <div className="ap-edit-row">
+          <div className="ap-row">
             <button type="button" className="ap-btn" onClick={save} disabled={busy}>
               {busy ? "Saving…" : "Save"}
             </button>
@@ -71,31 +72,22 @@ function Field({ label, value, placeholder, multiline, onSave, max }) {
           </div>
         </div>
       ) : (
-        <div className="ap-value">
-          <span className={value ? "" : "ap-empty"}>{value || placeholder}</span>
-          <button type="button" className="ap-edit-link" onClick={() => setEditing(true)}>
-            Edit
-          </button>
-        </div>
+        <p className={`ap-attr-value${value ? "" : " ap-empty"}`}>{value || placeholder}</p>
       )}
     </div>
   );
 }
 
-/**
- * The account, for someone who is signed in: who they are, what yom knows,
- * and the two things every account needs a way to do — change it, and leave.
- */
 export default function AccountPanel() {
   const navigate = useNavigate();
   const [session, setSession] = useState(() => loadBetaSession());
   const [err, setErr] = useState("");
+  const [picking, setPicking] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
 
-  // The stored session is whatever the last page wrote. Re-fetch so the page
-  // shows the account as it actually is, not as it was at sign-in.
+  // Show the account as it is now, not as it was when the session was stored.
   useEffect(() => {
     const stored = loadBetaSession();
     if (!stored?.access_token) return;
@@ -120,7 +112,14 @@ export default function AccountPanel() {
   const phone = profile?.phone || "";
   const color = profile?.avatarColor || defaultAvatarColor(user?.id || email);
   const initials = initialsOf(name, email);
+  const first = String(name || "").trim().split(/\s+/)[0] || "your";
   const provider = PROVIDER_LABEL[profile?.provider] || "";
+
+  const closet = profile?.purchases || [];
+  const saved = profile?.saved || [];
+  const outcomes = profile?.outcomes || [];
+  const sizes = profile?.sizes || [];
+  const style = profile?.style || [];
 
   const patch = async (body) => {
     setErr("");
@@ -156,33 +155,16 @@ export default function AccountPanel() {
   };
 
   return (
-    <section className="ap">
-      <header className="ap-head">
-        <span className="ap-avatar" style={{ background: color }} aria-hidden="true">
+    <div className="ap">
+      {/* ── Hero ── */}
+      <div className="ap-hero">
+        <span className="ap-face" style={{ background: color }} aria-hidden="true">
           {initials}
         </span>
-        <div className="ap-ident">
-          <h1>{name || "Your account"}</h1>
-          <p>
-            {email || phone}
-            {provider ? ` · signed up with ${provider}` : ""}
-          </p>
-        </div>
-      </header>
-
-      {err ? <p className="ap-err">{err}</p> : null}
-
-      <div className="ap-block">
-        <h2>You</h2>
-        <Field
-          label="Name"
-          value={name}
-          max={80}
-          placeholder="No name yet"
-          onSave={(v) => patch({ name: v })}
-        />
-        <div className="ap-field">
-          <span className="ap-label">Avatar</span>
+        <button type="button" className="ap-chip" onClick={() => setPicking((v) => !v)}>
+          {picking ? "Done" : "Change colour"}
+        </button>
+        {picking ? (
           <div className="ap-swatches" role="group" aria-label="Avatar colour">
             {AVATAR_COLORS.map((c) => (
               <button
@@ -196,58 +178,117 @@ export default function AccountPanel() {
               />
             ))}
           </div>
-        </div>
-        {email ? (
-          <div className="ap-field">
-            <span className="ap-label">Email</span>
-            <div className="ap-value">
-              <span>{email}</span>
-            </div>
-          </div>
         ) : null}
-        {phone ? (
-          <div className="ap-field">
-            <span className="ap-label">Phone</span>
-            <div className="ap-value">
-              <span>{phone}</span>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="ap-block">
-        <h2>What yom knows</h2>
-        <p className="ap-note">
-          These came from onboarding. Change them whenever they stop being true — the
-          advice follows them.
+        <h1 className="ap-title">{first}&rsquo;s yom</h1>
+        <p className="ap-sub">
+          {email || phone}
+          {provider ? ` · joined with ${provider}` : ""}
         </p>
-        <Field
-          label="Sounds most like you"
-          value={profile?.trait || ""}
-          max={60}
-          placeholder="Not set"
-          onSave={(v) => patch({ trait: v })}
-        />
-        <Field
-          label="Before you buy"
-          value={profile?.preBuy || ""}
-          max={60}
-          placeholder="Not set"
-          onSave={(v) => patch({ preBuy: v })}
-        />
-        <Field
-          label="Headline"
-          value={profile?.headline || ""}
-          max={160}
-          multiline
-          placeholder="Not set"
-          onSave={(v) => patch({ headline: v })}
-        />
       </div>
 
-      <div className="ap-block ap-danger">
+      {err ? <p className="ap-err">{err}</p> : null}
+
+      {/* ── Style DNA ── */}
+      <section className="ap-section">
+        <h2>Your style DNA</h2>
+        <p className="ap-lede">
+          yom learns from what you scan, what you keep and what you send back, and tunes
+          its advice to you. This is what it has so far.
+        </p>
+
+        <div className="ap-you">
+          <span className="ap-you-eyebrow">You are</span>
+          <p className="ap-you-name">{profile?.headline || profile?.trait || "Still working it out"}</p>
+          <p className="ap-you-body">
+            {profile?.read ||
+              profile?.memory ||
+              "Take yom on a few more trips and this fills itself in."}
+          </p>
+        </div>
+
+        <div className="ap-grid">
+          <Attr
+            label="Sounds most like you"
+            value={profile?.trait || ""}
+            placeholder="Not set yet"
+            max={60}
+            onSave={(v) => patch({ trait: v })}
+          />
+          <Attr
+            label="Before you buy"
+            value={profile?.preBuy || ""}
+            placeholder="Not set yet"
+            max={60}
+            onSave={(v) => patch({ preBuy: v })}
+          />
+          <Attr
+            label="Headline"
+            value={profile?.headline || ""}
+            placeholder="Not set yet"
+            max={160}
+            multiline
+            onSave={(v) => patch({ headline: v })}
+          />
+          <Attr
+            label="Name"
+            value={name}
+            placeholder="No name yet"
+            max={80}
+            onSave={(v) => patch({ name: v })}
+          />
+        </div>
+      </section>
+
+      {/* ── Numbers ── */}
+      <section className="ap-section">
+        <h2>Your closet</h2>
+        <div className="ap-stats">
+          <div className="ap-stat">
+            <strong>{closet.length}</strong>
+            <span>{closet.length === 1 ? "piece" : "pieces"}</span>
+          </div>
+          <div className="ap-stat">
+            <strong>{saved.length}</strong>
+            <span>saved</span>
+          </div>
+          <div className="ap-stat">
+            <strong>{outcomes.length}</strong>
+            <span>{outcomes.length === 1 ? "decision" : "decisions"}</span>
+          </div>
+        </div>
+        {closet.length === 0 && saved.length === 0 ? (
+          <p className="ap-lede">Nothing in here yet. Scan a piece and it starts filling up.</p>
+        ) : null}
+      </section>
+
+      {(sizes.length > 0 || style.length > 0) && (
+        <section className="ap-section">
+          <h2>Fit and taste</h2>
+          {sizes.length > 0 ? (
+            <div className="ap-tags">
+              {sizes.map((s) => (
+                <span key={s.label} className="ap-tag">
+                  {s.label} <strong>{s.value}</strong>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {style.length > 0 ? (
+            <div className="ap-tags">
+              {style.map((s) => (
+                <span key={String(s)} className="ap-tag">
+                  {String(s)}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+      )}
+
+      {/* ── Account ── */}
+      <section className="ap-section ap-danger">
         <h2>Account</h2>
-        <div className="ap-actions">
+        <div className="ap-row">
           <button type="button" className="ap-btn ap-btn-quiet" onClick={signOut}>
             Sign out
           </button>
@@ -261,8 +302,8 @@ export default function AccountPanel() {
         {confirming ? (
           <div className="ap-confirm">
             <p>
-              This deletes your account, your closet, your saved pieces and everything
-              yom has learned about you. It cannot be undone.
+              This deletes your account, your closet, your saved pieces and everything yom
+              has learned about you. It cannot be undone.
             </p>
             <label htmlFor="ap-confirm-input">
               Type <strong>DELETE</strong> to confirm
@@ -274,7 +315,7 @@ export default function AccountPanel() {
               onChange={(e) => setConfirmText(e.target.value)}
               autoComplete="off"
             />
-            <div className="ap-edit-row">
+            <div className="ap-row">
               <button
                 type="button"
                 className="ap-btn ap-btn-danger"
@@ -296,7 +337,7 @@ export default function AccountPanel() {
             </div>
           </div>
         ) : null}
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
