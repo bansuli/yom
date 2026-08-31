@@ -5,6 +5,14 @@
   z-index: 60;
 }
 
+/* Sitting in a bar rather than pinned to the corner itself. */
+.acct.acct-inline {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
+}
+
 /* ── Signed in ── */
 .acct-avatar {
   width: 38px;

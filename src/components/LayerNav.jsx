@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import AccountMenu from "./AccountMenu.jsx";
 import "./LayerNav.css";
 
 /*
@@ -138,11 +139,8 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
         </div>
       </div>
 
-      {/* Above the bands, so the mark and the icon stay on top of them. */}
+      {/* Above the bands, so everything here stays on top of them. */}
       <div className={`lnav-bar${open ? " is-open" : ""}`}>
-        <Link to="/" className="lnav-mark" aria-label="yom, home">
-          yom
-        </Link>
         <button
           ref={toggleRef}
           type="button"
@@ -154,6 +152,15 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
           <span />
           <span />
         </button>
+
+        <Link to="/" className="lnav-mark" aria-label="yom, home">
+          yom
+        </Link>
+
+        {/* Nothing on the right until there is an account to show. */}
+        <div className="lnav-account">
+          <AccountMenu inline />
+        </div>
       </div>
     </>
   );

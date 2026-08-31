@@ -12,7 +12,7 @@ import "./AccountMenu.css";
  * The account corner: an avatar when there is a session, nothing when there is
  * not. Signing in is offered by the navbar, so it is not repeated here.
  */
-export default function AccountMenu() {
+export default function AccountMenu({ inline = false }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [session, setSession] = useState(() => loadBetaSession());
@@ -65,7 +65,7 @@ export default function AccountMenu() {
   const photo = profile?.avatarUrl || "";
 
   return (
-    <div className="acct" ref={wrapRef}>
+    <div className={`acct${inline ? " acct-inline" : ""}`} ref={wrapRef}>
       <button
         type="button"
         className="acct-avatar"
