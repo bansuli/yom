@@ -307,7 +307,7 @@ export default function Join() {
                     ? "open it from there and your lineup is always one tap away."
                     : howTo
                       ? addByHandText()
-                      : "your yom lives on this phone. this is what keeps it — and gets you back in one tap all week."}
+                      : "your yom lives on this phone. this is what keeps it around and gets you back in one tap all week."}
                 </p>
                 {added ? null : (
                   <div className="pnm-step-actions">
