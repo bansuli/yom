@@ -1,29 +1,21 @@
-.acct {
+/*
+ * The avatar, wherever it sits: pinned to the corner by default, or inside a
+ * bar when the bar asks for it. It is a link to the profile and nothing else,
+ * so there is no menu to style.
+ */
+.acct-avatar {
   position: fixed;
   top: max(1.1rem, env(safe-area-inset-top, 0px));
   right: max(1.2rem, env(safe-area-inset-right, 0px));
   z-index: 60;
-}
-
-/* Sitting in a bar rather than pinned to the corner itself. */
-.acct.acct-inline {
-  position: relative;
-  top: auto;
-  right: auto;
-  z-index: auto;
-}
-
-/* ── Signed in ── */
-.acct-avatar {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: none;
+  display: block;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background-size: cover;
   background-position: center;
-  cursor: pointer;
   box-shadow: 0 1px 2px rgba(17, 17, 17, 0.12);
+  cursor: pointer;
   transition: transform 0.15s ease;
 }
 
@@ -32,139 +24,24 @@
 }
 
 .acct-avatar:focus-visible {
-  outline: 2px solid #c8f060;
+  outline: 2px solid #111;
   outline-offset: 3px;
 }
 
-.acct-avatar-sm {
-  width: 32px;
-  height: 32px;
-  background-size: cover;
-  background-position: center;
-  cursor: default;
-  flex: 0 0 auto;
-  box-shadow: none;
-}
-
-.acct-avatar-sm:hover {
-  transform: none;
-}
-
-/* ── Menu ── */
-.acct-menu {
-  position: absolute;
-  top: calc(100% + 0.55rem);
-  right: 0;
-  min-width: 15rem;
-  padding: 0.4rem;
-  border: 1px solid #e4e4e0;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 12px 34px rgba(17, 17, 17, 0.13);
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.acct-head {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.6rem 0.65rem 0.7rem;
-  border-bottom: 1px solid #f0f0ec;
-  margin-bottom: 0.25rem;
-}
-
-.acct-who {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  font-family: 'Schibsted Grotesk', sans-serif;
-  line-height: 1.3;
-}
-
-.acct-who strong {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: #111;
-}
-
-.acct-who span {
-  font-size: 0.8rem;
-  color: #7a7a74;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.acct-item {
-  display: block;
-  width: 100%;
-  padding: 0.58rem 0.65rem;
-  border: none;
-  border-radius: 9px;
-  background: none;
-  font-family: 'Schibsted Grotesk', sans-serif;
-  font-size: 0.89rem;
-  color: #111;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.acct-item:hover {
-  background: #f5f5f1;
-}
-
-.acct-item:focus-visible {
-  outline: 2px solid #c8f060;
-  outline-offset: -2px;
-}
-
-.acct-out {
-  color: #8a3a00;
-}
-
-/* ── Colour picker ── */
-.acct-colors {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.45rem;
-  padding: 0.5rem 0.65rem 0.7rem;
-}
-
-.acct-swatch {
-  width: 100%;
-  aspect-ratio: 1;
-  border: 2px solid transparent;
-  border-radius: 50%;
-  cursor: pointer;
-  padding: 0;
-  box-shadow: inset 0 0 0 1px rgba(17, 17, 17, 0.08);
-}
-
-.acct-swatch.on {
-  border-color: #111;
-}
-
-.acct-swatch:disabled {
-  cursor: wait;
-  opacity: 0.6;
-}
-
-.acct-swatch:focus-visible {
-  outline: 2px solid #c8f060;
-  outline-offset: 2px;
+/* In a bar, the bar decides where it goes. */
+.acct-avatar.acct-inline {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: auto;
 }
 
 @media (max-width: 640px) {
-  .acct {
+  .acct-avatar {
     top: max(0.85rem, env(safe-area-inset-top, 0px));
     right: max(0.85rem, env(safe-area-inset-right, 0px));
-  }
-
-  .acct-menu {
-    min-width: 13.5rem;
+    width: 44px;
+    height: 44px;
   }
 }
 
