@@ -1,127 +1,269 @@
-.ap {
-  max-width: 40rem;
+/* The account page's own shell — full width, unlike the 420px phone app
+   shell the scan views use. */
+.ap-page {
+  min-height: 100dvh;
+  background: #fff;
+}
+
+.ap-page-bar {
+  max-width: 46rem;
   margin: 0 auto;
-  padding: 1rem 0 3rem;
+  padding: 1.2rem 1.25rem 0;
+}
+
+.ap-page-back {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111;
+  text-decoration: none;
+}
+
+.ap-page-back:hover {
+  opacity: 0.7;
+}
+
+/*
+ * The account as a page worth looking at, not a settings list. Instrument
+ * Serif for the display type — already this page's face — and Schibsted
+ * Grotesk for everything you operate.
+ */
+
+.ap {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 4rem;
   font-family: 'Schibsted Grotesk', sans-serif;
   color: #111;
 }
 
-/* ── Identity ── */
-.ap-head {
+/* ── Hero ── */
+.ap-hero {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 1rem;
-  padding-bottom: 1.4rem;
-  border-bottom: 1.5px solid #111;
-  margin-bottom: 1.8rem;
+  gap: 0.9rem;
+  padding: 2.5rem 0 3rem;
+  text-align: center;
 }
 
-.ap-avatar {
+.ap-face {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
-  width: 60px;
-  height: 60px;
+  width: 132px;
+  height: 132px;
   border-radius: 50%;
   color: #fff;
-  font-size: 1.3rem;
+  font-size: 2.6rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
+  user-select: none;
 }
 
-.ap-ident {
+.ap-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  border: 1.5px solid #ddddd7;
+  border-radius: 999px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #444;
+  cursor: pointer;
+}
+
+.ap-chip:hover {
+  border-color: #111;
+  color: #111;
+}
+
+.ap-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -0.015em;
+  margin: 0.5rem 0 0;
+  text-wrap: balance;
+}
+
+.ap-sub {
+  margin: 0;
+  font-size: 0.92rem;
+  color: #6e6e68;
+}
+
+/* ── Sections ── */
+.ap-section {
+  margin-bottom: 3rem;
+}
+
+.ap-section h2 {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
+}
+
+.ap-lede {
+  margin: 0 0 1.5rem;
+  font-size: 0.96rem;
+  line-height: 1.6;
+  color: #6e6e68;
+  max-width: 54ch;
+}
+
+/* ── "You are" card ── */
+.ap-you {
+  padding: 2.4rem 1.6rem;
+  border: 1px solid #ecece6;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #fbfbf7 0%, #fff 100%);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.ap-you-eyebrow {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #8a8a82;
+  margin-bottom: 0.7rem;
+}
+
+.ap-you-name {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(1.7rem, 5vw, 2.4rem);
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 0 0 0.8rem;
+  text-wrap: balance;
+}
+
+.ap-you-body {
+  margin: 0 auto;
+  max-width: 46ch;
+  font-size: 0.97rem;
+  line-height: 1.6;
+  color: #55554f;
+}
+
+/* ── Attributes ── */
+.ap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.6rem 2.5rem;
+}
+
+.ap-attr {
   min-width: 0;
 }
 
-.ap-ident h1 {
-  font-family: 'Archivo', sans-serif;
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin: 0;
-}
-
-.ap-ident p {
-  margin: 0.3rem 0 0;
-  font-size: 0.9rem;
-  color: #6e6e68;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ── Blocks ── */
-.ap-block {
-  margin-bottom: 2.2rem;
-}
-
-.ap-block h2 {
-  font-family: 'Archivo', sans-serif;
-  font-size: 1.05rem;
-  font-weight: 700;
-  margin: 0 0 0.3rem;
-}
-
-.ap-note {
-  margin: 0 0 1rem;
-  font-size: 0.88rem;
-  line-height: 1.5;
-  color: #6e6e68;
-  max-width: 46ch;
-}
-
-/* ── Fields ── */
-.ap-field {
-  display: grid;
-  grid-template-columns: 12rem 1fr;
-  gap: 0.4rem 1rem;
-  align-items: start;
-  padding: 0.85rem 0;
-  border-bottom: 1px solid #efefea;
-}
-
-.ap-label {
-  font-size: 0.86rem;
-  font-weight: 600;
-  color: #6e6e68;
-  padding-top: 0.12rem;
-}
-
-.ap-value {
+.ap-attr-top {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  font-size: 0.95rem;
-  min-width: 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #ecece6;
+  margin-bottom: 0.55rem;
 }
 
-.ap-value > span {
-  min-width: 0;
+.ap-attr-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #8a8a82;
+}
+
+.ap-attr-value {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
 .ap-empty {
-  color: #a3a39c;
+  color: #a8a8a0;
 }
 
-.ap-edit-link {
+.ap-link {
   flex: 0 0 auto;
   border: none;
   background: none;
   padding: 0;
   font-family: inherit;
-  font-size: 0.85rem;
-  color: #111;
+  font-size: 0.8rem;
+  color: #6e6e68;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
 }
 
-.ap-edit-link:hover {
-  color: #46560d;
+.ap-link:hover {
+  color: #111;
 }
 
+/* ── Stats ── */
+.ap-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.6rem;
+}
+
+.ap-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ap-stat strong {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 2.6rem;
+  font-weight: 400;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ap-stat span {
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #8a8a82;
+}
+
+/* ── Tags ── */
+.ap-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+}
+
+.ap-tag {
+  padding: 0.42rem 0.9rem;
+  border: 1px solid #e2e2dc;
+  border-radius: 999px;
+  font-size: 0.87rem;
+  color: #33332f;
+}
+
+.ap-tag strong {
+  font-weight: 700;
+}
+
+/* ── Editing ── */
 .ap-edit {
   display: flex;
   flex-direction: column;
@@ -147,13 +289,12 @@
   box-shadow: 0 0 0 3px #c8f060;
 }
 
-.ap-edit-row {
+.ap-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* ── Buttons ── */
 .ap-btn {
   padding: 0.55rem 1.15rem;
   border: 1.5px solid #111;
@@ -191,7 +332,8 @@
 }
 
 .ap-btn:focus-visible,
-.ap-edit-link:focus-visible,
+.ap-link:focus-visible,
+.ap-chip:focus-visible,
 .ap-swatch:focus-visible {
   outline: 2px solid #c8f060;
   outline-offset: 3px;
@@ -201,7 +343,9 @@
 .ap-swatches {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.5rem;
+  max-width: 18rem;
 }
 
 .ap-swatch {
@@ -218,28 +362,26 @@
   border-color: #111;
 }
 
-/* ── Danger ── */
+/* ── Account ── */
 .ap-danger {
-  padding-top: 1.4rem;
-  border-top: 1.5px solid #111;
+  padding-top: 2rem;
+  border-top: 1px solid #ecece6;
 }
 
-.ap-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.8rem;
+.ap-danger .ap-row {
+  margin-top: 1rem;
 }
 
 .ap-confirm {
-  margin-top: 1.1rem;
-  padding: 1rem 1.1rem;
+  margin-top: 1.2rem;
+  padding: 1.1rem 1.2rem;
   border: 1.5px solid #8a1f1f;
   border-radius: 12px;
   background: #fdf5f5;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+  max-width: 34rem;
 }
 
 .ap-confirm p {
@@ -266,7 +408,7 @@
 }
 
 .ap-err {
-  margin: 0 0 1.2rem;
+  margin: 0 0 1.5rem;
   padding: 0.7rem 0.9rem;
   border-radius: 9px;
   background: #fdf5f5;
@@ -275,12 +417,21 @@
 }
 
 @media (max-width: 620px) {
-  .ap-field {
-    grid-template-columns: 1fr;
-    gap: 0.3rem;
+  .ap-hero {
+    padding: 1.6rem 0 2.2rem;
   }
 
-  .ap-label {
-    padding-top: 0;
+  .ap-face {
+    width: 104px;
+    height: 104px;
+    font-size: 2rem;
+  }
+
+  .ap-stats {
+    gap: 1.8rem;
+  }
+
+  .ap-stat strong {
+    font-size: 2.1rem;
   }
 }

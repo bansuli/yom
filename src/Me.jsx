@@ -129,12 +129,13 @@ export default function Me() {
     navigate("/join?fresh=1", { replace: true });
   };
 
-  // Signed in with no local looks: the account is the whole page.
+  // Signed in with no local looks: the account is the whole page. Its own
+  // wrapper, not the phone app shell, which caps at 420px.
   if (signedIn && !ready) {
     return (
-      <div className="pnm-page is-app">
-        <header className="pnm-brand-row">
-          <Link to="/" className="pnm-back">
+      <div className="ap-page">
+        <header className="ap-page-bar">
+          <Link to="/" className="ap-page-back">
             ← Home
           </Link>
         </header>
@@ -144,6 +145,19 @@ export default function Me() {
   }
 
   return (
+    <>
+      {/* Signed in and carrying local looks: the account at full width first,
+          then the browser's own scan history in its phone-shell view. */}
+      {signedIn ? (
+        <div className="ap-page">
+          <header className="ap-page-bar">
+            <Link to="/" className="ap-page-back">
+              ← Home
+            </Link>
+          </header>
+          <AccountPanel />
+        </div>
+      ) : null}
     <div className="pnm-page is-app">
       <header className="pnm-brand-row">
         <Link to="/looks" className="pnm-back">
@@ -153,10 +167,6 @@ export default function Me() {
           yom
         </Link>
       </header>
-
-      {/* Signed in and carrying local looks: the account first, then the
-          browser's own scan history below it. */}
-      {signedIn ? <AccountPanel /> : null}
 
       <section className="me-card">
         <div className="me-id">
@@ -303,5 +313,6 @@ export default function Me() {
 
       <YomNav active="me" />
     </div>
+    </>
   );
 }
