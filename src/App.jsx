@@ -26,6 +26,8 @@ function App() {
     <div className="page">
       <section className="hero" aria-label="yom homepage">
         <div className="hero-center">
+          <div className="brand-rule brand-rule-top" aria-hidden="true" />
+
           <p className="brand" aria-label="yom">
             <span className="brand-y">y</span>
             <span className="brand-o">o</span>

@@ -348,6 +348,27 @@ a {
 }
 
 /*
+ * The rule above the mark. Lighter and finer than the one below it — that one
+ * closes the mark off, this one only divides the page, and at the same weight
+ * the two competed.
+ *
+ * It needs its gap declared, unlike the lower rule, where the slack under the
+ * glyphs is doing the job. Scaled in vw rather than vh so it tracks the mark:
+ * the mark is sized off the width, and a gap set against the height would
+ * drift away from it as the window changes shape.
+ */
+.brand-rule-top {
+  /* A whole pixel, faded, rather than half a pixel at full strength. Half a
+     pixel is exact on a retina screen and guesswork on anything else — there
+     is no half pixel to paint, so it gets antialiased into whatever the
+     browser fancies. A 1px line at a lower alpha reads the same weight and
+     renders identically everywhere. */
+  height: 1px;
+  background: rgba(17, 17, 17, 0.22);
+  margin-bottom: clamp(5rem, 20vw, 22rem);
+}
+
+/*
  * The row under the rule: light monospace capitals, spread the width of the
  * page. Set wide — at this size the letterspacing is doing as much of the work
  * as the face is, and without it the words close up into blocks.
@@ -373,6 +394,12 @@ a {
   white-space: nowrap;
   color: var(--ink);
   text-decoration: none;
+  /* Text this small is a poor thing to aim a thumb at. The padding grows the
+     hit area without growing the type; the row's gaps are set against the
+     text, so they are pulled back in by the same amount. */
+  display: inline-block;
+  padding: 0.4rem 0;
+  margin: -0.4rem 0;
 }
 
 .brand-links a:hover {
@@ -380,11 +407,36 @@ a {
   text-underline-offset: 0.35em;
 }
 
-/* Spread reads as spread on a wide screen and as a crowd on a narrow one. */
+/*
+ * Spread reads as spread on a wide screen and as a crowd on a narrow one, so
+ * the row centres and wraps instead. The type comes down and the gaps go up:
+ * at this size the words are long relative to the line, and set any closer
+ * they stop reading as five separate things.
+ */
 @media (max-width: 640px) {
+  /*
+   * Everything here is measured in vw, so the row is the same shape on every
+   * phone. Set in fixed pixels it was not: the five words came to a fixed
+   * width while the screen did not, so a large phone crushed them onto one
+   * line with nothing between them and a small one dropped HELP onto a row of
+   * its own. Sized off the screen, the words and the gaps between them shrink
+   * and grow together — one line at every width, separated the same way.
+   */
   .brand-links {
     justify-content: center;
-    gap: 0.55rem 1.25rem;
+    gap: 1.4rem 4.5vw;
+    padding-inline: 4vw;
+  }
+
+  .brand-links a {
+    font-size: clamp(0.5rem, 2.3vw, 0.62rem);
+    /* Eased off with the gaps carrying the separation now; at this size the
+       tracking was widening the words faster than it was parting them. */
+    letter-spacing: 0.12em;
+    /* Kept under half the row gap: any more and a padded link would reach into
+       the row beneath it and start catching taps meant for the other one. */
+    padding: 0.65rem 0;
+    margin: -0.65rem 0;
   }
 }
 
