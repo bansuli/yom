@@ -96,29 +96,36 @@ export default async function handler(req, res) {
     const email = String(req.query?.email || "").trim().toLowerCase() ||
       `probe-${Date.now()}@yom-healthcheck.invalid`;
     const name = String(req.query?.name || "Probe User");
-    try {
+    // Run it twice: once as the app sends it (with PostgREST's Prefer header,
+    // which sbAdmin adds to every non-GET) and once without. GoTrue is not
+    // PostgREST, and that header is the only difference between the call that
+    // fails in production and the one that passes here.
+    const attempt = async (label, extraHeaders, addr) => {
       const create = await fetch(`${url}/auth/v1/admin/users`, {
         method: "POST",
-        headers: h,
+        headers: { ...h, ...extraHeaders },
         body: JSON.stringify({
-          email,
+          email: addr,
           password: `Pb-${Date.now()}-xQ`,
           email_confirm: true,
           user_metadata: { name },
         }),
       });
       const raw = await create.text();
-      out.probe = { status: create.status, body: raw.slice(0, 700) };
       let id = null;
       try {
         id = JSON.parse(raw)?.id || null;
       } catch {
         /* body was not json */
       }
-      if (id) {
-        const del = await fetch(`${url}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: h });
-        out.probe.cleaned_up = del.ok;
-      }
+      if (id) await fetch(`${url}/auth/v1/admin/users/${id}`, { method: "DELETE", headers: h });
+      return { status: create.status, created: Boolean(id), body: raw.slice(0, 200) };
+    };
+    try {
+      out.probe = {
+        with_prefer: await attempt("prefer", { Prefer: "return=representation" }, `p1-${Date.now()}@yom-healthcheck.invalid`),
+        without_prefer: await attempt("plain", {}, `p2-${Date.now()}@yom-healthcheck.invalid`),
+      };
     } catch (e) {
       out.probe = { status: 0, body: String(e?.message || e).slice(0, 300) };
     }
