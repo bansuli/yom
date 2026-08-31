@@ -6,11 +6,11 @@
 }
 
 :root {
-  --paper: #ffffff;
-  --paper-deep: #ffffff;
+  --paper: #f9d9d1;
+  --paper-deep: #f9d9d1;
   --ink: #111111;
   --lime: #c8f060;
-  --cream: #ffffff;
+  --cream: #f9d9d1;
   --muted: #5a5a5a;
 
   --font-display: 'Archivo Black', 'Arial Black', sans-serif;
