@@ -24,10 +24,15 @@ export default function Me() {
 
   return (
     <div className="ap-page">
-      <header className="ap-page-bar">
-        <Link to="/" className="ap-page-back">
+      {/* Edge to edge, like every other desktop app bar. */}
+      <header className="ap-bar">
+        <Link to="/" className="ap-bar-back">
           &larr; Home
         </Link>
+        <Link to="/" className="ap-bar-mark" aria-label="yom">
+          yom
+        </Link>
+        <span className="ap-bar-end" aria-hidden="true" />
       </header>
       <AccountPanel />
     </div>

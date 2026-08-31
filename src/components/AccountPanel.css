@@ -1,26 +1,53 @@
-/* The account page's own shell — full width, unlike the 420px phone app
-   shell the scan views use. */
+/* The account page's own shell. Edge-to-edge bar, wide content — a desktop
+   layout, not a phone one being viewed on a desktop. */
 .ap-page {
   min-height: 100dvh;
   background: #fff;
 }
 
-.ap-page-bar {
-  max-width: 54rem;
-  margin: 0 auto;
-  padding: 1.2rem 1.25rem 0;
+.ap-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 2rem;
+  border-bottom: 1px solid #ececE6;
 }
 
-.ap-page-back {
+.ap-bar-back {
+  justify-self: start;
   font-family: 'Schibsted Grotesk', sans-serif;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: #111;
   text-decoration: none;
 }
 
-.ap-page-back:hover {
-  opacity: 0.7;
+.ap-bar-back:hover {
+  opacity: 0.65;
+}
+
+.ap-bar-mark {
+  justify-self: center;
+  font-family: var(--font-brand), sans-serif;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: #111;
+  text-decoration: none;
+}
+
+.ap-bar-end {
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .ap-bar {
+    padding: 0.9rem 1.1rem;
+  }
+
+  .ap-bar-mark {
+    font-size: 1.3rem;
+  }
 }
 
 /*
@@ -30,9 +57,9 @@
  */
 
 .ap {
-  max-width: 54rem;
+  max-width: 68rem;
   margin: 0 auto;
-  padding: 1rem 1.5rem 5rem;
+  padding: 0 2rem 6rem;
   font-family: 'Schibsted Grotesk', sans-serif;
   color: #111;
 }
@@ -43,7 +70,7 @@
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  padding: 3.5rem 0 4rem;
+  padding: 4.5rem 0 5rem;
   text-align: center;
 }
 
@@ -101,7 +128,7 @@
 
 /* ── Sections ── */
 .ap-section {
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
 }
 
 .ap-section h2 {
@@ -114,10 +141,34 @@
 
 .ap-lede {
   margin: 0 0 1.5rem;
-  font-size: 0.96rem;
+  font-size: 0.98rem;
   line-height: 1.6;
   color: #6e6e68;
-  max-width: 54ch;
+  max-width: 46ch;
+}
+
+/* Heading and lede on the left, content on the right. */
+.ap-split {
+  display: grid;
+  grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  gap: 1rem 3.5rem;
+  align-items: start;
+}
+
+.ap-split > .ap-head-col {
+  position: sticky;
+  top: 2rem;
+}
+
+@media (max-width: 900px) {
+  .ap-split {
+    grid-template-columns: 1fr;
+    gap: 0.4rem;
+  }
+
+  .ap-split > .ap-head-col {
+    position: static;
+  }
 }
 
 /* ── "You are" card ── */
@@ -160,8 +211,8 @@
 /* ── Attributes ── */
 .ap-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1.6rem 2.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 2rem 3rem;
 }
 
 .ap-attr {

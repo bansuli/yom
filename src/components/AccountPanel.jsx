@@ -189,13 +189,15 @@ export default function AccountPanel() {
       {err ? <p className="ap-err">{err}</p> : null}
 
       {/* ── Style DNA ── */}
-      <section className="ap-section">
-        <h2>Your style DNA</h2>
-        <p className="ap-lede">
-          yom learns from what you scan, what you keep and what you send back, and tunes
-          its advice to you. This is what it has so far.
-        </p>
-
+      <section className="ap-section ap-split">
+        <div className="ap-head-col">
+          <h2>Your style DNA</h2>
+          <p className="ap-lede">
+            yom learns from what you scan, what you keep and what you send back, and
+            tunes its advice to you. This is what it has so far.
+          </p>
+        </div>
+        <div>
         <div className="ap-you">
           <span className="ap-you-eyebrow">You are</span>
           <p className="ap-you-name">{profile?.headline || profile?.trait || "Still working it out"}</p>
@@ -237,11 +239,15 @@ export default function AccountPanel() {
             onSave={(v) => patch({ name: v })}
           />
         </div>
+        </div>
       </section>
 
       {/* ── Numbers ── */}
-      <section className="ap-section">
-        <h2>Your closet</h2>
+      <section className="ap-section ap-split">
+        <div className="ap-head-col">
+          <h2>Your closet</h2>
+        </div>
+        <div>
         <div className="ap-stats">
           <div className="ap-stat">
             <strong>{closet.length}</strong>
@@ -259,11 +265,15 @@ export default function AccountPanel() {
         {closet.length === 0 && saved.length === 0 ? (
           <p className="ap-lede">Nothing in here yet. Scan a piece and it starts filling up.</p>
         ) : null}
+        </div>
       </section>
 
       {(sizes.length > 0 || style.length > 0) && (
-        <section className="ap-section">
-          <h2>Fit and taste</h2>
+        <section className="ap-section ap-split">
+          <div className="ap-head-col">
+            <h2>Fit and taste</h2>
+          </div>
+          <div>
           {sizes.length > 0 ? (
             <div className="ap-tags">
               {sizes.map((s) => (
@@ -282,12 +292,16 @@ export default function AccountPanel() {
               ))}
             </div>
           ) : null}
+          </div>
         </section>
       )}
 
       {/* ── Account ── */}
-      <section className="ap-section ap-danger">
-        <h2>Account</h2>
+      <section className="ap-section ap-split ap-danger">
+        <div className="ap-head-col">
+          <h2>Account</h2>
+        </div>
+        <div>
         <div className="ap-row">
           <button type="button" className="ap-btn ap-btn-quiet" onClick={signOut}>
             Sign out
@@ -337,6 +351,7 @@ export default function AccountPanel() {
             </div>
           </div>
         ) : null}
+        </div>
       </section>
     </div>
   );
