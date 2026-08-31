@@ -3,22 +3,22 @@ import { Link } from "react-router-dom";
 import "./LayerNav.css";
 
 /*
- * A layered curtain menu.
+ * A layered menu that drops from the top.
  *
- * The icon is two lines that become a cross. Opening sweeps four coloured
- * panels up the screen one after another — the last of them is the menu's own
- * ground, so the colour that arrives last is the one you end up reading on —
- * and the links rise after them, staggered. Closing runs it backwards.
+ * Pressing the icon sends four bands down from the top edge one after another.
+ * They stop partway down the screen rather than covering it, so the page stays
+ * visible underneath and the menu reads as something laid over it. The last
+ * band is the ground the menu is read on. Closing lifts them back, last first,
+ * so the stack retreats the way it arrived.
  *
- * The panels are the whole effect, so they are what the timings are built
- * around: they are plain transforms on solid colour, which composite on the
- * GPU and stay smooth on a phone.
+ * The bands are plain transforms on solid colour — they composite on the GPU
+ * instead of repainting, which is what keeps this smooth on a phone.
  */
 
-const LAYERS = ["#E5387E", "#F4A300", "#2EC4B6", "#111111"];
-const LAYER_STEP = 90; // ms between one panel leaving and the next
-const LAYER_RIDE = 620; // ms a panel takes to cross
-const LINK_STEP = 70;
+const LAYERS = ["#F4A300", "#E5387E", "#2EC4B6", "#111111"];
+const LAYER_STEP = 85; // ms between one band starting and the next
+const LAYER_RIDE = 640; // ms a band takes to fall
+const LINK_STEP = 60;
 
 export default function LayerNav({ items = [], email = "", socials = [] }) {
   const [open, setOpen] = useState(false);
@@ -26,8 +26,8 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
   const panelRef = useRef(null);
   const toggleRef = useRef(null);
 
-  // Kept mounted through the close so the panels can run backwards; unmounted
-  // once they are off screen, so nothing invisible sits over the page.
+  // Kept mounted through the close so the bands can run backwards, then
+  // unmounted so nothing invisible sits over the page.
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -41,7 +41,6 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
     return () => clearTimeout(t);
   }, [open, mounted]);
 
-  // A menu over the whole page should not leave the page scrolling underneath.
   useEffect(() => {
     if (!open) return undefined;
     const previous = document.body.style.overflow;
@@ -64,10 +63,7 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
         return;
       }
       if (e.key !== "Tab") return;
-      // Hold focus inside the menu while it is covering everything else.
-      const focusable = panelRef.current?.querySelectorAll(
-        'a[href], button:not([disabled])'
-      );
+      const focusable = panelRef.current?.querySelectorAll("a[href], button:not([disabled])");
       if (!focusable?.length) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -84,7 +80,7 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
   }, [open, close]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     const t = setTimeout(() => {
       panelRef.current?.querySelector("a, button")?.focus();
     }, LAYER_RIDE);
@@ -93,6 +89,69 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
 
   return (
     <>
+      {mounted && (
+        <div className={`lnav-sheet${open ? " is-open" : ""}`} aria-hidden={!open}>
+          {LAYERS.map((color, i) => (
+            <span
+              key={color}
+              className="lnav-layer"
+              style={{
+                background: color,
+                // Opening runs first band to last; closing runs last to first.
+                transitionDelay: `${(open ? i : LAYERS.length - 1 - i) * LAYER_STEP}ms`,
+              }}
+            />
+          ))}
+
+          <div className="lnav-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label="Menu">
+            <div className="lnav-col lnav-col-start">
+              {email ? (
+                <>
+                  <span className="lnav-label">Work with us:</span>
+                  <a href={`mailto:${email}`} className="lnav-small">
+                    {email}
+                  </a>
+                </>
+              ) : null}
+            </div>
+
+            <nav className="lnav-links">
+              {items.map((item, i) => (
+                <Link
+                  key={item.label}
+                  to={item.to}
+                  className="lnav-link"
+                  style={{ transitionDelay: `${LAYER_RIDE * 0.5 + i * LINK_STEP}ms` }}
+                  onClick={close}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="lnav-col lnav-col-end">
+              {socials.length > 0 ? (
+                <>
+                  <span className="lnav-label">Elsewhere:</span>
+                  {socials.map((s) => (
+                    <a
+                      key={s.label}
+                      href={s.href}
+                      className="lnav-small"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {s.label}
+                    </a>
+                  ))}
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Above the bands, so the mark and the icon stay on top of them. */}
       <div className={`lnav-bar${open ? " is-open" : ""}`}>
         <Link to="/" className="lnav-mark" aria-label="yom, home">
           yom
@@ -109,72 +168,6 @@ export default function LayerNav({ items = [], email = "", socials = [] }) {
           <span />
         </button>
       </div>
-
-      {mounted && (
-        <div className={`lnav-sheet${open ? " is-open" : ""}`} aria-hidden={!open}>
-          {LAYERS.map((color, i) => (
-            <span
-              key={color}
-              className="lnav-layer"
-              style={{
-                background: color,
-                // Opening runs first to last; closing runs last to first, so
-                // the curtain retreats the way it arrived.
-                transitionDelay: `${(open ? i : LAYERS.length - 1 - i) * LAYER_STEP}ms`,
-              }}
-            />
-          ))}
-
-          <div className="lnav-panel" ref={panelRef} role="dialog" aria-modal="true" aria-label="Menu">
-            <nav className="lnav-links">
-              {items.map((item, i) => (
-                <Link
-                  key={item.label}
-                  to={item.to}
-                  className="lnav-link"
-                  style={{ transitionDelay: `${LAYER_RIDE * 0.55 + i * LINK_STEP}ms` }}
-                  onClick={close}
-                >
-                  <span className="lnav-index">{String(i + 1).padStart(2, "0")}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div
-              className="lnav-foot"
-              style={{ transitionDelay: `${LAYER_RIDE * 0.55 + items.length * LINK_STEP}ms` }}
-            >
-              {email ? (
-                <div className="lnav-foot-col">
-                  <span className="lnav-foot-label">Work with us</span>
-                  <a href={`mailto:${email}`} className="lnav-foot-link">
-                    {email}
-                  </a>
-                </div>
-              ) : null}
-              {socials.length > 0 ? (
-                <div className="lnav-foot-col">
-                  <span className="lnav-foot-label">Elsewhere</span>
-                  <div className="lnav-socials">
-                    {socials.map((s) => (
-                      <a
-                        key={s.label}
-                        href={s.href}
-                        className="lnav-foot-link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {s.label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

@@ -184,7 +184,6 @@ export default function About() {
 
   return (
     <div className="about-page">
-      <div className="about-bg" />
       <Link to="/" className="about-back">← yom</Link>
       <h1 className="about-title">about us</h1>
 

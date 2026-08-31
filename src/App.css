@@ -114,25 +114,6 @@ a {
   overflow: hidden;
 }
 
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
-  background-size: 13px 13px;
-  -webkit-mask-image:
-    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
-    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
-  mask-image:
-    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
-    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
-  -webkit-mask-composite: source-over;
-  mask-composite: add;
-  opacity: 0.5;
-}
-
 .browser-chrome {
   position: absolute;
   top: 0;
@@ -1205,15 +1186,6 @@ a {
   }
 
   /* Hide items that crowd the center on mobile */
-
-  /* The dot field is masked for a wide viewport; recentre it so a phone
-     doesn't get a dense clump in one corner. */
-  .hero::before {
-    background-size: 11px 11px;
-    -webkit-mask-image: radial-gradient(ellipse 88% 64% at 50% 40%, black 6%, transparent 82%);
-    mask-image: radial-gradient(ellipse 88% 64% at 50% 40%, black 6%, transparent 82%);
-    opacity: 0.34;
-  }
 
   .url-bar {
     max-width: 160px;

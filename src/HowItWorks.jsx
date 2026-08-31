@@ -62,7 +62,6 @@ const STEPS = [
 export default function HowItWorks() {
   return (
     <div className="hiw-page">
-      <div className="hiw-bg" />
       <Link to="/" className="hiw-back">&larr; yom</Link>
       <div className="hiw-wrap">
         <h1 className="hiw-title">How yom Works</h1>

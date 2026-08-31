@@ -4,7 +4,7 @@
   top: 0;
   left: 0;
   right: 0;
-  z-index: 80;
+  z-index: 90;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -22,18 +22,16 @@
   line-height: 1;
   color: #111;
   text-decoration: none;
-  /* It ends up sitting on the last panel, so it changes with it rather than
-     trying to blend, which went nearly white against a white page. */
-  transition: color 260ms ease 320ms;
+  /* Ends up sitting on the last band, so it changes with it. */
+  transition: color 240ms ease 300ms;
 }
 
 .lnav-bar.is-open .lnav-mark {
   color: #fff;
 }
 
-/* ── The icon: two lines, then a cross ── */
+/* ── The icon: two lines that cross ── */
 .lnav-toggle {
-  position: relative;
   width: 46px;
   height: 46px;
   padding: 0;
@@ -47,25 +45,24 @@
 
 .lnav-toggle span {
   display: block;
-  width: 26px;
+  width: 28px;
   height: 2px;
   background: #111;
-  transition: transform 0.4s cubic-bezier(0.2, 0.9, 0.2, 1), width 0.4s ease,
-    background 260ms ease 320ms;
   transform-origin: center;
+  transition: transform 0.42s cubic-bezier(0.2, 0.9, 0.2, 1),
+    background 240ms ease 300ms;
 }
 
 .lnav-toggle.is-open span {
   background: #fff;
-  width: 24px;
 }
 
 .lnav-toggle.is-open span:first-child {
-  transform: translateY(4.5px) rotate(45deg);
+  transform: translateY(4.5px) rotate(14deg);
 }
 
 .lnav-toggle.is-open span:last-child {
-  transform: translateY(-4.5px) rotate(-45deg);
+  transform: translateY(-4.5px) rotate(-14deg);
 }
 
 .lnav-toggle:focus-visible {
@@ -73,11 +70,18 @@
   outline-offset: 2px;
 }
 
-/* ── The curtain ── */
+/*
+ * ── The bands ──
+ * Anchored to the top and stopping partway down, so the page stays visible
+ * underneath and this reads as something laid over it.
+ */
 .lnav-sheet {
   position: fixed;
-  inset: 0;
-  z-index: 70;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: min(66vh, 640px);
+  z-index: 80;
   overflow: hidden;
 }
 
@@ -88,8 +92,8 @@
 .lnav-layer {
   position: absolute;
   inset: 0;
-  transform: translateY(101%);
-  transition: transform 620ms cubic-bezier(0.76, 0, 0.24, 1);
+  transform: translateY(-101%);
+  transition: transform 640ms cubic-bezier(0.76, 0, 0.24, 1);
   will-change: transform;
 }
 
@@ -97,37 +101,77 @@
   transform: translateY(0);
 }
 
-/* ── What you read once it has arrived ── */
+/* ── Contents: contact, links, elsewhere ── */
 .lnav-panel {
   position: relative;
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 7rem 2rem 2.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 2rem 3rem;
+  padding: 7.5rem 2.5rem 2.5rem;
   color: #fff;
 }
 
+.lnav-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  opacity: 0;
+  transform: translateY(-14px);
+  transition: opacity 480ms ease 520ms, transform 480ms ease 520ms;
+}
+
+.lnav-sheet.is-open .lnav-col {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.lnav-col-end {
+  align-items: flex-start;
+}
+
+.lnav-label {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.72);
+  margin-bottom: 0.25rem;
+}
+
+.lnav-small {
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 1.05rem;
+  color: #fff;
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.lnav-small:hover {
+  color: #c8f060;
+}
+
+/* ── The links ── */
 .lnav-links {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  margin-top: auto;
+  justify-self: center;
 }
 
 .lnav-link {
-  display: flex;
-  align-items: baseline;
-  gap: 1.2rem;
-  padding: 0.5rem 0;
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: clamp(2.6rem, 9vw, 6rem);
-  line-height: 1.02;
+  font-family: 'Schibsted Grotesk', 'Helvetica Neue', sans-serif;
+  font-weight: 700;
+  font-size: clamp(2rem, 4.4vw, 3.4rem);
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
   color: #fff;
   text-decoration: none;
+  white-space: nowrap;
   opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 520ms ease, transform 520ms cubic-bezier(0.2, 0.9, 0.2, 1);
+  transform: translateY(-18px);
+  transition: opacity 480ms ease, transform 480ms cubic-bezier(0.2, 0.9, 0.2, 1),
+    color 160ms ease;
 }
 
 .lnav-sheet.is-open .lnav-link {
@@ -144,63 +188,18 @@
   outline-offset: 6px;
 }
 
-.lnav-index {
-  font-family: 'Schibsted Grotesk', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: rgba(255, 255, 255, 0.45);
-  font-variant-numeric: tabular-nums;
-}
+@media (max-width: 900px) {
+  .lnav-panel {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 1.6rem;
+    padding: 6rem 1.4rem 2rem;
+  }
 
-/* ── Foot ── */
-.lnav-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem 4rem;
-  margin-top: 3rem;
-  padding-top: 1.6rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 520ms ease, transform 520ms ease;
-}
-
-.lnav-sheet.is-open .lnav-foot {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.lnav-foot-col {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.lnav-foot-label {
-  font-family: 'Schibsted Grotesk', sans-serif;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.lnav-foot-link {
-  font-family: 'Schibsted Grotesk', sans-serif;
-  font-size: 1rem;
-  color: #fff;
-  text-decoration: none;
-}
-
-.lnav-foot-link:hover {
-  color: #c8f060;
-}
-
-.lnav-socials {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 1.2rem;
+  .lnav-links {
+    justify-self: start;
+    order: -1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -212,25 +211,21 @@
     font-size: 1.8rem;
   }
 
-  .lnav-panel {
-    padding: 5.5rem 1.2rem 2rem;
-  }
-
-  .lnav-foot {
-    gap: 1.2rem 2rem;
-    margin-top: 2rem;
+  .lnav-sheet {
+    height: min(78vh, 620px);
   }
 }
 
 /*
- * Reduced motion: the menu still opens, it simply stops sweeping. The panels
- * and the links appear where they belong rather than travelling there.
+ * Reduced motion: the menu still opens, it just stops travelling — the bands
+ * and the text appear where they belong.
  */
 @media (prefers-reduced-motion: reduce) {
   .lnav-layer,
   .lnav-link,
-  .lnav-foot,
-  .lnav-toggle span {
+  .lnav-col,
+  .lnav-toggle span,
+  .lnav-mark {
     transition-duration: 1ms !important;
     transition-delay: 0ms !important;
   }

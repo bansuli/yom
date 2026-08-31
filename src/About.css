@@ -5,24 +5,6 @@
   overflow: hidden;
 }
 
-.about-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: radial-gradient(circle, #111 1.4px, transparent 1.4px);
-  background-size: 13px 13px;
-  -webkit-mask-image:
-    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
-    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
-  mask-image:
-    radial-gradient(ellipse 60% 75% at 62% 20%, black 10%, transparent 72%),
-    radial-gradient(ellipse 30% 40% at 20% 70%, black 0%, transparent 60%);
-  -webkit-mask-composite: source-over;
-  mask-composite: add;
-  opacity: 0.45;
-}
-
 .about-back {
   position: fixed;
   top: 1.5rem;

@@ -530,7 +530,6 @@ export default function Beta() {
   if (!authed) {
     return (
       <div className="beta-page">
-        <div className="beta-bg beta-bg-gate" />
         <Link to="/" className="beta-close" aria-label="Back to Yom">
           ×
         </Link>
@@ -703,7 +702,6 @@ export default function Beta() {
 
   return (
     <div className="beta-page">
-      <div className="beta-bg" />
       <Link to="/" className="beta-back">
         ← yom
       </Link>
