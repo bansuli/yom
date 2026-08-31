@@ -53,9 +53,9 @@ function App() {
           items={[
             { label: 'About', to: '/about' },
             { label: 'How it works', to: '/how-it-works' },
-            signedIn
-              ? { label: 'Your yom', to: '/me' }
-              : { label: 'Sign in', to: '/signin' },
+            // Signed in, the avatar in the corner is the account control, so
+            // the third slot would only repeat it.
+            ...(signedIn ? [] : [{ label: 'Sign in', to: '/signin' }]),
           ]}
         />
 

@@ -11,8 +11,8 @@ import { resetAnalytics } from "../lib/analytics.js";
 import "./AccountMenu.css";
 
 /**
- * The signed-in corner. An avatar when there is a session, a Sign in pill when
- * there is not — one control rather than two things fighting for the corner.
+ * The account corner: an avatar when there is a session, nothing when there is
+ * not. Signing in is offered by the navbar, so it is not repeated here.
  */
 export default function AccountMenu() {
   const { pathname } = useLocation();
@@ -79,13 +79,9 @@ export default function AccountMenu() {
     navigate("/");
   };
 
-  if (!signedIn) {
-    return (
-      <Link to="/signin" className="acct-signin">
-        Sign in
-      </Link>
-    );
-  }
+  // Nothing in the corner when signed out. The navbar already carries Sign in,
+  // and two of the same link side by side is just clutter.
+  if (!signedIn) return null;
 
   const name = profile?.name || user?.name || "";
   const email = profile?.email || user?.email || "";
