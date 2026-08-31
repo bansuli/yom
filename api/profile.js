@@ -5,7 +5,7 @@ import { rest, sbAdmin, supabaseConfigured } from "../lib/supabase.js";
 
 /**
  * POST /api/profile
- * Body: { name?, avatarColor? }
+ * Body: { name?, avatarColor?, trait?, preBuy?, keepLean?, headline?, read? }
  *
  * Edits the parts of a profile someone owns outright. The signed-in token
  * decides whose profile is written, never anything in the body, so this cannot
@@ -55,6 +55,21 @@ export default async function handler(req, res) {
       return;
     }
     patch.avatar_color = color;
+  }
+
+  // The onboarding answers, editable after the fact — people's habits change,
+  // and an answer they cannot correct slowly makes the advice worse.
+  const TEXT_FIELDS = [
+    ["trait", "trait", 60],
+    ["preBuy", "pre_buy", 60],
+    ["keepLean", "keep_lean", 60],
+    ["headline", "headline", 160],
+    ["read", "yom_read", 800],
+  ];
+  for (const [from, column, max] of TEXT_FIELDS) {
+    if (typeof body[from] === "string") {
+      patch[column] = body[from].trim().slice(0, max) || null;
+    }
   }
 
   if (!Object.keys(patch).length) {

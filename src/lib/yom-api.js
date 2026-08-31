@@ -116,6 +116,10 @@ export function yomPhoneVerify(phone, code, extra = {}) {
   return post("/api/phone/verify", { phone, code, ...extra });
 }
 
+export function yomAccountDelete(token) {
+  return post("/api/account-delete", { confirm: "DELETE" }, token);
+}
+
 export function yomProfileUpdate(token, body) {
   return post("/api/profile", body, token);
 }

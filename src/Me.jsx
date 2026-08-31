@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import AccountPanel from "./components/AccountPanel.jsx";
 import YomNav from "./components/YomNav.jsx";
 import { wearLabel } from "./lib/contexts.js";
 import { clearJoinLocal, loadJoinEmail, loadJoinProfile, unlockIfTest } from "./lib/join-store.js";
+import { loadBetaSession } from "./lib/yom-api.js";
 import { clearAccountKey, getAccountKey } from "./lib/account.js";
 import {
   clearPipelineLocal,
@@ -45,6 +47,11 @@ function whenText(at) {
  */
 export default function Me() {
   const navigate = useNavigate();
+  // Two ways to arrive here. Someone with an account sees the account; someone
+  // who came in through a scan and never signed up still sees their looks,
+  // which live in this browser rather than on a server.
+  const [account] = useState(() => loadBetaSession());
+  const signedIn = Boolean(account?.access_token && (account.profile || account.user));
   const ready = unlockIfTest();
   const [looks, setLooks] = useState(() => loadLooks());
   // Only the count: her week itself lives on /lineup, and one of them has to
@@ -58,10 +65,11 @@ export default function Me() {
   const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
-    if (!ready) navigate("/join", { replace: true });
-  }, [ready, navigate]);
+    // Only send someone to /join if there is nothing to show them at all.
+    if (!ready && !signedIn) navigate("/join", { replace: true });
+  }, [ready, signedIn, navigate]);
 
-  if (!ready) return null;
+  if (!ready && !signedIn) return null;
 
   const profile = loadJoinProfile();
   const email = loadJoinEmail() || profile.email || "";
@@ -121,6 +129,20 @@ export default function Me() {
     navigate("/join?fresh=1", { replace: true });
   };
 
+  // Signed in with no local looks: the account is the whole page.
+  if (signedIn && !ready) {
+    return (
+      <div className="pnm-page is-app">
+        <header className="pnm-brand-row">
+          <Link to="/" className="pnm-back">
+            ← Home
+          </Link>
+        </header>
+        <AccountPanel />
+      </div>
+    );
+  }
+
   return (
     <div className="pnm-page is-app">
       <header className="pnm-brand-row">
@@ -131,6 +153,10 @@ export default function Me() {
           yom
         </Link>
       </header>
+
+      {/* Signed in and carrying local looks: the account first, then the
+          browser's own scan history below it. */}
+      {signedIn ? <AccountPanel /> : null}
 
       <section className="me-card">
         <div className="me-id">
