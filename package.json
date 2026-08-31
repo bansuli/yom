@@ -10,6 +10,10 @@
     "preview": "vite preview",
     "test:sheet": "node scripts/test-sheet-webhook.mjs",
     "test:size": "node scripts/test-size-read.mjs",
+    "test:size:live": "node scripts/test-size-live.mjs",
+    "test:size:browser": "node scripts/test-size-browser.mjs",
+    "test:size:golden": "node scripts/test-size-golden.mjs",
+    "size:gen": "node scripts/gen-size-read.mjs",
     "hero:cut": "node scripts/knockout-hero-images.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npm run cap:sync && npx cap open ios",
@@ -36,6 +40,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
+    "playwright": "^1.62.1",
     "sharp": "^0.33.5",
     "vite": "^8.1.1"
   },

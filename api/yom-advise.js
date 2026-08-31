@@ -4,7 +4,7 @@ import { accountFromToken } from "../lib/profile.js";
 import { STYLIST_VOICE } from "../lib/stylist.js";
 import { supabaseConfigured } from "../lib/supabase.js";
 import { formatReviewsForPrompt, researchProductReviews, reviewLine, reviewRegretDelta } from "../lib/review-research.js";
-import { matchUserSize } from "../lib/size-read.js";
+import { detectPiece, matchUserSize } from "../lib/size-read.js";
 import { humanizeVerdictText } from "../lib/scan-brain.js";
 
 const SYSTEM = `${STYLIST_VOICE}
@@ -305,6 +305,9 @@ export default async function handler(req, res) {
   if (extracted && (extracted.options || extracted.labels)) {
     payload.product.size_read = matchUserSize(extracted, payload.profile?.sizes || {}, {
       brand: payload.product?.brand || "",
+      piece: extracted.piece || detectPiece(payload.product),
+      reviewFit: payload.web_reviews,
+      name: payload.product?.name || extracted.name || "",
     });
     if (payload.profile) payload.profile.size_read = payload.product.size_read.line;
   }

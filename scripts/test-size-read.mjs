@@ -1,11 +1,16 @@
 import {
   collectOptions,
   detectFamily,
+  detectPiece,
+  extractSizeCore,
+  shopifySizeIndex,
   formatQuote,
+  lookupBrandFit,
   matchUserSize,
   normalizeLabel,
   parseFitNote,
   parseModelSize,
+  resolveRun,
 } from "../lib/size-read.js";
 import { reviewLine, reviewRegretDelta } from "../lib/review-research.js";
 
@@ -29,6 +34,20 @@ test("detects shoes vs denim vs clothes", () => {
   eq(detectFamily({ href: "/products/jeans" }), "denim", "jeans url");
   eq(detectFamily({ name: "silk slip dress" }), "clothes", "dress");
   eq(detectFamily({ name: "denim jacket" }), "clothes", "denim jacket is not jeans");
+});
+
+test("noisy picker copy still yields a size", () => {
+  eq(extractSizeCore("Select Size 8 · Sold out", "shoes"), "8", "select size 8");
+  eq(normalizeLabel("Select Size 8 · Sold out", "shoes").label, "us 8", "8 is US shoe");
+  eq(normalizeLabel("US 4 / EU 36", "clothes").label, "us 4", "prefer us");
+  eq(normalizeLabel("Size 4 - Sold Out", "clothes").label, "us 4", "sold out suffix");
+  eq(normalizeLabel("W26 L30", "denim").value, "26", "w26");
+});
+
+test("shopify size index skips color", () => {
+  eq(shopifySizeIndex(["Color", "Size"]), 1, "size second");
+  eq(shopifySizeIndex(["Colour", "Waist", "Length"]), 1, "waist over length");
+  eq(shopifySizeIndex(["Color"]), -1, "color only is not a size");
 });
 
 test("normalizes US numeric, alpha, EU clothes", () => {
@@ -203,6 +222,137 @@ test("regret only moves when real review channels exist", () => {
     highlights: [{ channel: "ltk", text: "true to size, kept it" }],
   });
   assert(keep < 0, `expected lower regret, got ${keep}`);
+});
+
+test("detects piece: dress vs pants vs denim vs shoes", () => {
+  eq(detectPiece({ name: "silk slip dress" }), "dress", "dress");
+  eq(detectPiece({ name: "effortless pant" }), "pants", "pants");
+  eq(detectPiece({ name: "90s jeans" }), "denim", "denim");
+  eq(detectPiece({ name: "leather mule" }), "shoes", "shoes");
+  eq(detectPiece({ name: "denim jacket" }), "jacket", "jacket not denim");
+});
+
+test("reformation dresses run small so 6 is the safer pick", () => {
+  const extracted = {
+    family: "clothes",
+    piece: "dress",
+    name: "crinkle silk slip",
+    options: collectOptions(["0", "2", "4", "6", "8"], "clothes"),
+  };
+  const m = matchUserSize(extracted, { us: "4" }, { brand: "Reformation", piece: "dress" });
+  eq(m.listingLabel, "us 4", "mapped size stays 4");
+  eq(m.recommend, "us 6", "size up");
+  eq(m.runSource, "brand", "brand table");
+  assert(/safer pick/.test(m.line), m.line);
+});
+
+test("a size she already told us for the brand is not shifted again", () => {
+  const extracted = { family: "clothes", options: collectOptions(["XS", "S", "M", "L"], "clothes") };
+  const m = matchUserSize(extracted, { us: "4", brands: { Aritzia: "M" } }, { brand: "Aritzia" });
+  eq(m.listingLabel, "m", "brand m");
+  eq(m.recommend, "", "no second shift");
+  eq(m.source, "brand", "source");
+});
+
+test("listing fit note beats the brand table", () => {
+  const extracted = {
+    family: "clothes",
+    fitNote: "true to size",
+    options: collectOptions(["0", "2", "4", "6"], "clothes"),
+  };
+  const m = matchUserSize(extracted, { us: "4" }, { brand: "Reformation", piece: "dress" });
+  eq(m.run, "tts", "page tts");
+  eq(m.runSource, "page", "page wins");
+  eq(m.recommend, "", "no shift");
+});
+
+test("this product's reviews beat the brand table", () => {
+  const extracted = {
+    family: "clothes",
+    options: collectOptions(["xs", "s", "m", "l"], "clothes"),
+  };
+  const m = matchUserSize(
+    extracted,
+    { us: "4" },
+    { brand: "COS", piece: "dress", reviewFit: { fit: "runs small", fit_note: "reddit: size up in this one" } }
+  );
+  eq(m.listingLabel, "s", "us 4 → s");
+  eq(m.recommend, "m", "reviews size up");
+  eq(m.runSource, "reviews", "reviews");
+});
+
+test("nike 7.5 maps to eu 38 and recommends the next half if they have it", () => {
+  const extracted = {
+    family: "shoes",
+    options: collectOptions(["37", "38", "38.5", "39", "40"], "shoes"),
+  };
+  const m = matchUserSize(extracted, { shoes: "7.5" }, { brand: "Nike", piece: "shoes" });
+  eq(m.listingLabel, "eu 38", "eu 38");
+  eq(m.recommend, "eu 38.5", "half up");
+  assert(/narrow/.test(m.line), m.line);
+});
+
+test("nike without half sizes recommends the next listing size, never invents 38.5", () => {
+  const extracted = { family: "shoes", options: collectOptions(["36", "37", "38", "39", "40"], "shoes") };
+  const m = matchUserSize(extracted, { shoes: "7.5" }, { brand: "Nike" });
+  eq(m.listingLabel, "eu 38", "mapped");
+  eq(m.recommend, "eu 39", "next on picker");
+});
+
+test("hoka is often roomy so the safer pick is down", () => {
+  const extracted = { family: "shoes", options: collectOptions(["37", "38", "38.5", "39"], "shoes") };
+  const m = matchUserSize(extracted, { shoes: "7.5" }, { brand: "Hoka" });
+  eq(m.listingLabel, "eu 38", "mapped");
+  eq(m.recommend, "eu 37", "size down");
+});
+
+test("adidas sambas are tighter than adidas in general", () => {
+  const row = lookupBrandFit("Adidas", "shoes", "shoes", "samba og");
+  eq(row.run, "small", "samba small");
+  const generic = lookupBrandFit("Adidas", "shoes", "shoes", "ultraboost");
+  eq(generic.run, "tts", "other adidas tts");
+});
+
+test("shoe 240 mm matches us 7.5", () => {
+  const extracted = { family: "shoes", options: collectOptions(["230 mm", "240 mm", "250 mm"], "shoes") };
+  const m = matchUserSize(extracted, { shoes: "7.5" });
+  eq(m.listingLabel, "240 mm", "mondo");
+});
+
+test("shoe width stays on the label", () => {
+  const p = normalizeLabel("7.5 W", "shoes");
+  eq(p.system, "shoe_us", "us shoe");
+  eq(p.width, "w", "wide");
+  eq(p.label, "us 7.5 w", "label");
+});
+
+test("resolveRun priority is page, then reviews, then brand+piece", () => {
+  eq(resolveRun({ brand: "Nike", family: "shoes", piece: "shoes" }).run, "small", "brand");
+  eq(resolveRun({ fitNote: "true to size", brand: "Nike", family: "shoes" }).source, "page", "page");
+  eq(resolveRun({ brand: "COS", piece: "dress", reviewFit: { fit: "runs large" } }).source, "reviews", "reviews");
+});
+
+test("clothes reject shoe half sizes and odd us shoe numbers", () => {
+  eq(normalizeLabel("7.5", "clothes"), null, "half size");
+  eq(normalizeLabel("5", "clothes"), null, "odd shoe");
+  eq(normalizeLabel("6", "clothes")?.label, "us 6", "even clothes");
+  eq(normalizeLabel("7.5", "shoes")?.label, "us 7.5", "shoes keep half");
+});
+
+test("collectOptions drops shoe bleed on dress pickers", () => {
+  const opts = collectOptions(["us 4", "us 6", "7.5", "5", "8.5", "us 8"], "clothes");
+  const labels = opts.map((o) => o.label);
+  assert(!labels.includes("7.5"), labels.join());
+  assert(!labels.includes("5"), labels.join());
+  assert(labels.includes("us 4"), labels.join());
+});
+
+test("zero-padded us sizes normalize and match", () => {
+  const opts = collectOptions(["us 000", "us 002", "us 004", "us 006"], "clothes");
+  eq(opts.find((o) => o.label === "us 4")?.parsed?.value, "4", "label");
+  const m = matchUserSize({ family: "clothes", options: opts, labels: opts.map((o) => o.label) }, { us: "4" });
+  eq(m.status, "in_stock", m.status);
+  eq(m.listingLabel, "us 4", m.listingLabel);
 });
 
 console.log(`\n${n} size tests passed`);

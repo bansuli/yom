@@ -1,0 +1,45 @@
+[
+  {
+    "shop": "Reformation",
+    "kind": "dress",
+    "url": "https://www.thereformation.com/products/agathe-dress/1320566.html",
+    "minOptions": 8,
+    "forbidLabels": ["7.5", "8.5", "9.5"],
+    "matchStatus": "in_stock",
+    "listingLabel": "us 4"
+  },
+  {
+    "shop": "Reformation",
+    "kind": "jeans",
+    "url": "https://www.thereformation.com/products/bex-super-stretch-high-rise-wide-leg-jeans/1315756WHE.html",
+    "minOptions": 8,
+    "labelsContain": ["26"]
+  },
+  {
+    "shop": "Everlane",
+    "kind": "top",
+    "url": "https://www.everlane.com/products/womens-organic-cotton-box-cut-tee-white",
+    "minOptions": 4,
+    "labelsContain": ["s", "m"],
+    "matchStatus": "converted",
+    "listingLabel": "s"
+  },
+  {
+    "shop": "Everlane",
+    "kind": "jeans",
+    "url": "https://www.everlane.com/products/womens-way-high-jean-2-dark-indigo",
+    "minOptions": 8,
+    "labelsContain": ["26"],
+    "matchStatus": "in_stock",
+    "listingLabel": "26"
+  },
+  {
+    "shop": "Princess Polly",
+    "kind": "dress",
+    "url": "https://us.princesspolly.com/products/cielo-mesh-halter-top-red-zebra",
+    "minOptions": 4,
+    "labelsContain": ["us 4"],
+    "matchStatus": "in_stock",
+    "listingLabel": "us 4"
+  }
+]

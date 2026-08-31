@@ -6,7 +6,7 @@ The size line on the PDP is produced **in the extension** before the model speak
 
 ## One-sentence answer
 
-> We scrape this product’s real size picker, look up her usual size for clothes / denim / shoes (or this brand if we have it), map only when the shop uses a different system, and say in-stock / sold-out / not offered. If we don’t know her size, we ask using this page’s chips — we do not invent US 2/4/6.
+> We scrape this product’s real size picker, look up her usual size for clothes / denim / shoes (or this brand if we have it), map only when the shop uses a different system, then layer how **this piece** runs (page note → this product’s reviews → brand+piece table). If we don’t know her size, we ask using this page’s chips — we do not invent US 2/4/6.
 
 ## Files
 
@@ -20,7 +20,7 @@ The size line on the PDP is produced **in the extension** before the model speak
 | Saved sizes | `profiles.sizes` via [`api/memory.js`](../api/memory.js) |
 | Tests | `npm run test:size` → [`scripts/test-size-read.mjs`](../scripts/test-size-read.mjs) |
 
-If you change conversion tables, edit `lib/size-read.js` and regenerate the extension copy (the generate step in that conversation, or re-run the same wrap). Do not hand-edit `extension/content/size-read.js`.
+If you change conversion tables or `BRAND_FIT`, edit `lib/size-read.js` and run `npm run size:gen`. Do not hand-edit `extension/content/size-read.js`.
 
 ## Voice
 
@@ -125,7 +125,44 @@ If two listing options could match, we pick the **higher-scoring in-stock** one 
 
 If she already selected her size on the page: `4 is selected. that's your size.`
 
-Fit note / model wearing may be appended as a second beat, still one line. Review copy is a **separate** reviews line, not stuffed into size.
+Fit note / model wearing / a **safer pick** (next listing option when this piece runs small or large) may be appended as a second beat, still one line. Review copy is a **separate** reviews line, not stuffed into size.
+
+## Brand + piece run (how it runs, not a new number)
+
+The mapped listing size stays the mapped listing size. If this **piece** usually runs small or large, we may point at the **next option already on the picker** (`6 is the safer pick`). We never invent a size that is not on the listing (no `38.5` if they only sell 38 and 39).
+
+**Priority for “how it runs”:**
+
+1. This listing’s own fit note (`true to size`, `runs small`, …)
+2. This product’s review brief (`fit` / `fit_note` / `size_shift` from Reddit, hauls, etc.)
+3. Brand + piece table in `lib/size-read.js` (`BRAND_FIT`) — labeled consensus, not a scraped database
+4. Generic conversion only
+
+If she already told us her size **for this brand** (`brands[Aritzia]=M`), we do **not** apply the brand table a second time. Page notes and this-product reviews can still shift.
+
+Piece types: `dress`, `denim`, `pants`, `knit`, `top`, `skirt`, `jacket`, `shoes`. Reformation dresses can run small in the bust while Reformation denim stays closer to TTS. Aritzia Effortless pants often need a size up; Aritzia denim does not get the same rule.
+
+Shoes: half sizes when the picker has them, otherwise the next full size on the grid. Width (N/M/W, narrow last) stays on the label when the shop shows it. Foot length `240 mm` / `24 cm` (mondopoint-ish) maps to US 7.5. Nike often +0.5 and narrow; Hoka often −0.5 and roomy; Adidas TTS except Samba/Gazelle.
+
+## Where the consensus comes from
+
+There is **no single canonical spreadsheet** of brand fit that we can legally copy. Empty is better than a fake source.
+
+| Source | What it is good for | How we use it |
+|---|---|---|
+| This listing’s picker + official size chart on the PDP | The only numbers we will recommend | Scrape; never invent |
+| ISO 9407 Mondopoint (foot length mm; width optional) | The only real shoe standard. CM ≈ mm/10 | Match `240 mm` / `24 cm` labels |
+| Brannock device | US retail last (length + width) | Width letters on the option |
+| ISO/TS 19407 | Paris point EU vs UK vs Mondo conversions | Built-in US↔EU↔UK shoe tables |
+| Brand-published shoe charts (Sizetab, Size.ly as aggregators) | Cite as the **brand’s** chart, not Sizetab gospel | Inform `BRAND_FIT` notes |
+| RunRepeat | Running-shoe lab + review consensus | Review search for sneakers |
+| Reddit | r/femalefashionadvice, r/PetiteFashionAdvice, r/XXS, r/plussize, r/Aritzia, r/Reformation, r/Ganni, r/Sezane, r/Uniqlo, r/ABraThatFits; shoes: r/sneakers, r/RunningShoeGeeks, r/WideFeet, r/Nike | Live search; quotes only if found |
+| Forums | Styleforum, Superthread, TheFashionSpot | Live search |
+| Hauls | TikTok / YouTube / IG posts+reels, ShopMy, LTK | Live search; not IG stories |
+
+**Do not scrape:** Tellar (commercial garment-measurement product). Replica QC sheets (Kakobuy / OopBuy / JoyaGoo) are the wrong audience and not a fit source.
+
+`BRAND_FIT` is a short, conservative table we maintain. Shopper threads disagree; we would rather stay TTS than invent a half size.
 
 ## Asking her (so the file gets accurate)
 
@@ -166,9 +203,11 @@ No review sources → delta is 0. We do not swing regret on invented quotes.
 npm run test:size
 ```
 
-Covers: family detection, junk rejection, US↔letter↔EU clothes, US 7.5→EU 38 shoes, denim 26 vs 26x32, sold out, brand-specific beating usual US, ask-when-unknown, one size.
+Covers: family and piece detection, junk rejection, US↔letter↔EU clothes, US 7.5→EU 38 shoes, 240 mm, Nike/Hoka run, Reformation dress size-up, denim 26 vs 26x32, sold out, brand-specific beating usual US, ask-when-unknown, one size.
 
-On a live PDP: reload the unpacked extension, open a product, read the **size** fact against the shop’s picker. If chips look like `US 2/4/6/8` instead of this page’s sizes, extraction missed the picker (check `YOM_SIZES.extract` on that shop).
+On a live PDP: reload the unpacked extension, open a product, read the **size** fact against the shop’s picker. Chips are **this listing’s options only**. If the picker has not loaded yet, yom asks you to type rather than inventing `us 2/4/6`. If chips still look wrong, extraction missed the picker (check `YOM_SIZES.extract` on that shop).
+
+Noisy button copy (`Select Size 8 · Sold out`, `US 4 / EU 36`) is reduced to the size token before matching. Shopify variant JSON is ignored unless one of the options is actually named size/waist, so color is not treated as a size.
 
 ## FAQ
 
@@ -182,7 +221,10 @@ The listing already has `4`. Conversion only runs across systems.
 Family. Shoes: 38 is a shoe EU. Clothes: even 30–52 is a dress EU (US 4 → 36).
 
 **Can we add a brand that sizes weird?**  
-Yes — that’s what `brands[Aritzia]=M` is for. After she tells us once, brand-specific beats the generic US chart.
+Yes — `brands[Aritzia]=M` after she tells us once, and/or a row in `BRAND_FIT` for the usual run of that brand+piece. Her told size for the brand wins over the table.
 
 **Does scan (photo) use this?**  
 This path is the **extension on a store page**. Photo scan still has `size_label` from the tag if the model can read it; it does not run the PDP scraper.
+
+**Is there a spreadsheet of brand sizing we should ingest?**  
+No public one we should copy. Official brand charts + mondopoint for shoes + live reviews. See “Where the consensus comes from” above.

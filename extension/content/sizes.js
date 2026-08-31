@@ -70,27 +70,33 @@ window.YOM_SIZES = (() => {
     return SELECTED.test(blobOf(node));
   }
 
-  function labelFrom(node) {
+  function labelFrom(node, family) {
     if (!node) return "";
     const bits = [
+      clip(node.textContent, 40),
+      node.getAttribute?.("aria-label"),
       node.getAttribute?.("data-value"),
       node.getAttribute?.("data-attr-value"),
       node.getAttribute?.("value"),
-      node.getAttribute?.("aria-label"),
       node.getAttribute?.("title"),
       node.value,
     ];
     for (const bit of bits) {
-      const t = clip(bit, 32);
-      if (t && !/select size|choose size|size guide/i.test(t)) return t.replace(/^size:?\s*/i, "");
+      const parsed = READ().normalizeLabel?.(bit, family);
+      if (parsed) return parsed.label;
     }
-    const text = clip(node.textContent, 32);
-    if (/select size|choose size|size guide|notify/i.test(text)) return "";
-    return text.replace(/^size:?\s*/i, "");
+    for (const bit of bits) {
+      const core = READ().extractSizeCore?.(bit, family);
+      if (core) {
+        const parsed = READ().normalizeLabel?.(core, family);
+        if (parsed) return parsed.label;
+      }
+    }
+    return "";
   }
 
   function pushLabel(rows, node, family) {
-    const raw = labelFrom(node);
+    const raw = labelFrom(node, family);
     if (!raw) return;
     const parsed = READ().normalizeLabel?.(raw, family);
     if (!parsed) return;
@@ -100,6 +106,40 @@ window.YOM_SIZES = (() => {
       available: !looksOos(node),
       selected: looksSelected(node),
     });
+  }
+
+  function fromKnownUi(root, family) {
+    const host = String(location.hostname || "").toLowerCase();
+    const skip = (n) =>
+      n.closest(
+        "#yom-root, [class*='Recommend'], [class*='CrossSell'], [class*='CompleteTheLook'], [class*='carousel'], footer, [role='complementary']"
+      );
+    const selectors = [
+      [
+        /thereformation\.com/,
+        "main [class*='SizeSelector'] button, [data-testid='product-form'] [class*='SizeSelector'] button, [class*='product-form'] [class*='size-selector'] button",
+      ],
+      [/aritzia\.com/, "[data-testid*='size' i] button, [class*='sizeSelector'] button, [class*='size-selector'] button, fieldset[class*='Size'] button"],
+      [/nike\.com/, "[data-testid='sku-item-selector'] button, fieldset[aria-label*='size' i] button, [class*='size-grid'] button, [aria-label*='Select Size']"],
+      [/adidas\./, "[data-testid='size-selector'] button, [class*='size-selector'] button, [data-auto-id*='size']"],
+      [/ssense\.com/, ".pdp-product-sizes button, [class*='SizeButton']"],
+      [/farfetch\.com/, "[data-testid*='size' i] button, [class*='SizeSelector'] button"],
+      [/net-a-porter\.com/, "[class*='SizeSelector'] button, [data-test*='size'] button"],
+      [/zara\.com/, ".size-selector li, [class*='size-'] button, [class*='product-size'] button"],
+      [/cos\.com|arket\.com|stories\.com|andotherstories/, "[class*='product-sizes'] button, [class*='SizePicker'] button"],
+      [/uniqlo\.com/, "[class*='sizeChart'] ~ * button, [class*='size-list'] button, [data-test*='size'] button"],
+      [/lululemon\.com/, "[class*='sizeSelector'] button, [data-testid*='size'] button"],
+      [/ganni\.com|toteme|acne/, "[class*='SizeSelector'] button, [class*='size-selector'] button"],
+      [/nordstrom/, "[class*='size-selector'] button, [aria-label*='Select a size']"],
+      [/madewell\.com|jcrew\.com|gap\.com/, "[class*='size-selector'] button, [data-testid*='size'] button"],
+    ];
+    const match = selectors.find(([re]) => re.test(host));
+    if (!match) return [];
+    const rows = [];
+    [...root.querySelectorAll(match[1])]
+      .filter((n) => !skip(n))
+      .forEach((n) => pushLabel(rows, n, family));
+    return rows;
   }
 
   function fromSelects(root, family) {
@@ -196,23 +236,8 @@ window.YOM_SIZES = (() => {
       const product = parsed?.product || parsed;
       const variants = product?.variants;
       if (!Array.isArray(variants) || !variants.length) continue;
-      const options = product?.options || [];
-      const sizeIdx = options.findIndex((o) => /size|waist/i.test(String(o?.name || o || "")));
-      for (const v of variants) {
-        const raw =
-          (sizeIdx >= 0 ? v[`option${sizeIdx + 1}`] : null) ||
-          v.option1 ||
-          v.title ||
-          v.public_title;
-        const parsedOpt = READ().normalizeLabel?.(raw, family);
-        if (!parsedOpt) continue;
-        rows.push({
-          raw: parsedOpt.raw,
-          label: parsedOpt.label,
-          available: v.available !== false,
-          selected: false,
-        });
-      }
+      const fromShop = READ().shopifyVariantOptions?.(product, family) || [];
+      for (const row of fromShop) rows.push(row);
       if (rows.length) break;
     }
     return rows;
@@ -228,12 +253,20 @@ window.YOM_SIZES = (() => {
     const heel = (text.match(/(\d+(?:\.\d+)?)\s*(?:in(?:ch(?:es)?)?|")\s*heel/i) || [])[1] || "";
     const inseam = (text.match(/inseam[:\s]+(\d+(?:\.\d+)?)\s*(?:in|")?/i) || [])[1] || "";
     const rise = (text.match(/\b(low|mid|high)[- ]?rise\b/i) || [])[1] || "";
-    const width = (text.match(/\b(narrow|regular|wide)\s+width\b/i) || [])[0] || "";
+    const width =
+      (text.match(/\b(narrow|regular|wide)\s+(?:width|last)\b/i) || text.match(/\b(aa|a|b|d|2e|ee)\s+width\b/i) || [])[0] ||
+      "";
+    const mm = (text.match(/(?:mondo(?:point)?|foot(?:\s*length)?)[:\s]+(\d{3})/i) || text.match(/\b(2[2-8]\d)\s*mm\b/i) || [])[1] || "";
+    const cm =
+      (text.match(/(?:foot(?:\s*length)?)[:\s]+(\d{2}(?:\.\d)?)\s*cm\b/i) || text.match(/\b(2[2-8](?:\.\d)?)\s*cm\b/i) || [])[1] ||
+      "";
     return {
       heel: heel ? `${heel} in heel` : "",
       inseam: inseam ? `${inseam} in inseam` : "",
       rise: rise ? `${rise.toLowerCase()}-rise` : "",
       width: clip(width, 40).toLowerCase(),
+      mm: mm ? `${mm} mm` : "",
+      cm: cm ? `${cm} cm` : "",
     };
   }
 
@@ -242,6 +275,7 @@ window.YOM_SIZES = (() => {
     const family = familyOf(info);
     const text = pageText(host);
     const labels = [
+      ...fromKnownUi(host, family),
       ...fromJsonLd(family),
       ...fromShopify(family),
       ...fromSelects(host, family),
@@ -253,6 +287,8 @@ window.YOM_SIZES = (() => {
     const extras = extrasFrom(text);
     return {
       family,
+      piece: READ().detectPiece?.(info) || family,
+      name: clip(info.name || "", 80),
       options,
       labels: options.map((o) => o.label),
       selected: options.find((o) => o.selected)?.label || "",
@@ -265,7 +301,11 @@ window.YOM_SIZES = (() => {
 
   function match(extracted, sizes, brand) {
     return (
-      READ().matchUserSize?.(extracted, sizes, { brand }) || {
+      READ().matchUserSize?.(extracted, sizes, {
+        brand,
+        piece: extracted?.piece,
+        name: extracted?.name || "",
+      }) || {
         known: false,
         ask: true,
         line: "no size on file yet. what usually fits you?",
@@ -280,13 +320,11 @@ window.YOM_SIZES = (() => {
     return { extracted, match: match(extracted, sizes, brand) };
   }
 
-  function chips(extracted, info) {
-    const labels = (extracted?.options || []).map((o) => o.label).filter(Boolean);
-    if (labels.length) return labels.slice(0, 12);
-    const fam = extracted?.family || familyOf(info || {});
-    if (fam === "shoes") return ["6", "6.5", "7", "7.5", "8", "8.5", "9"];
-    if (fam === "denim") return ["24", "25", "26", "27", "28", "29"];
-    return ["xxs", "xs", "s", "m", "l"];
+  function chips(extracted) {
+    return (extracted?.options || [])
+      .map((o) => o.label)
+      .filter(Boolean)
+      .slice(0, 12);
   }
 
   return { extract, match, read, chips, familyOf };

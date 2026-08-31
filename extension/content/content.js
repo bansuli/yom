@@ -1253,14 +1253,16 @@
     const pack = listingPack(info);
     const fromPage = SIZES?.chips?.(pack?.extracted, info);
     if (fromPage?.length) return fromPage;
-    const fam = SIZES?.familyOf?.(info) || kindOf(info || {});
-    if (fam === "shoes" || isShoeProduct(info)) return ["6", "6.5", "7", "7.5", "8", "8.5", "9"];
-    if (fam === "denim" || kindOf(info || {}) === "jeans") return ["24", "25", "26", "27", "28", "29"];
-    return ["xxs", "xs", "s", "m", "l"];
+    return [];
   }
 
   function listingPack(info) {
-    if (listingPack.path === location.pathname && listingPack.cache) return listingPack.cache;
+    watchListing();
+    const same = listingPack.path === location.pathname;
+    if (same && listingPack.cache) {
+      const n = listingPack.cache?.extracted?.options?.length || 0;
+      if (n > 0 || listingPack.tried > 4) return listingPack.cache;
+    }
     let pack = null;
     try {
       const root = EXTRACT.pdpRoot?.() || document.body;
@@ -1268,9 +1270,35 @@
     } catch {
       pack = null;
     }
+    listingPack.tried = (same ? listingPack.tried || 0 : 0) + 1;
     listingPack.path = location.pathname;
     listingPack.cache = pack;
     return pack;
+  }
+
+  function watchListing() {
+    if (watchListing.obs) return;
+    const root = EXTRACT.pdpRoot?.() || document.body;
+    if (!root) return;
+    let timer = 0;
+    watchListing.obs = new MutationObserver(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        listingPack.path = "";
+        listingPack.cache = null;
+        listingPack.tried = 0;
+      }, 350);
+    });
+    try {
+      watchListing.obs.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class", "aria-checked", "aria-pressed", "aria-disabled", "aria-selected", "disabled"],
+      });
+    } catch {
+      watchListing.obs = null;
+    }
   }
 
   function brandPurchases(brand) {
@@ -1363,11 +1391,13 @@
     }
     if (patch.size) {
       L.brands[brand] = patch.size;
-      if (kind === "shoes" || isShoeProduct(info)) L.shoes = /eu/i.test(patch.size) ? patch.size : patch.size;
-      else if (kind === "jeans") L.denim = String(patch.size).replace(/^us\s*/i, "");
-      else L.us = /us/i.test(patch.size) ? patch.size : patch.size;
+      const fam = SIZES?.familyOf?.(info) || (kind === "shoes" || isShoeProduct(info) ? "shoes" : kind === "jeans" ? "denim" : "clothes");
+      if (fam === "shoes") L.shoes = patch.size;
+      else if (fam === "denim") L.denim = String(patch.size).replace(/^(us|eu|uk)\s*/i, "").split(/[x/]/)[0];
+      else L.us = patch.size;
       listingPack.path = "";
       listingPack.cache = null;
+      listingPack.tried = 0;
     }
     if (patch.run) L.notes.push(`${brand} runs ${patch.run} for them.`);
     if (patch.fit) L.notes.push(`fit preference: ${patch.fit}.`);
@@ -1448,11 +1478,54 @@
     return s.length > 42 ? `${s.slice(0, 40)}…` : s;
   }
 
+  function paintPastSizeAsk(host, ctx, item) {
+    const brand = sayBrand(ctx.info);
+    const name = clipAsk(item.item || "that piece").toLowerCase();
+    host.innerHTML = "";
+    host.appendChild(el("p", { class: "yom-fb-ask" }, `you kept ${name}. what size was that?`));
+    const chips = sizeOptions(ctx.info);
+    chips.forEach((size) => {
+      const chip = String(size).toLowerCase();
+      host.appendChild(
+        fbButton(chip, "yom-fb-chip", () => {
+          applyLearn(ctx, {
+            size: chip,
+            note: `kept ${name} in ${chip} at ${brand}. that size fit.`,
+          });
+          paintFitCheck(host, ctx, chip);
+        })
+      );
+    });
+    const input = el("input", {
+      class: "yom-fb-input",
+      type: "text",
+      maxlength: "12",
+      placeholder: chips.length ? "or type" : "type the size",
+    });
+    input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("pointerdown", (e) => e.stopPropagation());
+    input.addEventListener("mousedown", (e) => e.stopPropagation());
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key !== "Enter") return;
+      const size = input.value.trim().toLowerCase();
+      if (!size) return;
+      applyLearn(ctx, {
+        size,
+        note: `kept ${name} in ${size} at ${brand}. that size fit.`,
+      });
+      paintFitCheck(host, ctx, size);
+    });
+    host.appendChild(input);
+    setTimeout(() => input.focus(), 30);
+  }
+
   function paintSizeAsk(host, ctx) {
     const brand = sayBrand(ctx.info);
     host.innerHTML = "";
     host.appendChild(el("p", { class: "yom-fb-ask" }, `what size do you wear in ${brand}?`));
-    sizeOptions(ctx.info).forEach((size) => {
+    const chips = sizeOptions(ctx.info);
+    chips.forEach((size) => {
       const chip = String(size).toLowerCase();
       host.appendChild(
         fbButton(chip, "yom-fb-chip", () => {
@@ -1468,7 +1541,7 @@
       class: "yom-fb-input",
       type: "text",
       maxlength: "12",
-      placeholder: "or type",
+      placeholder: chips.length ? "or type" : "type the size",
     });
     input.addEventListener("click", (e) => e.stopPropagation());
     input.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -1555,13 +1628,14 @@
     const L = learnedState();
     const brand = shopBrand(ctx.info);
     const pack = isPdp() ? listingPack(ctx.info) : null;
+    const past = brandPurchases(brand).find((p) => p.item && p.kept !== false);
     if (pack?.match?.ask && !L.askedBrand[brand]) {
       L.askedBrand[brand] = true;
       saveState();
-      paintSizeAsk(host, ctx);
+      if (past) paintPastSizeAsk(host, ctx, past);
+      else paintSizeAsk(host, ctx);
       return;
     }
-    const past = brandPurchases(brand).find((p) => p.item && p.kept !== false);
     if (isPdp() && past && pack?.match?.known && !L.askedPast[brand]) {
       L.askedPast[brand] = true;
       saveState();
