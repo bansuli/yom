@@ -48,6 +48,13 @@ export default async function handler(req, res) {
   const service = supabaseService();
 
   const out = {
+    // Which commit is actually answering. Without this it is guesswork whether
+    // a fix is live, and that guesswork has cost real time.
+    deploy: {
+      commit: (process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7) || null,
+      branch: process.env.VERCEL_GIT_COMMIT_REF || null,
+      env: process.env.VERCEL_ENV || null,
+    },
     supabase: {
       url: Boolean(url),
       anon_key: keyShape(anon),
