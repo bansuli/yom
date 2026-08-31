@@ -299,12 +299,13 @@ window.YOM_SIZES = (() => {
     };
   }
 
-  function match(extracted, sizes, brand) {
+  function match(extracted, sizes, brand, reviewFit = null) {
     return (
       READ().matchUserSize?.(extracted, sizes, {
         brand,
         piece: extracted?.piece,
         name: extracted?.name || "",
+        reviewFit,
       }) || {
         known: false,
         ask: true,
@@ -315,9 +316,9 @@ window.YOM_SIZES = (() => {
     );
   }
 
-  function read(root, info, sizes, brand) {
+  function read(root, info, sizes, brand, reviewFit = null) {
     const extracted = extract(root, info);
-    return { extracted, match: match(extracted, sizes, brand) };
+    return { extracted, match: match(extracted, sizes, brand, reviewFit) };
   }
 
   function chips(extracted) {

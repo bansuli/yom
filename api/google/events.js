@@ -52,6 +52,8 @@ export default async function handler(req, res) {
       when: s.sent_at,
       kind: s.signal_kind,
       brand: s.brand,
+      item: s.item_name || "",
+      size: s.size || "",
     })),
   });
 }

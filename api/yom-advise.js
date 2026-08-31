@@ -343,5 +343,5 @@ export default async function handler(req, res) {
     }
   }
 
-  json(res, 200, { ok: true, advice, brain });
+  json(res, 200, { ok: true, advice, brain, review_brief: payload.web_reviews || null });
 }

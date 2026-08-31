@@ -67,6 +67,10 @@ alter table public.closet_items add column if not exists color text;
 alter table public.closet_items add column if not exists price numeric;
 alter table public.closet_items add column if not exists return_reason text;
 alter table public.closet_items add column if not exists image_url text;
+alter table public.closet_items add column if not exists size text;
+alter table public.closet_items add column if not exists fit text;
+alter table public.closet_items add column if not exists source text default 'manual';
+alter table public.closet_items add column if not exists gmail_id text;
 
 create table if not exists public.saved_items (
   id uuid primary key default gen_random_uuid(),

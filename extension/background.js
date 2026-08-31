@@ -60,7 +60,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   if (msg?.type === "YOM_ADVISE") {
     advise(msg.payload)
-      .then((advice) => sendResponse({ ok: true, advice }))
+      .then((out) => sendResponse({ ok: true, advice: out?.advice || out, review_brief: out?.review_brief || null }))
       .catch(() => sendResponse({ ok: false, advice: null }));
     return true;
   }
@@ -272,15 +272,58 @@ async function saveLearn(learn) {
   return data;
 }
 
+const GOOGLE_STALE_MS = 6 * 60 * 60 * 1000;
+
+function googleSyncStale(status = {}) {
+  if (!status?.connected) return false;
+  const cal = status.calendar_synced_at;
+  const mail = status.gmail_synced_at;
+  if (!cal || !mail) return true;
+  const calT = Date.parse(cal);
+  const mailT = Date.parse(mail);
+  if (Number.isNaN(calT) || Number.isNaN(mailT)) return true;
+  const age = Math.min(Date.now() - calT, Date.now() - mailT);
+  return age > GOOGLE_STALE_MS;
+}
+
+async function refreshSessionProfile(session) {
+  const data = await api("/api/me", { token: session.access_token });
+  if (!data.ok || !data.profile) return session;
+  session.profile = data.profile;
+  session.user = data.user || session.user;
+  await chrome.storage.local.set({ [SESSION_KEY]: session });
+  return session;
+}
+
 async function loadGoogle() {
   const session = await loadSession();
   if (!session?.access_token) return { ok: false, events: [], gmail: [] };
+
+  let synced = false;
+  const status = await api("/api/google/status", { token: session.access_token });
+  if (googleSyncStale(status)) {
+    const sync = await api("/api/google/sync", {
+      method: "POST",
+      body: { calendar: true, gmail: true },
+      token: session.access_token,
+    });
+    synced = Boolean(sync.ok);
+  }
+
+  let profile = null;
+  if (synced) {
+    const fresh = await refreshSessionProfile(session);
+    profile = fresh.profile || null;
+  }
+
   const data = await api("/api/google/events", { token: session.access_token });
-  if (!data.ok) return { ok: false, events: [], gmail: [] };
+  if (!data.ok) return { ok: false, events: [], gmail: [], synced, profile };
   return {
     ok: true,
     events: data.events || [],
     gmail: data.gmail || [],
+    synced,
+    profile,
   };
 }
 
@@ -297,7 +340,7 @@ async function callSharedBrain(payload) {
       });
       if (!res.ok) continue;
       const data = await res.json();
-      if (data?.advice) return data.advice;
+      if (data?.advice) return { advice: data.advice, review_brief: data.review_brief || null };
     } catch {
       /* try next */
     }
@@ -308,7 +351,7 @@ async function callSharedBrain(payload) {
 async function advise(payload) {
   const key = cacheKey(payload);
   if (cache.has(key)) return cache.get(key);
-  const advice = await callSharedBrain(payload);
-  if (advice && !advice.quiet) cache.set(key, advice);
-  return advice;
+  const out = await callSharedBrain(payload);
+  if (out?.advice && !out.advice.quiet) cache.set(key, out);
+  return out;
 }

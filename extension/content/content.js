@@ -1256,17 +1256,42 @@
     return [];
   }
 
-  function listingPack(info) {
+  function matchWithReviews(extracted, info, reviewBrief) {
+    return (
+      SIZES?.match?.(extracted, learnedSizes(), shopBrand(info), reviewBrief) || {
+        known: false,
+        ask: true,
+        line: "no size on file yet. what usually fits you?",
+        chips: extracted?.labels || [],
+        options: extracted?.options || [],
+      }
+    );
+  }
+
+  function listingPack(info, reviewBrief = null) {
     watchListing();
     const same = listingPack.path === location.pathname;
+    const brief = reviewBrief || state.reviewBrief?.[info?.href || location.href] || null;
     if (same && listingPack.cache) {
       const n = listingPack.cache?.extracted?.options?.length || 0;
-      if (n > 0 || listingPack.tried > 4) return listingPack.cache;
+      if (n > 0 || listingPack.tried > 4) {
+        if (brief && listingPack.cache.reviewBrief !== brief) {
+          listingPack.cache = {
+            ...listingPack.cache,
+            reviewBrief: brief,
+            match: matchWithReviews(listingPack.cache.extracted, info, brief),
+          };
+        }
+        return listingPack.cache;
+      }
     }
     let pack = null;
     try {
       const root = EXTRACT.pdpRoot?.() || document.body;
-      pack = SIZES?.read?.(root, info || pdpInfo(), learnedSizes(), shopBrand(info)) || null;
+      const extracted = SIZES?.extract?.(root, info || pdpInfo()) || null;
+      pack = extracted
+        ? { extracted, match: matchWithReviews(extracted, info || pdpInfo(), brief), reviewBrief: brief }
+        : null;
     } catch {
       pack = null;
     }
@@ -1358,12 +1383,13 @@
 
   function learnedSizes() {
     const L = learnedState();
+    const base = activePersona().sizes || {};
     return {
-      ...(activePersona().sizes || {}),
+      ...base,
       ...(L.us ? { us: L.us } : {}),
       ...(L.denim ? { denim: L.denim } : {}),
       ...(L.shoes ? { shoes: L.shoes } : {}),
-      brands: L.brands,
+      brands: { ...(base.brands || {}), ...(L.brands || {}) },
     };
   }
 
@@ -1481,6 +1507,14 @@
   function paintPastSizeAsk(host, ctx, item) {
     const brand = sayBrand(ctx.info);
     const name = clipAsk(item.item || "that piece").toLowerCase();
+    if (item.size) {
+      applyLearn(ctx, {
+        size: String(item.size).toLowerCase(),
+        note: `kept ${name} in ${String(item.size).toLowerCase()} at ${brand} (from your orders).`,
+      });
+      paintFitCheck(host, ctx, String(item.size).toLowerCase());
+      return;
+    }
     host.innerHTML = "";
     host.appendChild(el("p", { class: "yom-fb-ask" }, `you kept ${name}. what size was that?`));
     const chips = sizeOptions(ctx.info);
@@ -2444,6 +2478,11 @@
   }
 
   function reviewsRead(info) {
+    const href = info?.href || (isPdp() ? location.href : "");
+    const cached = href && state.reviewBrief?.[href];
+    if (cached?.fit_note) return cached.fit_note;
+    const hit = cached?.highlights?.find((h) => h?.text);
+    if (hit) return `${hit.channel}: ${hit.text}`;
     const facts = pageFacts();
     if (facts.reviews) return facts.reviews.split(" · ")[0];
     return checkResult(info).body;
@@ -3014,7 +3053,17 @@
         done = true;
         clearTimeout(timer);
         if (chrome.runtime.lastError || !res?.ok) resolve(null);
-        else resolve(res.advice || null);
+        else {
+          const href = productUrl || location.href;
+          if (href && res.review_brief) {
+            state.reviewBrief = state.reviewBrief || {};
+            state.reviewBrief[href] = res.review_brief;
+            listingPack.path = "";
+            listingPack.cache = null;
+            listingPack.tried = 0;
+          }
+          resolve(res.advice || null);
+        }
       });
       const wait = surface === "tile" ? 5000 : 14000;
       const timer = setTimeout(() => {
@@ -3539,6 +3588,15 @@
     try {
       chrome.runtime.sendMessage({ type: "YOM_GOOGLE" }, (res) => {
         if (chrome.runtime.lastError || !res?.ok) return;
+        if (res.profile && liveAccount) {
+          liveAccount.profile = { ...liveAccount.profile, ...res.profile };
+          try {
+            chrome.storage.local.set({ [LIVE_KEY]: liveAccount });
+          } catch {
+            /* ignore */
+          }
+          applyLivePersona();
+        }
         const events = Array.isArray(res.events) ? res.events : [];
         calendarEvents = events.map((e) => ({
           id: e.id,
@@ -3551,15 +3609,38 @@
         if (Array.isArray(res.gmail) && res.gmail.length && liveAccount?.profile) {
           const bits = res.gmail
             .slice(0, 8)
-            .map((s) => `${s.kind || "mail"}${s.brand ? ` ${s.brand}` : ""}: ${s.subject || s.snippet || ""}`)
+            .map((s) => {
+              const item = s.item ? ` ${s.item}` : "";
+              const size = s.size ? ` size ${s.size}` : "";
+              return `${s.kind || "mail"}${s.brand ? ` ${s.brand}` : ""}:${item}${size} ${s.subject || s.snippet || ""}`.trim();
+            })
             .join("; ");
           if (bits) {
             liveAccount.profile.memory = [liveAccount.profile.memory, `gmail: ${bits}`]
               .filter(Boolean)
               .join(" ");
           }
+          const purchases = liveAccount.profile.purchases || [];
+          for (const s of res.gmail) {
+            if (!s.item || purchases.some((p) => p.item === s.item && p.brand === s.brand)) continue;
+            purchases.push({
+              when: s.when || "",
+              item: s.item,
+              brand: s.brand || "",
+              size: s.size || "",
+              kept: s.kind !== "return",
+              note: s.kind === "return" ? "returned (gmail)" : "ordered (gmail)",
+              source: "gmail",
+            });
+          }
+          liveAccount.profile.purchases = purchases;
         }
         if (state.panelOpen || askEl) render();
+        if (res.synced) {
+          listingPack.path = "";
+          listingPack.cache = null;
+          listingPack.tried = 0;
+        }
       });
     } catch {
       /* ignore */

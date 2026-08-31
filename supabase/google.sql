@@ -1,6 +1,14 @@
 -- Google Calendar + Gmail integration tables.
 -- Paste into Supabase SQL editor after schema.sql (safe to re-run).
 
+create or replace function public.set_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$ language plpgsql;
+
 create table if not exists public.google_accounts (
   user_id uuid primary key references public.profiles (id) on delete cascade,
   google_sub text,
