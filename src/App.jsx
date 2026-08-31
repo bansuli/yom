@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import GooeyNavbar from './components/GooeyNavbar.jsx'
+import { loadBetaSession } from './lib/yom-api.js'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
 import './App.css'
 
 function App() {
+  // Signed in, the third nav item is a way back into your yom rather than an
+  // invitation to sign in again.
+  const [signedIn] = useState(() => Boolean(loadBetaSession()?.access_token))
   const [waitlistOpen, setWaitlistOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -49,7 +53,9 @@ function App() {
           items={[
             { label: 'About', to: '/about' },
             { label: 'How it works', to: '/how-it-works' },
-            { label: 'Sign in', to: '/signin' },
+            signedIn
+              ? { label: 'Your yom', to: '/me' }
+              : { label: 'Sign in', to: '/signin' },
           ]}
         />
 

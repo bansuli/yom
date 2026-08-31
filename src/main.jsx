@@ -18,6 +18,7 @@ import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import Admin from './Admin.jsx'
 import { Privacy, Terms } from './Legal.jsx'
+import AccountMenu from './components/AccountMenu.jsx'
 import { initAnalytics, track } from './lib/analytics.js'
 import { recoverLocalLeads, startLeadFlush } from './lib/lead-queue.js'
 import { bootPipeline } from './lib/pipeline-store.js'
@@ -114,13 +115,12 @@ function PageHits() {
   return null
 }
 
-function BetaCorner() {
+// The account corner: an avatar when signed in, a Sign in pill when not. Held
+// back on the screens that carry their own header or their own way out.
+function AccountCorner() {
   const { pathname } = useLocation()
   if (isNativeApp()) return null
   if (
-    // The homepage navbar carries its own "sign in", so the corner pill would
-    // only repeat it.
-    pathname === '/' ||
     pathname === '/signin' ||
     pathname === '/beta' ||
     pathname === '/scan' ||
@@ -133,17 +133,15 @@ function BetaCorner() {
     pathname === '/closet' ||
     pathname === '/everyone' ||
     pathname === '/admin' ||
+    pathname === '/privacy' ||
+    pathname === '/terms' ||
     pathname.startsWith('/onboarding') ||
     pathname.startsWith('/s/') ||
     pathname.startsWith('/l/')
   ) {
     return null
   }
-  return (
-    <Link to="/signin" className="beta-corner">
-      Sign in
-    </Link>
-  )
+  return <AccountMenu />
 }
 
 createRoot(document.getElementById('root')).render(
@@ -152,7 +150,7 @@ createRoot(document.getElementById('root')).render(
       <Analytics />
       <PageHits />
       <PipelineBoot />
-      <BetaCorner />
+      <AccountCorner />
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/onboarding" element={<Survey />} />

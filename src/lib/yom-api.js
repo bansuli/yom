@@ -116,6 +116,10 @@ export function yomPhoneVerify(phone, code, extra = {}) {
   return post("/api/phone/verify", { phone, code, ...extra });
 }
 
+export function yomProfileUpdate(token, body) {
+  return post("/api/profile", body, token);
+}
+
 export function yomCloset(token, body) {
   return post("/api/closet", body, token);
 }
