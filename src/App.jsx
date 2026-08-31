@@ -30,6 +30,7 @@ function App() {
             <span className="brand-o">o</span>
             <span className="brand-m">m</span>
           </p>
+          <div className="brand-rule" aria-hidden="true" />
         </div>
       </section>
     </div>
