@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import GooeyNavbar from './components/GooeyNavbar.jsx'
+import LayerNav from './components/LayerNav.jsx'
 import { loadBetaSession } from './lib/yom-api.js'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import { captureLead } from './lib/capture-lead.js'
@@ -49,14 +49,16 @@ function App() {
   return (
     <div className="page">
       <section className="hero" aria-label="yom homepage">
-        <GooeyNavbar
+        <LayerNav
           items={[
             { label: 'About', to: '/about' },
             { label: 'How it works', to: '/how-it-works' },
-            // Signed in, the avatar in the corner is the account control, so
-            // the third slot would only repeat it.
-            ...(signedIn ? [] : [{ label: 'Sign in', to: '/signin' }]),
+            { label: 'Start a trip', to: '/onboarding' },
+            signedIn
+              ? { label: 'Your yom', to: '/me' }
+              : { label: 'Sign in', to: '/signin' },
           ]}
+          email="support@youryom.com"
         />
 
         <div className="hero-center">
