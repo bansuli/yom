@@ -15,7 +15,8 @@ import "./LayerNav.css";
  * instead of repainting, which is what keeps this smooth on a phone.
  */
 
-const LAYERS = ["#F4A300", "#E5387E", "#2EC4B6", "#111111"];
+// Sun, Moon, Rising, Venus. The last one is the ground the menu is read on.
+const LAYERS = ["#F5D370", "#DA9F5F", "#7ED1DB", "#F2A086"];
 const LAYER_STEP = 85; // ms between one band starting and the next
 const LAYER_RIDE = 640; // ms a band takes to fall
 const LINK_STEP = 60;

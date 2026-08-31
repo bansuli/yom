@@ -27,7 +27,7 @@
 }
 
 .lnav-bar.is-open .lnav-mark {
-  color: #fff;
+  color: #111;
 }
 
 /* ── The icon: two lines that cross ── */
@@ -54,7 +54,7 @@
 }
 
 .lnav-toggle.is-open span {
-  background: #fff;
+  background: #111;
 }
 
 .lnav-toggle.is-open span:first-child {
@@ -66,7 +66,7 @@
 }
 
 .lnav-toggle:focus-visible {
-  outline: 2px solid #c8f060;
+  outline: 2px solid #111;
   outline-offset: 2px;
 }
 
@@ -114,7 +114,8 @@
   align-items: start;
   gap: 2rem 3rem;
   padding: 7.5rem 2.5rem 2.5rem;
-  color: #fff;
+  /* The bands are all pale, so this reads in ink. White would vanish. */
+  color: #111;
 }
 
 .lnav-sheet.is-open .lnav-panel {
@@ -143,20 +144,20 @@
 .lnav-label {
   font-family: 'Schibsted Grotesk', sans-serif;
   font-size: 0.95rem;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(17, 17, 17, 0.62);
   margin-bottom: 0.25rem;
 }
 
 .lnav-small {
   font-family: 'Schibsted Grotesk', sans-serif;
   font-size: 1.05rem;
-  color: #fff;
+  color: #111;
   text-decoration: none;
   line-height: 1.5;
 }
 
 .lnav-small:hover {
-  color: #c8f060;
+  color: rgba(17, 17, 17, 0.55);
 }
 
 /* ── The links ── */
@@ -174,7 +175,7 @@
   line-height: 1.14;
   letter-spacing: -0.01em;
   text-transform: uppercase;
-  color: #fff;
+  color: #111;
   text-decoration: none;
   white-space: nowrap;
   opacity: 0;
@@ -189,11 +190,11 @@
 }
 
 .lnav-link:hover {
-  color: #c8f060;
+  color: rgba(17, 17, 17, 0.55);
 }
 
 .lnav-link:focus-visible {
-  outline: 2px solid #c8f060;
+  outline: 2px solid #111;
   outline-offset: 6px;
 }
 
