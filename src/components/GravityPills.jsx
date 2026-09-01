@@ -20,16 +20,26 @@ import "./GravityPills.css";
  * this page put together, and none of it should wait on them.
  */
 
-// Long, short, fat, thin — a pile of one pill repeated reads as a pattern.
+/*
+ * Long, short, fat, thin — a pile of one pill repeated reads as a pattern.
+ *
+ * Every pill is placed by hand: where across the width it enters, the angle it
+ * enters at, and how fast it is turning. Nothing here is random, and the
+ * simulation is fed a fixed step, so the same page gives the same pile every
+ * time — the same pills in the same places at the same angles. That matters
+ * beyond looking consistent: these are going to become the links to About,
+ * How it works and the rest, and a link should not be somewhere different on
+ * every load.
+ */
 const PILLS = [
-  { color: "#FF6B4A", length: 1.3, girth: 0.34 },
-  { color: "#FFC53D", length: 0.85, girth: 0.42 },
-  { color: "#7C4AD6", length: 1.1, girth: 0.3 },
-  { color: "#2BC8CE", length: 0.7, girth: 0.38 },
-  { color: "#C8F060", length: 1.45, girth: 0.28 },
-  { color: "#4A7BE8", length: 1.0, girth: 0.36 },
-  { color: "#F2A086", length: 0.8, girth: 0.44 },
-  { color: "#FFC53D", length: 0.95, girth: 0.33 },
+  { color: "#FF6B4A", length: 1.22, girth: 0.34, at: 0.1, tilt: -0.3, spin: 0.02 },
+  { color: "#FFC53D", length: 0.85, girth: 0.42, at: 0.28, tilt: 0.24, spin: -0.03 },
+  { color: "#7C4AD6", length: 1.1, girth: 0.3, at: 0.45, tilt: -0.44, spin: 0.015 },
+  { color: "#2BC8CE", length: 0.7, girth: 0.38, at: 0.61, tilt: 0.34, spin: -0.02 },
+  { color: "#C8F060", length: 1.25, girth: 0.3, at: 0.78, tilt: -0.2, spin: 0.03 },
+  { color: "#4A7BE8", length: 1.0, girth: 0.36, at: 0.91, tilt: 0.4, spin: -0.015 },
+  { color: "#F2A086", length: 0.8, girth: 0.44, at: 0.36, tilt: -0.36, spin: 0.02 },
+  { color: "#FFC53D", length: 0.95, girth: 0.33, at: 0.7, tilt: 0.3, spin: -0.025 },
 ];
 
 /*
@@ -49,6 +59,7 @@ function saturate(THREE, hex) {
 }
 
 const DROP_INTERVAL = 230; // ms between one pill being released and the next
+const ENTRY_SPEED = 6; // px per tick, downward, at the moment a pill enters
 
 /*
  * A long lens, far back, rather than a wide one up close.
@@ -249,7 +260,16 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   // ── Sizes ──
   // Pills are a share of the container's width, so the pile keeps its
   // proportions rather than being a fixed size on every screen.
-  const unit = Math.max(92, Math.min(width * 0.23, 390));
+  /*
+   * Bounded by the height of the yard as well as its width.
+   *
+   * Sized off the width alone the pills are the same on a tall window and a
+   * short one, but the room above the rule is not — it is whatever the page has
+   * left over — so a pile that just fits a tall window buries a short one. The
+   * flat cap does the same job at the other end, where a wide monitor gives a
+   * yard tall enough that nothing else stops the pills growing.
+   */
+  const unit = Math.max(60, Math.min(width * 0.21, height * 0.7, 315));
 
   // ── Physics ──
   // More solver passes than the default. These bodies are large and heavy, and
@@ -338,15 +358,19 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     mesh.visible = false;
     scene.add(mesh);
 
-    // Spread across the width and dropped from just above the top edge. They
-    // do not need stacking up there as well — the release is already staggered
-    // in time — and at this size stacking them would start the last one a
-    // couple of thousand pixels up, falling for an age before it arrived.
-    const x =
-      ((i + 0.5) / PILLS.length) * width * 0.86 +
-      width * 0.07 +
-      (Math.random() - 0.5) * unit * 0.22;
-    const y = -girthPx * 1.4;
+    /*
+     * Where it enters, and how far above.
+     *
+     * The height is staggered per pill and that is not cosmetic. Entering at a
+     * common height, pills whose spawn points are 118px apart but which are up
+     * to 404px long are inserted straight through one another, and the solver
+     * answers by shoving them apart — 72px in a single tick, against a falling
+     * speed of 3. That lurch, and the near-motionless creep before it while the
+     * pill accelerates from rest, is the whole of what looked glitchy about the
+     * first few falling.
+     */
+    const x = width * (0.06 + spec.at * 0.88);
+    const y = -girthPx * 1.3 - i * unit * 0.55;
 
     const body = Bodies.fromVertices(
       x,
@@ -359,7 +383,12 @@ function run(mount, THREE, RoomEnvironment, Matter) {
         density: 0.0016,
       },
     );
-    Body.setAngle(body, (Math.random() - 0.5) * 0.9);
+    Body.setAngle(body, spec.tilt);
+    Body.setAngularVelocity(body, spec.spin);
+    // Entering with speed rather than from a standstill. From rest a pill
+    // covers a fifth of a pixel in its first tick and is still under one after
+    // five, which reads as hanging in the air rather than falling.
+    Body.setVelocity(body, { x: 0, y: ENTRY_SPEED });
     // Held out of the world until its turn.
     items.push({ body, mesh, girthPx, released: false });
   });
@@ -460,6 +489,15 @@ function run(mount, THREE, RoomEnvironment, Matter) {
       const item = items[dropped];
       item.released = true;
       item.mesh.visible = true;
+      if (import.meta.env?.DEV) {
+        for (const other of items) {
+          if (other === item || !other.released) continue;
+          const c = Matter.Collision.collides(item.body, other.body);
+          if (c && c.collided) {
+            window.__pillSpawnClashes = (window.__pillSpawnClashes || 0) + 1;
+          }
+        }
+      }
       Composite.add(engine.world, item.body);
       dropped += 1;
     }
@@ -525,6 +563,9 @@ function run(mount, THREE, RoomEnvironment, Matter) {
           bodyGirthPx: +(it.body.bounds.max.y - it.body.bounds.min.y).toFixed(1),
           x: Math.round(it.body.position.x),
           y: Math.round(it.body.position.y),
+          vy: +it.body.velocity.y.toFixed(2),
+          sleeping: it.body.isSleeping,
+          released: it.released,
         };
       });
       let overlaps = 0;
@@ -544,6 +585,8 @@ function run(mount, THREE, RoomEnvironment, Matter) {
         overlaps,
         worstDepthPx: +worst.toFixed(1),
         pileTopPx: Math.round(top),
+        dropped,
+        elapsed: Math.round(elapsed),
         yardHeightPx: Math.round(height),
         clippedAtTop: top < 0,
       };
