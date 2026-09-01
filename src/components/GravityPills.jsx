@@ -29,7 +29,6 @@ const PILLS = [
   { color: "#C8F060", length: 1.45, girth: 0.28 },
   { color: "#4A7BE8", length: 1.0, girth: 0.36 },
   { color: "#F2A086", length: 0.8, girth: 0.44 },
-  { color: "#FF6B4A", length: 1.2, girth: 0.31 },
   { color: "#FFC53D", length: 0.95, girth: 0.33 },
 ];
 
@@ -368,7 +367,18 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   // ── Dragging ──
   let mouseConstraint = null;
   if (!still) {
-    const mouse = Mouse.create(renderer.domElement);
+    /*
+     * Bound to the container, not the canvas.
+     *
+     * Matter turns a pointer position into simulation coordinates by dividing
+     * by element.width / element.clientWidth. On a canvas those are the drawing
+     * buffer and the CSS box, and the buffer is drawn at device resolution — so
+     * on a 2x screen every grab landed at twice the position it was aimed at,
+     * far enough away to catch a different pill or none at all. A div has no
+     * width attribute, so the ratio is 1 and the coordinates are the CSS pixels
+     * the simulation already runs in.
+     */
+    const mouse = Mouse.create(mount);
     mouseConstraint = MouseConstraint.create(engine, {
       mouse,
       constraint: { stiffness: 0.16, render: { visible: false } },
@@ -427,9 +437,17 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     }
   };
 
-  // One tick of simulation, independent of what is driving it. Drawing is
-  // optional so the pile can be settled without every intermediate state
-  // being painted.
+  /*
+   * One tick of simulation, at a fixed size, independent of what is driving it.
+   *
+   * Matter integrates and solves assuming the step it is handed is the step it
+   * was handed last time. Feed it whatever the frame clock happened to measure
+   * and contacts resolve by a different amount each tick, which reads as pills
+   * twitching and skating rather than settling. It is worst in the first
+   * second, which is exactly when the pills are falling: the browser is still
+   * compiling shaders and building the environment map, so the frames are both
+   * long and wildly uneven.
+   */
   const step = (dt, draw = true) => {
     // Checked every tick rather than only when something announces a resize.
     // Both announcements — ResizeObserver and the window event — are delivered
@@ -452,17 +470,45 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     }
   };
 
+  /*
+   * Real time in, fixed steps out.
+   *
+   * However long the frame took, the simulation only ever advances in whole
+   * FIXED-sized ticks, and the remainder is carried to the next frame. A long
+   * frame becomes two or three identical ticks instead of one enormous one.
+   *
+   * MAX_STEPS is the safety valve. Without it, a frame that took a second —
+   * a tab restored, a slow first paint — would try to catch up all at once and
+   * lock the page up. Past that the simulation simply runs slow for a moment,
+   * which nobody notices, where the alternative is a freeze.
+   */
+  const FIXED = 1000 / 60;
+  const MAX_STEPS = 4;
+  let carry = 0;
+
   const frame = (now) => {
     raf = requestAnimationFrame(frame);
-    const dt = last ? Math.min(now - last, 1000 / 30) : 1000 / 60;
+    const elapsedReal = last ? now - last : FIXED;
     last = now;
     // Deliberately no document.hidden check. requestAnimationFrame already
-    // stops in a backgrounded tab, and dt is clamped above, so the catch-up
-    // frame it would guard against cannot happen — while the check itself
-    // stops the scene ever being drawn in a context that reports hidden but
-    // still paints.
+    // stops in a backgrounded tab, and the accumulator is capped below, so the
+    // catch-up frame it would guard against cannot happen — while the check
+    // itself stops the scene ever being drawn in a context that reports hidden
+    // but still paints.
     if (!visible) return;
-    step(dt);
+
+    carry = Math.min(carry + elapsedReal, FIXED * MAX_STEPS);
+    let ticks = 0;
+    while (carry >= FIXED) {
+      step(FIXED, false);
+      carry -= FIXED;
+      ticks += 1;
+    }
+    // Drawn once per frame rather than once per tick.
+    if (ticks > 0) {
+      sync();
+      renderer.render(scene, camera);
+    }
   };
 
   if (import.meta.env?.DEV) {
@@ -477,6 +523,8 @@ function run(mount, THREE, RoomEnvironment, Matter) {
           meshGirthPx: +(((bb.max.y - bb.min.y) / scale)).toFixed(1),
           bodyLenPx: +(it.body.bounds.max.x - it.body.bounds.min.x).toFixed(1),
           bodyGirthPx: +(it.body.bounds.max.y - it.body.bounds.min.y).toFixed(1),
+          x: Math.round(it.body.position.x),
+          y: Math.round(it.body.position.y),
         };
       });
       let overlaps = 0;
