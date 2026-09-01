@@ -31,10 +31,12 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.3",
     "@vercel/analytics": "^2.0.1",
+    "matter-js": "^0.20.0",
     "posthog-js": "^1.417.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",

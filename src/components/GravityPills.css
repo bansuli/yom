@@ -1,0 +1,30 @@
+/*
+ * The yard the pills fall in: everything above the upper rule.
+ *
+ * flex: 1 rather than a measured height. .hero-center stacks its children at
+ * the bottom, so a flex child placed first absorbs whatever is left over —
+ * which means the yard's floor is the rule itself, and stays the rule at every
+ * viewport without anything having to recompute it.
+ */
+.pill-yard {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+  /* .hero-center turns pointer events off; the pills are draggable. */
+  pointer-events: auto;
+  /* The pills take the drag, so a touch on one must not also scroll. */
+  touch-action: none;
+  cursor: grab;
+}
+
+.pill-yard.is-dragging {
+  cursor: grabbing;
+}
+
+.pill-yard canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

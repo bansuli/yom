@@ -309,7 +309,7 @@ a {
   align-items: center;
   justify-content: flex-end;
   text-align: center;
-  padding: 6rem 1.5rem clamp(1.25rem, 3.5vh, 2.5rem);
+  padding: 0 1.5rem clamp(1.25rem, 3.5vh, 2.5rem);
   pointer-events: none;
 }
 

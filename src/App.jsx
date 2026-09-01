@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
+import GravityPills from './components/GravityPills.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
 
@@ -26,6 +27,8 @@ function App() {
     <div className="page">
       <section className="hero" aria-label="yom homepage">
         <div className="hero-center">
+          <GravityPills />
+
           <div className="brand-rule brand-rule-top" aria-hidden="true" />
 
           <p className="brand" aria-label="yom">
