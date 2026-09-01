@@ -34,12 +34,13 @@ import "./GravityPills.css";
 const PILLS = [
   { color: "#FF6B4A", length: 1.22, girth: 0.34, at: 0.1, tilt: -0.3, spin: 0.02 },
   { color: "#FFC53D", length: 0.85, girth: 0.42, at: 0.28, tilt: 0.24, spin: -0.03 },
-  { color: "#7C4AD6", length: 1.1, girth: 0.3, at: 0.45, tilt: -0.44, spin: 0.015 },
   { color: "#2BC8CE", length: 0.7, girth: 0.38, at: 0.61, tilt: 0.34, spin: -0.02 },
   { color: "#C8F060", length: 1.25, girth: 0.3, at: 0.78, tilt: -0.2, spin: 0.03 },
   { color: "#4A7BE8", length: 1.0, girth: 0.36, at: 0.91, tilt: 0.4, spin: -0.015 },
   { color: "#F2A086", length: 0.8, girth: 0.44, at: 0.36, tilt: -0.36, spin: 0.02 },
   { color: "#FFC53D", length: 0.95, girth: 0.33, at: 0.7, tilt: 0.3, spin: -0.025 },
+  { color: "#7C4AD6", length: 1.2, girth: 0.95, at: 0.47, tilt: -0.12, spin: 0.01, kind: "shirt" },
+  { color: "#FF6B4A", length: 1.3, girth: 1.3, at: 0.66, tilt: 0.1, spin: -0.008, kind: "bag" },
 ];
 
 /*
@@ -60,6 +61,7 @@ function saturate(THREE, hex) {
 
 const DROP_INTERVAL = 230; // ms between one pill being released and the next
 const ENTRY_SPEED = 6; // px per tick, downward, at the moment a pill enters
+const PAPER = "#f9d9d1"; // the page behind the canvas, for the glass to refract
 
 /*
  * A long lens, far back, rather than a wide one up close.
@@ -128,6 +130,25 @@ function convexHull(points) {
  *
  * Derived from the geometry, the two cannot disagree, whatever the bevel does.
  */
+/*
+ * A concave body's outline, taken from the shape it was drawn from rather than
+ * from the mesh.
+ *
+ * The convex-hull route the pills use cannot work here: a hull spans the notch
+ * under each sleeve, so the shirt would collide with a silhouette it does not
+ * have. The points come from the shape and are pushed outward from the centre
+ * to stand in for the bevel, the same approximation the reference component
+ * makes for its logos.
+ */
+function outlineFromShape(shape, unitsToPx, marginPx, segments = 26) {
+  return shape.getPoints(segments).map((p) => {
+    const x = p.x * unitsToPx;
+    const y = -p.y * unitsToPx;
+    const mag = Math.hypot(x, y) || 1;
+    return { x: x + (x / mag) * marginPx, y: y + (y / mag) * marginPx };
+  });
+}
+
 function outlineFromGeometry(geometry, unitsToPx, marginPx) {
   const pos = geometry.attributes.position.array;
   const pts = [];
@@ -142,6 +163,111 @@ function outlineFromGeometry(geometry, unitsToPx, marginPx) {
     const mag = Math.hypot(p.x, p.y) || 1;
     return { x: p.x + (p.x / mag) * marginPx, y: p.y + (p.y / mag) * marginPx };
   });
+}
+
+/*
+ * A real bag, traced from the SVG rather than drawn.
+ *
+ * The file was a vectorised photograph — 1492 gradient-filled paths and no
+ * single outline to take — so the silhouette was rasterised and its boundary
+ * walked, then simplified to these points.
+ *
+ * The hole is not a detail. Traced as an outer silhouette alone the bag comes
+ * out as a plain dome: it is the gap under the handle that makes it read as a
+ * bag at all. Normalised so the taller side spans 1.
+ */
+/*
+ * Where the bag sits inside its own file. The artwork has transparent margin
+ * around it, so mapping the whole image onto the traced silhouette would
+ * stretch the bag out to the edges. These are the bounds of the opaque pixels,
+ * measured off the file, with v flipped because a texture runs bottom-up and a
+ * canvas runs top-down.
+ */
+const BAG_UV = { u0: 0.155, u1: 0.8425, v0: 0.21, v1: 0.934 };
+
+const BAG_OUTER = [[-0.042,0.5],[0.06,0.495],[0.139,0.468],[0.194,0.435],[0.282,0.347],[0.333,0.255],[0.38,0.079],[0.38,-0.051],[0.37,-0.088],[0.375,-0.361],[0.37,-0.412],[0.356,-0.454],[0.329,-0.481],[0.282,-0.5],[-0.176,-0.5],[-0.292,-0.491],[-0.31,-0.481],[-0.352,-0.431],[-0.361,-0.38],[-0.356,-0.097],[-0.37,-0.069],[-0.38,-0.014],[-0.38,0.042],[-0.361,0.181],[-0.296,0.324],[-0.269,0.361],[-0.153,0.458],[-0.083,0.491],[-0.046,0.495]];
+const BAG_HOLE = [[-0.046,0.481],[0.051,0.481],[0.106,0.463],[0.19,0.417],[0.259,0.347],[0.31,0.255],[0.338,0.176],[0.361,0.06],[0.361,-0.06],[0.333,-0.046],[-0.352,-0.051],[-0.361,0.014],[-0.356,0.111],[-0.333,0.204],[-0.296,0.287],[-0.245,0.361],[-0.19,0.417],[-0.125,0.458],[-0.051,0.477]];
+
+function bagShape(THREE, s) {
+  const shape = new THREE.Shape();
+  BAG_OUTER.forEach(([x, y], i) =>
+    i ? shape.lineTo(x * s, y * s) : shape.moveTo(x * s, y * s),
+  );
+  shape.closePath();
+  const hole = new THREE.Path();
+  BAG_HOLE.forEach(([x, y], i) =>
+    i ? hole.lineTo(x * s, y * s) : hole.moveTo(x * s, y * s),
+  );
+  hole.closePath();
+  shape.holes.push(hole);
+  return shape;
+}
+
+/**
+ * Traces a polygon with its corners rounded off.
+ *
+ * Every corner becomes a quadratic curve pulled back from the vertex by r, so
+ * the outline has no hard points. That matters more here than it looks: the
+ * glass rim is a bevel following the silhouette, and a sharp corner gives it a
+ * pinch of light that reads as a chip rather than a fold.
+ */
+function roundedPolygon(shape, pts, r) {
+  const n = pts.length;
+  const lerp = (a, b, t) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  const back = (i) => {
+    const cur = pts[i];
+    const prev = pts[(i - 1 + n) % n];
+    const d = Math.hypot(cur.x - prev.x, cur.y - prev.y) || 1;
+    return lerp(cur, prev, Math.min(r, d / 2) / d);
+  };
+  const fwd = (i) => {
+    const cur = pts[i];
+    const next = pts[(i + 1) % n];
+    const d = Math.hypot(next.x - cur.x, next.y - cur.y) || 1;
+    return lerp(cur, next, Math.min(r, d / 2) / d);
+  };
+  const start = fwd(0);
+  shape.moveTo(start.x, start.y);
+  for (let i = 1; i <= n; i++) {
+    const k = i % n;
+    const b = back(k);
+    const f = fwd(k);
+    shape.lineTo(b.x, b.y);
+    shape.quadraticCurveTo(pts[k].x, pts[k].y, f.x, f.y);
+  }
+  shape.closePath();
+  return shape;
+}
+
+/**
+ * A t-shirt, in the same units as the pills: length is its width across the
+ * sleeves, girth its height. Concave, which is the whole point of the test —
+ * the notch under each sleeve is what a convex hull cannot represent.
+ */
+function shirtOutline(length, girth) {
+  const w = length / 2;
+  const h = girth / 2;
+  const body = w * 0.48;
+  const cuff = h * 0.1;
+  const armpit = -h * 0.18;
+  const shoulder = h * 0.58;
+  const neck = w * 0.17;
+  return [
+    { x: -neck, y: h },
+    { x: neck, y: h },
+    { x: w, y: shoulder },
+    { x: w, y: cuff },
+    { x: body, y: armpit },
+    { x: body, y: -h },
+    { x: -body, y: -h },
+    { x: -body, y: armpit },
+    { x: -w, y: cuff },
+    { x: -w, y: shoulder },
+  ];
+}
+
+function shirtShape(THREE, length, girth) {
+  return roundedPolygon(new THREE.Shape(), shirtOutline(length, girth), girth * 0.035);
 }
 
 /** A stadium: a rectangle with its ends turned into half circles. */
@@ -169,10 +295,15 @@ export default function GravityPills() {
       import("three"),
       import("three/examples/jsm/environments/RoomEnvironment.js"),
       import("matter-js"),
+      import("poly-decomp"),
     ])
-      .then(([THREE, { RoomEnvironment }, matter]) => {
+      .then(([THREE, { RoomEnvironment }, matter, decomp]) => {
         if (disposed) return;
-        stop = run(mount, THREE, RoomEnvironment, matter.default ?? matter);
+        const M = matter.default ?? matter;
+        // Without this Matter refuses concave outlines and silently falls back
+        // to their convex hull — which is the thing this is here to avoid.
+        M.Common.setDecomp(decomp.default ?? decomp);
+        stop = run(mount, THREE, RoomEnvironment, M);
       })
       .catch(() => {
         // A decorative layer is not worth breaking the page over.
@@ -205,6 +336,10 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.98;
+  // Transmission renders the scene a second time into a buffer for the glass
+  // to sample. At half resolution that pass costs a quarter as much, and what
+  // it feeds is a refraction — already smeared, so the detail is not missed.
+  renderer.transmissionResolutionScale = 0.5;
   mount.appendChild(renderer.domElement);
 
   const scene = new THREE.Scene();
@@ -247,8 +382,26 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   rim2.position.set(15, 14, 10);
   scene.add(rim2);
 
-  // Catches the key light's shadow behind the pile. Without a receiver the
-  // shadows fall on nothing and the pile floats.
+  /*
+   * A backdrop, and a shadow catcher in front of it.
+   *
+   * Transmission refracts the scene, and until now the scene behind the pills
+   * was nothing at all — a transparent canvas over the page. Glass with
+   * nothing behind it refracts nothing and reads as a hole. The backdrop is
+   * the page's own colour, unlit so it matches exactly, and sits far enough
+   * back to be well outside the pile.
+   *
+   * It has to be a second plane rather than one doing both jobs: a shadow
+   * needs a lit material to fall on and an unlit one is what matches the page,
+   * so the shadows are caught on their own transparent plane in front.
+   */
+  const backdrop = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(PAPER) }),
+  );
+  backdrop.position.z = -6;
+  scene.add(backdrop);
+
   const catcher = new THREE.Mesh(
     new THREE.PlaneGeometry(200, 200),
     new THREE.ShadowMaterial({ opacity: 0.12 }),
@@ -312,40 +465,135 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   const geometries = [];
   const items = [];
 
+  // The bag's own artwork, if anything on the page is a bag. Loaded once and
+  // shared; the loader returns the texture straight away and fills it in when
+  // the file arrives.
+  let bagTexture = null;
+  if (PILLS.some((p) => p.kind === "bag")) {
+    bagTexture = new THREE.TextureLoader().load("/bag.svg");
+    bagTexture.colorSpace = THREE.SRGBColorSpace;
+    bagTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  }
+
   PILLS.forEach((spec, i) => {
     const lengthPx = unit * spec.length;
     const girthPx = unit * spec.girth;
     const lw = lengthPx * scale;
     const gw = girthPx * scale;
 
-    const geometry = new THREE.ExtrudeGeometry(pillShape(THREE, lw, gw), {
-      depth: gw * 0.42,
-      bevelEnabled: true,
-      bevelSegments: 6,
-      steps: 1,
-      bevelSize: gw * 0.12,
-      bevelThickness: gw * 0.12,
-      curveSegments: 24,
-    });
+    const isShirt = spec.kind === "shirt";
+    const isBag = spec.kind === "bag";
+    const flat = isShirt || isBag;
+    // The bag is scaled on one axis for both, so the traced proportions hold.
+    const profile = isBag
+      ? bagShape(THREE, gw)
+      : isShirt
+        ? shirtShape(THREE, lw, gw)
+        : pillShape(THREE, lw, gw);
+
+    /*
+     * Thickness is taken from the pill unit, not from the shape's own height.
+     * A capsule's girth is its thickness, so scaling depth and bevel off it
+     * works; a shirt's girth is how tall it is, and the same fractions gave a
+     * bevel three times larger than the pills' — enough to swallow the notch
+     * under each sleeve and render the whole thing as a blob.
+     */
+    const solid = flat ? gw * 0.15 : gw * 0.52;
+    const rim = flat ? gw * 0.045 : gw * 0.2;
+
+    /*
+     * The bag is flat, because it is a photograph.
+     *
+     * Extruding it would give the artwork a bevelled rim of stretched pixels
+     * and a side wall of nothing, which is worse than no thickness at all. A
+     * ShapeGeometry is the silhouette and its hole, and the picture is mapped
+     * onto it.
+     */
+    const geometry = isBag
+      ? new THREE.ShapeGeometry(profile, 24)
+      : new THREE.ExtrudeGeometry(profile, {
+          depth: solid,
+          bevelEnabled: true,
+          bevelSegments: 10,
+          steps: 1,
+          bevelSize: rim,
+          bevelThickness: rim,
+          curveSegments: 24,
+        });
     geometry.center();
+
+    if (isBag) {
+      // ShapeGeometry hands back UVs in shape units, so they are remapped onto
+      // the patch of the file the bag actually occupies.
+      geometry.computeBoundingBox();
+      const bb = geometry.boundingBox;
+      const spanX = bb.max.x - bb.min.x || 1;
+      const spanY = bb.max.y - bb.min.y || 1;
+      const pos = geometry.attributes.position;
+      const uv = geometry.attributes.uv;
+      for (let v = 0; v < pos.count; v++) {
+        const fx = (pos.getX(v) - bb.min.x) / spanX;
+        const fy = (pos.getY(v) - bb.min.y) / spanY;
+        uv.setXY(
+          v,
+          BAG_UV.u0 + fx * (BAG_UV.u1 - BAG_UV.u0),
+          BAG_UV.v0 + fy * (BAG_UV.v1 - BAG_UV.v0),
+        );
+      }
+      uv.needsUpdate = true;
+    }
+
     geometries.push(geometry);
 
-    // Plastic, not metal. A high metalness tints every reflection with the
-    // body colour, which turns these into chrome sweets — the colour stops
-    // being the colour and becomes a stain over the room. Dielectric with a
-    // clearcoat is what a moulded pill actually is: a coloured body under a
-    // clear gloss shell.
-    const material = new THREE.MeshPhysicalMaterial({
-      color: saturate(THREE, spec.color),
-      metalness: 0.05,
-      roughness: 0.3,
-      ior: 1.5,
-      thickness: 2,
+    /*
+     * Glass, not painted plastic.
+     *
+     * The colour stops being a surface and becomes the body: transmission lets
+     * light through, and attenuation stains it on the way. That is why the
+     * colour is set on attenuationColor rather than on color, and why the
+     * distance is tied to the pill's own girth — a fat pill has more glass to
+     * travel through, so it comes out deeper, the way real coloured glass
+     * does. A flat colour on a transparent body would just look like tinted
+     * cellophane.
+     *
+     * Thickness is the volume the refraction is computed through, so it is
+     * the pill's girth rather than an arbitrary number; and the clearcoat
+     * stays, because a glass pill still has a hard polished skin.
+     */
+    const material = isBag
+      ? // Unlit and untone-mapped, so the artwork arrives with its own colours
+        // rather than the scene's. Lighting it would be lighting a photograph
+        // that already has its light in it.
+        new THREE.MeshBasicMaterial({
+          map: bagTexture,
+          transparent: true,
+          side: THREE.DoubleSide,
+          toneMapped: false,
+        })
+      : new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      metalness: 0,
+      roughness: 0.025,
+      transmission: 1,
+      ior: 1.46,
+      thickness: gw * 1.0,
+      // Raw, not saturated. Attenuation deepens the colour on its own as the
+      // light crosses the body, so feeding it a boosted one stacks two effects
+      // and the glass comes out looking like solid candy.
+      attenuationColor: new THREE.Color(spec.color),
+      // Just over two girths. Under one and almost nothing makes it through,
+      // which is opacity rather than glass; at five the colour washes out
+      // entirely and they come back white.
+      attenuationDistance: gw * 2.2,
       clearcoat: 1,
-      clearcoatRoughness: 0.06,
-      sheen: 0.35,
-      sheenRoughness: 0.6,
-      sheenColor: new THREE.Color(0xffffff),
+      clearcoatRoughness: 0.03,
+      specularIntensity: 1,
+      envMapIntensity: 1.0,
+      // A trace of spectral sheen where the light grazes the curve. Any more
+      // and it reads as an oil slick rather than glass.
+      iridescence: 0.18,
+      iridescenceIOR: 1.3,
+      iridescenceThicknessRange: [100, 420],
     });
     materials.push(material);
 
@@ -372,17 +620,23 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     const x = width * (0.06 + spec.at * 0.88);
     const y = -girthPx * 1.3 - i * unit * 0.55;
 
-    const body = Bodies.fromVertices(
-      x,
-      y,
-      [outlineFromGeometry(geometry, 1 / scale, girthPx * 0.02)],
-      {
-        restitution: 0.18,
-        friction: 0.45,
-        frictionAir: 0.012,
-        density: 0.0016,
-      },
-    );
+    // The bag's colliding outline is its outer boundary only — the handle hole
+    // is a hole in the glass, not somewhere another pill should fall through.
+    const outline = isBag
+      ? BAG_OUTER.map(([px, py]) => ({
+          x: px * girthPx * 1.02,
+          y: -py * girthPx * 1.02,
+        }))
+      : isShirt
+        ? outlineFromShape(profile, 1 / scale, girthPx * 0.02)
+        : outlineFromGeometry(geometry, 1 / scale, girthPx * 0.02);
+
+    const body = Bodies.fromVertices(x, y, [outline], {
+      restitution: 0.18,
+      friction: 0.45,
+      frictionAir: 0.012,
+      density: 0.0016,
+    });
     Body.setAngle(body, spec.tilt);
     Body.setAngularVelocity(body, spec.spin);
     // Entering with speed rather than from a standstill. From rest a pill
@@ -630,8 +884,11 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     Engine.clear(engine);
     geometries.forEach((g) => g.dispose());
     materials.forEach((m) => m.dispose());
+    if (bagTexture) bagTexture.dispose();
     catcher.geometry.dispose();
     catcher.material.dispose();
+    backdrop.geometry.dispose();
+    backdrop.material.dispose();
     envRT.texture.dispose();
     pmrem.dispose();
     renderer.dispose();
