@@ -33,13 +33,10 @@ const PILLS = [
   { color: "#7C4AD6", length: 1.1, girth: 0.3 },
   { color: "#2BC8CE", length: 0.7, girth: 0.38 },
   // Capped at 1.25. A longer pill is fine lying down, but stood on end by an
-  // unlucky bounce it is nearly as tall as the whole yard on its own, and that
-  // one outcome was the only thing still overflowing the top.
+  // unlucky bounce it is nearly as tall as the whole yard on its own.
   { color: "#C8F060", length: 1.25, girth: 0.3 },
   { color: "#4A7BE8", length: 1.0, girth: 0.36 },
   { color: "#F2A086", length: 0.8, girth: 0.44 },
-  { color: "#FF6B4A", length: 1.2, girth: 0.31 },
-  { color: "#FFC53D", length: 0.95, girth: 0.33 },
 ];
 
 /*
@@ -265,11 +262,11 @@ function run(mount, THREE, RoomEnvironment, Matter) {
    * Sized off the width alone the pills are the same on a tall window and a
    * short one, but the room above the rule is not — it is whatever the page
    * has left over — so the pile that just fits a tall window buries a short
-   * one. The height term is what stops that: 0.19 of the width is the largest
+   * one. The height term is what stops that: 0.225 of the width is the largest
    * that reliably clears the top at a typical desktop shape, and 0.69 of the
    * yard is the same pile expressed against the room it has to fit in.
    */
-  const unit = Math.max(48, Math.min(width * 0.19, height * 0.57, 350));
+  const unit = Math.max(48, Math.min(width * 0.225, height * 0.64, 350));
 
   // ── Physics ──
   // Far more solver passes than the default. These bodies are large and heavy,
