@@ -22,11 +22,14 @@ import "./GravityPills.css";
 
 // Long, short, fat, thin — a pile of one pill repeated reads as a pattern.
 const PILLS = [
-  { color: "#FF6B4A", length: 1.3, girth: 0.34 },
+  { color: "#FF6B4A", length: 1.22, girth: 0.34 },
   { color: "#FFC53D", length: 0.85, girth: 0.42 },
   { color: "#7C4AD6", length: 1.1, girth: 0.3 },
   { color: "#2BC8CE", length: 0.7, girth: 0.38 },
-  { color: "#C8F060", length: 1.45, girth: 0.28 },
+  // Capped at 1.25. A longer pill is fine lying down, but stood on end by an
+  // unlucky bounce it is nearly as tall as the whole yard on its own, and that
+  // one outcome was the only thing still overflowing the top.
+  { color: "#C8F060", length: 1.25, girth: 0.3 },
   { color: "#4A7BE8", length: 1.0, girth: 0.36 },
   { color: "#F2A086", length: 0.8, girth: 0.44 },
   { color: "#FF6B4A", length: 1.2, girth: 0.31 },
@@ -178,7 +181,7 @@ export default function GravityPills() {
 }
 
 function run(mount, THREE, RoomEnvironment, Matter) {
-  const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Events } = Matter;
+  const { Engine, Composite, Bodies, Body, Sleeping, Mouse, MouseConstraint, Events } = Matter;
 
   let width = mount.clientWidth;
   let height = mount.clientHeight;
@@ -250,7 +253,17 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   // ── Sizes ──
   // Pills are a share of the container's width, so the pile keeps its
   // proportions rather than being a fixed size on every screen.
-  const unit = Math.max(92, Math.min(width * 0.23, 390));
+  /*
+   * Bounded by the height of the yard as well as its width.
+   *
+   * Sized off the width alone the pills are the same on a tall window and a
+   * short one, but the room above the rule is not — it is whatever the page
+   * has left over — so the pile that just fits a tall window buries a short
+   * one. The height term is what stops that: 0.185 of the width is the largest
+   * that reliably clears the top at a typical desktop shape, and 0.69 of the
+   * yard is the same pile expressed against the room it has to fit in.
+   */
+  const unit = Math.max(48, Math.min(width * 0.185, height * 0.66, 330));
 
   // ── Physics ──
   // More solver passes than the default. These bodies are large and heavy, and
@@ -362,7 +375,7 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     );
     Body.setAngle(body, (Math.random() - 0.5) * 0.9);
     // Held out of the world until its turn.
-    items.push({ body, mesh, girthPx, released: false });
+    items.push({ body, mesh, girthPx, released: false, spawnX: x, spawnY: y });
   });
 
   // ── Dragging ──
@@ -499,6 +512,30 @@ function run(mount, THREE, RoomEnvironment, Matter) {
         yardHeightPx: Math.round(height),
         clippedAtTop: top < 0,
       };
+    };
+
+    // Re-runs the whole drop from scratch and reports where the pile topped
+    // out. The tumble is random, so the only honest way to choose a pill size
+    // is to sample the spread rather than trust one settle.
+    window.__pillTrial = (steps = 800) => {
+      for (const it of items) {
+        if (it.released) Composite.remove(engine.world, it.body);
+        it.released = false;
+        it.mesh.visible = false;
+        Body.setPosition(it.body, { x: it.spawnX, y: it.spawnY });
+        Body.setAngle(it.body, (Math.random() - 0.5) * 0.9);
+        Body.setVelocity(it.body, { x: 0, y: 0 });
+        Body.setAngularVelocity(it.body, 0);
+        // Sleeping bodies ignore being moved. Without this they sit at the
+        // spawn point for the whole trial and the pile never happens.
+        Sleeping.set(it.body, false);
+      }
+      elapsed = 0;
+      dropped = 0;
+      for (let i = 0; i < steps; i++) step(1000 / 60, false);
+      sync();
+      renderer.render(scene, camera);
+      return window.__pillAudit().pileTopPx;
     };
 
     // Lets the pile be driven without a frame clock, which is the only way to
