@@ -20,23 +20,17 @@ import "./GravityPills.css";
  * this page put together, and none of it should wait on them.
  */
 
-/*
- * Long, short, fat, thin — a pile of one pill repeated reads as a pattern.
- *
- * Kept chunky. Slimming them buys pile height cheaply, but a thin pill reads
- * as a smaller pill however long it is, so the height is bought from the
- * overall size instead, where it is at least visible what it costs.
- */
+// Long, short, fat, thin — a pile of one pill repeated reads as a pattern.
 const PILLS = [
-  { color: "#FF6B4A", length: 1.22, girth: 0.34 },
+  { color: "#FF6B4A", length: 1.3, girth: 0.34 },
   { color: "#FFC53D", length: 0.85, girth: 0.42 },
   { color: "#7C4AD6", length: 1.1, girth: 0.3 },
   { color: "#2BC8CE", length: 0.7, girth: 0.38 },
-  // Capped at 1.25. A longer pill is fine lying down, but stood on end by an
-  // unlucky bounce it is nearly as tall as the whole yard on its own.
-  { color: "#C8F060", length: 1.25, girth: 0.3 },
+  { color: "#C8F060", length: 1.45, girth: 0.28 },
   { color: "#4A7BE8", length: 1.0, girth: 0.36 },
   { color: "#F2A086", length: 0.8, girth: 0.44 },
+  { color: "#FF6B4A", length: 1.2, girth: 0.31 },
+  { color: "#FFC53D", length: 0.95, girth: 0.33 },
 ];
 
 /*
@@ -184,7 +178,7 @@ export default function GravityPills() {
 }
 
 function run(mount, THREE, RoomEnvironment, Matter) {
-  const { Engine, Composite, Bodies, Body, Sleeping, Mouse, MouseConstraint, Events } = Matter;
+  const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Events } = Matter;
 
   let width = mount.clientWidth;
   let height = mount.clientHeight;
@@ -256,27 +250,16 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   // ── Sizes ──
   // Pills are a share of the container's width, so the pile keeps its
   // proportions rather than being a fixed size on every screen.
-  /*
-   * Bounded by the height of the yard as well as its width.
-   *
-   * Sized off the width alone the pills are the same on a tall window and a
-   * short one, but the room above the rule is not — it is whatever the page
-   * has left over — so the pile that just fits a tall window buries a short
-   * one. The height term is what stops that: 0.225 of the width is the largest
-   * that reliably clears the top at a typical desktop shape, and 0.69 of the
-   * yard is the same pile expressed against the room it has to fit in.
-   */
-  const unit = Math.max(48, Math.min(width * 0.225, height * 0.64, 350));
+  const unit = Math.max(92, Math.min(width * 0.23, 390));
 
   // ── Physics ──
-  // Far more solver passes than the default. These bodies are large and heavy,
-  // and a pile of them under a lid loads the contacts hard enough that the
-  // default six leave interpenetration deep enough to see. Nine bodies is
-  // little enough that the extra passes cost nothing worth measuring.
+  // More solver passes than the default. These bodies are large and heavy, and
+  // a pile of them loads the contacts at the bottom hard enough that six
+  // position passes leave visible interpenetration to settle out.
   const engine = Engine.create({
     enableSleeping: true,
-    positionIterations: 20,
-    velocityIterations: 10,
+    positionIterations: 12,
+    velocityIterations: 8,
     constraintIterations: 4,
   });
   engine.gravity.y = 1;
@@ -286,8 +269,6 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   let floor = null;
   let leftWall = null;
   let rightWall = null;
-  let ceiling = null;
-  let ceilingIn = false;
 
   const buildBounds = () => {
     [floor, leftWall, rightWall].forEach((b) => b && Composite.remove(engine.world, b));
@@ -305,45 +286,8 @@ function run(mount, THREE, RoomEnvironment, Matter) {
       friction: 0.2,
     });
     Composite.add(engine.world, [floor, leftWall, rightWall]);
-
-    // Rebuilt with the rest, but only re-admitted if it was already in play.
-    if (ceiling) Composite.remove(engine.world, ceiling);
-    ceiling = Bodies.rectangle(width / 2, -WALL / 2, width * 3, WALL, {
-      isStatic: true,
-      friction: 0.4,
-    });
-    if (ceilingIn) Composite.add(engine.world, ceiling);
   };
   buildBounds();
-
-  /*
-   * A lid, closed behind them.
-   *
-   * The pile clears the top of the yard on almost every drop, but not on all
-   * of them: now and then one pill comes to rest propped high on the others and
-   * pokes out. Sizing the pills down until that never happens would cost real
-   * size on every ordinary load to buy off a rare one. A lid costs nothing —
-   * on the ordinary drop the pile never reaches it, and on the rare one it is
-   * the difference between a pill sticking out of frame and a pill nudged back
-   * into it.
-   *
-   * It cannot be there from the start, or the pills would land on it instead of
-   * falling past. It goes in the moment the last of them is fully inside, which
-   * is well before the pile is tall enough to touch it.
-   */
-  const closeLidWhenAllInside = () => {
-    if (ceilingIn || dropped < items.length) return;
-    // Centre inside, not the whole pill. Waiting for every pill to be entirely
-    // below the top never comes true on some drops — one is still entering
-    // while the pile is already building — and the lid then never closes on
-    // exactly the runs that needed it. A pill whose centre is inside can only
-    // be pushed down by the lid, never shut out above it, so that is the test.
-    for (const item of items) {
-      if (item.body.position.y < 0) return;
-    }
-    Composite.add(engine.world, ceiling);
-    ceilingIn = true;
-  };
 
   const materials = [];
   const geometries = [];
@@ -400,9 +344,9 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     // in time — and at this size stacking them would start the last one a
     // couple of thousand pixels up, falling for an age before it arrived.
     const x =
-      ((i + 0.5) / PILLS.length) * width * 0.92 +
-      width * 0.04 +
-      (Math.random() - 0.5) * unit * 0.3;
+      ((i + 0.5) / PILLS.length) * width * 0.86 +
+      width * 0.07 +
+      (Math.random() - 0.5) * unit * 0.22;
     const y = -girthPx * 1.4;
 
     const body = Bodies.fromVertices(
@@ -416,30 +360,15 @@ function run(mount, THREE, RoomEnvironment, Matter) {
         density: 0.0016,
       },
     );
-    // Dropped at a real angle and already turning. A narrow spread of angles
-    // and no spin is why they were landing in a tidy flat row: nothing was
-    // ever going to tip one onto its neighbour.
-    Body.setAngle(body, (Math.random() - 0.5) * 1.5);
-    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.16);
+    Body.setAngle(body, (Math.random() - 0.5) * 0.9);
     // Held out of the world until its turn.
-    items.push({ body, mesh, girthPx, released: false, spawnX: x, spawnY: y });
+    items.push({ body, mesh, girthPx, released: false });
   });
 
   // ── Dragging ──
   let mouseConstraint = null;
   if (!still) {
-    /*
-     * Bound to the container, not the canvas.
-     *
-     * Matter divides a pointer position by element.width / element.clientWidth
-     * to get simulation coordinates. On a canvas those are the drawing buffer
-     * and the CSS box, and the buffer is drawn at device resolution — so on a
-     * 2x screen every grab landed at twice the position it was aimed at, far
-     * enough away to catch a different pill or none. A div has no width
-     * attribute, so the ratio is 1 and the coordinates are the CSS pixels the
-     * simulation already runs in.
-     */
-    const mouse = Mouse.create(mount);
+    const mouse = Mouse.create(renderer.domElement);
     mouseConstraint = MouseConstraint.create(engine, {
       mouse,
       constraint: { stiffness: 0.16, render: { visible: false } },
@@ -516,7 +445,6 @@ function run(mount, THREE, RoomEnvironment, Matter) {
       Composite.add(engine.world, item.body);
       dropped += 1;
     }
-    closeLidWhenAllInside();
     Engine.update(engine, dt);
     if (draw) {
       sync();
@@ -549,8 +477,6 @@ function run(mount, THREE, RoomEnvironment, Matter) {
           meshGirthPx: +(((bb.max.y - bb.min.y) / scale)).toFixed(1),
           bodyLenPx: +(it.body.bounds.max.x - it.body.bounds.min.x).toFixed(1),
           bodyGirthPx: +(it.body.bounds.max.y - it.body.bounds.min.y).toFixed(1),
-          x: Math.round(it.body.position.x),
-          y: Math.round(it.body.position.y),
         };
       });
       let overlaps = 0;
@@ -570,36 +496,9 @@ function run(mount, THREE, RoomEnvironment, Matter) {
         overlaps,
         worstDepthPx: +worst.toFixed(1),
         pileTopPx: Math.round(top),
-        lidClosed: ceilingIn,
         yardHeightPx: Math.round(height),
         clippedAtTop: top < 0,
       };
-    };
-
-    // Re-runs the whole drop from scratch and reports where the pile topped
-    // out. The tumble is random, so the only honest way to choose a pill size
-    // is to sample the spread rather than trust one settle.
-    window.__pillTrial = (steps = 800) => {
-      for (const it of items) {
-        if (it.released) Composite.remove(engine.world, it.body);
-        it.released = false;
-        it.mesh.visible = false;
-        Body.setPosition(it.body, { x: it.spawnX, y: it.spawnY });
-        Body.setAngle(it.body, (Math.random() - 0.5) * 1.5);
-        Body.setVelocity(it.body, { x: 0, y: 0 });
-        Body.setAngularVelocity(it.body, (Math.random() - 0.5) * 0.16);
-        // Sleeping bodies ignore being moved. Without this they sit at the
-        // spawn point for the whole trial and the pile never happens.
-        Sleeping.set(it.body, false);
-      }
-      if (ceilingIn) Composite.remove(engine.world, ceiling);
-      ceilingIn = false;
-      elapsed = 0;
-      dropped = 0;
-      for (let i = 0; i < steps; i++) step(1000 / 60, false);
-      sync();
-      renderer.render(scene, camera);
-      return window.__pillAudit().pileTopPx;
     };
 
     // Lets the pile be driven without a frame clock, which is the only way to
