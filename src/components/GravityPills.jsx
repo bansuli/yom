@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { ARTWORK } from "./heroArtwork.js";
 import "./GravityPills.css";
 
 /*
@@ -21,7 +22,13 @@ import "./GravityPills.css";
  */
 
 /*
- * Long, short, fat, thin — a pile of one pill repeated reads as a pattern.
+ * What falls, in the order it falls.
+ *
+ * The pills are off the page, not out of the file. Everything that draws them
+ * — pillShape, the glass material, the hull the collision comes from — is
+ * untouched, because they are a kind here rather than the only thing this
+ * knows how to make. Putting them back is putting their rows back in this
+ * array, and docs/HERO_OBJECTS.md has them written out.
  *
  * Every pill is placed by hand: where across the width it enters, the angle it
  * enters at, and how fast it is turning. Nothing here is random, and the
@@ -32,15 +39,12 @@ import "./GravityPills.css";
  * every load.
  */
 const PILLS = [
-  { color: "#FF6B4A", length: 1.22, girth: 0.34, at: 0.1, tilt: -0.3, spin: 0.02 },
-  { color: "#FFC53D", length: 0.85, girth: 0.42, at: 0.28, tilt: 0.24, spin: -0.03 },
-  { color: "#2BC8CE", length: 0.7, girth: 0.38, at: 0.61, tilt: 0.34, spin: -0.02 },
-  { color: "#C8F060", length: 1.25, girth: 0.3, at: 0.78, tilt: -0.2, spin: 0.03 },
-  { color: "#4A7BE8", length: 1.0, girth: 0.36, at: 0.91, tilt: 0.4, spin: -0.015 },
-  { color: "#F2A086", length: 0.8, girth: 0.44, at: 0.36, tilt: -0.36, spin: 0.02 },
-  { color: "#FFC53D", length: 0.95, girth: 0.33, at: 0.7, tilt: 0.3, spin: -0.025 },
-  { color: "#7C4AD6", length: 1.2, girth: 0.95, at: 0.47, tilt: -0.12, spin: 0.01, kind: "shirt" },
-  { color: "#FF6B4A", length: 1.3, girth: 1.3, at: 0.66, tilt: 0.1, spin: -0.008, kind: "bag" },
+  { art: "leopardBag", size: 1.05, at: 0.12, tilt: -0.14, spin: 0.012 },
+  { art: "darkJeans", size: 1.15, at: 0.3, tilt: 0.1, spin: -0.014 },
+  { art: "sunglasses", size: 0.95, at: 0.48, tilt: 0.24, spin: -0.02 },
+  { art: "eyeSkirt", size: 0.9, at: 0.62, tilt: -0.18, spin: 0.016 },
+  { art: "loafer", size: 0.8, at: 0.78, tilt: 0.3, spin: -0.02 },
+  { art: "blackBag", size: 1.1, at: 0.92, tilt: 0.12, spin: -0.01 },
 ];
 
 /*
@@ -177,29 +181,46 @@ function outlineFromGeometry(geometry, unitsToPx, marginPx) {
  * bag at all. Normalised so the taller side spans 1.
  */
 /*
- * Where the bag sits inside its own file. The artwork has transparent margin
- * around it, so mapping the whole image onto the traced silhouette would
- * stretch the bag out to the edges. These are the bounds of the opaque pixels,
- * measured off the file, with v flipped because a texture runs bottom-up and a
- * canvas runs top-down.
+ * The area centroid of a polygon.
+ *
+ * This is where Matter puts a body's origin, and it is not where three puts a
+ * mesh's — geometry.center() uses the bounding box. For anything symmetrical
+ * the two agree; for a bag they do not, because the mass is in the body while
+ * the handle is thin and tall. Centre the mesh on the box and it is drawn
+ * offset from the shape it collides with: the bag rests correctly on the floor
+ * and renders through it.
  */
-const BAG_UV = { u0: 0.155, u1: 0.8425, v0: 0.21, v1: 0.934 };
+function polygonCentroid(pts) {
+  let a = 0;
+  let cx = 0;
+  let cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % pts.length];
+    const f = x0 * y1 - x1 * y0;
+    a += f;
+    cx += (x0 + x1) * f;
+    cy += (y0 + y1) * f;
+  }
+  a *= 0.5;
+  return a === 0 ? [0, 0] : [cx / (6 * a), cy / (6 * a)];
+}
 
-const BAG_OUTER = [[-0.042,0.5],[0.06,0.495],[0.139,0.468],[0.194,0.435],[0.282,0.347],[0.333,0.255],[0.38,0.079],[0.38,-0.051],[0.37,-0.088],[0.375,-0.361],[0.37,-0.412],[0.356,-0.454],[0.329,-0.481],[0.282,-0.5],[-0.176,-0.5],[-0.292,-0.491],[-0.31,-0.481],[-0.352,-0.431],[-0.361,-0.38],[-0.356,-0.097],[-0.37,-0.069],[-0.38,-0.014],[-0.38,0.042],[-0.361,0.181],[-0.296,0.324],[-0.269,0.361],[-0.153,0.458],[-0.083,0.491],[-0.046,0.495]];
-const BAG_HOLE = [[-0.046,0.481],[0.051,0.481],[0.106,0.463],[0.19,0.417],[0.259,0.347],[0.31,0.255],[0.338,0.176],[0.361,0.06],[0.361,-0.06],[0.333,-0.046],[-0.352,-0.051],[-0.361,0.014],[-0.356,0.111],[-0.333,0.204],[-0.296,0.287],[-0.245,0.361],[-0.19,0.417],[-0.125,0.458],[-0.051,0.477]];
-
-function bagShape(THREE, s) {
+/** Builds the outline, and its hole, at a given size. */
+function artShape(THREE, art, s) {
   const shape = new THREE.Shape();
-  BAG_OUTER.forEach(([x, y], i) =>
+  art.outer.forEach(([x, y], i) =>
     i ? shape.lineTo(x * s, y * s) : shape.moveTo(x * s, y * s),
   );
   shape.closePath();
-  const hole = new THREE.Path();
-  BAG_HOLE.forEach(([x, y], i) =>
-    i ? hole.lineTo(x * s, y * s) : hole.moveTo(x * s, y * s),
-  );
-  hole.closePath();
-  shape.holes.push(hole);
+  if (art.hole.length > 2) {
+    const hole = new THREE.Path();
+    art.hole.forEach(([x, y], i) =>
+      i ? hole.lineTo(x * s, y * s) : hole.moveTo(x * s, y * s),
+    );
+    hole.closePath();
+    shape.holes.push(hole);
+  }
   return shape;
 }
 
@@ -468,25 +489,32 @@ function run(mount, THREE, RoomEnvironment, Matter) {
   // The bag's own artwork, if anything on the page is a bag. Loaded once and
   // shared; the loader returns the texture straight away and fills it in when
   // the file arrives.
-  let bagTexture = null;
-  if (PILLS.some((p) => p.kind === "bag")) {
-    bagTexture = new THREE.TextureLoader().load("/bag.svg");
-    bagTexture.colorSpace = THREE.SRGBColorSpace;
-    bagTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const textures = {};
+  const loader = new THREE.TextureLoader();
+  for (const name of new Set(PILLS.map((p) => p.art).filter(Boolean))) {
+    const t = loader.load(ARTWORK[name].src);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    textures[name] = t;
   }
 
   PILLS.forEach((spec, i) => {
-    const lengthPx = unit * spec.length;
-    const girthPx = unit * spec.girth;
+    /*
+     * A traced object is one number: its outline is already normalised, so a
+     * single scale keeps the proportions the photograph had. A pill is two,
+     * because length and girth are independent of each other.
+     */
+    const art = spec.art ? ARTWORK[spec.art] : null;
+    const isShirt = spec.kind === "shirt";
+    const flat = Boolean(art) || isShirt;
+
+    const lengthPx = art ? unit * spec.size : unit * spec.length;
+    const girthPx = art ? unit * spec.size : unit * spec.girth;
     const lw = lengthPx * scale;
     const gw = girthPx * scale;
 
-    const isShirt = spec.kind === "shirt";
-    const isBag = spec.kind === "bag";
-    const flat = isShirt || isBag;
-    // The bag is scaled on one axis for both, so the traced proportions hold.
-    const profile = isBag
-      ? bagShape(THREE, gw)
+    const profile = art
+      ? artShape(THREE, art, gw)
       : isShirt
         ? shirtShape(THREE, lw, gw)
         : pillShape(THREE, lw, gw);
@@ -509,7 +537,7 @@ function run(mount, THREE, RoomEnvironment, Matter) {
      * ShapeGeometry is the silhouette and its hole, and the picture is mapped
      * onto it.
      */
-    const geometry = isBag
+    const geometry = art
       ? new THREE.ShapeGeometry(profile, 24)
       : new THREE.ExtrudeGeometry(profile, {
           depth: solid,
@@ -520,9 +548,20 @@ function run(mount, THREE, RoomEnvironment, Matter) {
           bevelThickness: rim,
           curveSegments: 24,
         });
-    geometry.center();
+    if (art) {
+      // Aligned to where Matter will put the body, not to the bounding box.
+      const [ccx, ccy] = polygonCentroid(art.outer);
+      geometry.translate(-ccx * gw, -ccy * gw, 0);
+    } else if (isShirt) {
+      const [ccx, ccy] = polygonCentroid(shirtOutline(lw, gw));
+      geometry.translate(-ccx, -ccy, 0);
+    } else {
+      // A pill is symmetrical and its outline is taken from the centred
+      // geometry, so box and centroid are the same point.
+      geometry.center();
+    }
 
-    if (isBag) {
+    if (art) {
       // ShapeGeometry hands back UVs in shape units, so they are remapped onto
       // the patch of the file the bag actually occupies.
       geometry.computeBoundingBox();
@@ -536,8 +575,8 @@ function run(mount, THREE, RoomEnvironment, Matter) {
         const fy = (pos.getY(v) - bb.min.y) / spanY;
         uv.setXY(
           v,
-          BAG_UV.u0 + fx * (BAG_UV.u1 - BAG_UV.u0),
-          BAG_UV.v0 + fy * (BAG_UV.v1 - BAG_UV.v0),
+          art.uv.u0 + fx * (art.uv.u1 - art.uv.u0),
+          art.uv.v0 + fy * (art.uv.v1 - art.uv.v0),
         );
       }
       uv.needsUpdate = true;
@@ -560,12 +599,12 @@ function run(mount, THREE, RoomEnvironment, Matter) {
      * the pill's girth rather than an arbitrary number; and the clearcoat
      * stays, because a glass pill still has a hard polished skin.
      */
-    const material = isBag
+    const material = art
       ? // Unlit and untone-mapped, so the artwork arrives with its own colours
         // rather than the scene's. Lighting it would be lighting a photograph
         // that already has its light in it.
         new THREE.MeshBasicMaterial({
-          map: bagTexture,
+          map: textures[spec.art],
           transparent: true,
           side: THREE.DoubleSide,
           toneMapped: false,
@@ -622,8 +661,10 @@ function run(mount, THREE, RoomEnvironment, Matter) {
 
     // The bag's colliding outline is its outer boundary only — the handle hole
     // is a hole in the glass, not somewhere another pill should fall through.
-    const outline = isBag
-      ? BAG_OUTER.map(([px, py]) => ({
+    // A traced object's colliding outline is its outer boundary only — a
+    // handle's gap is a hole in the picture, not a way through the object.
+    const outline = art
+      ? art.outer.map(([px, py]) => ({
           x: px * girthPx * 1.02,
           y: -py * girthPx * 1.02,
         }))
@@ -884,7 +925,7 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     Engine.clear(engine);
     geometries.forEach((g) => g.dispose());
     materials.forEach((m) => m.dispose());
-    if (bagTexture) bagTexture.dispose();
+    Object.values(textures).forEach((t) => t.dispose());
     catcher.geometry.dispose();
     catcher.material.dispose();
     backdrop.geometry.dispose();
