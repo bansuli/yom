@@ -1,0 +1,284 @@
+/*
+ * The glass, taken down to the bubble's.
+ *
+ * It was a white surface with a blur behind it — closer to frosted paper than
+ * to the pet's shell. What makes the bubble read as glass is that you can see
+ * straight through it and it is held together by a lit rim and a shadow, so
+ * that is what this does now: a wash rather than a fill, a heavier blur to
+ * carry the softness the tint used to, and a bright inner edge along the top
+ * where the light would sit.
+ *
+ * The links stay legible because the page underneath is off-white going to
+ * blush — dark ink on a pale ground either way. Over a photograph this
+ * transparency would not survive.
+ */
+.mm {
+  --mm-glass: rgba(255, 255, 255, 0.2);
+  --mm-edge: rgba(255, 255, 255, 0.85);
+  --mm-ink: #111111;
+  --mm-soft: rgba(17, 17, 17, 0.45);
+  --mm-shadow:
+    0 14px 40px rgba(120, 60, 50, 0.13),
+    0 2px 8px rgba(120, 60, 50, 0.07),
+    /* The lit rim, inside the edge — this is most of what makes it an object
+       now that there is almost no fill left to see. */
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.4);
+
+  /* Overshoots and comes back — the spring, without a spring. */
+  --mm-spring: cubic-bezier(0.22, 1.16, 0.32, 1);
+
+  /*
+   * The open size, named once and used by both the panel and the card inside
+   * it, because the two have to agree exactly.
+   */
+  --mm-open-w: min(78vw, 340px);
+  --mm-open-h: 270px;
+
+  position: relative;
+  width: 46px;
+  height: 46px;
+}
+
+/*
+ * The panel shares the button's top right corner, so it grows down and to the
+ * left out of exactly where the pill was standing.
+ */
+.mm-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 23px;
+  overflow: hidden;
+  background: var(--mm-glass);
+  border: 1px solid var(--mm-edge);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  backdrop-filter: blur(30px) saturate(170%);
+  box-shadow: var(--mm-shadow);
+  transition:
+    width 620ms var(--mm-spring),
+    height 620ms var(--mm-spring),
+    border-radius 620ms var(--mm-spring);
+}
+
+/*
+ * An explicit height, not auto.
+ *
+ * height: auto cannot be interpolated, so the panel snapped instantly to full
+ * height while the width glided across — the morph came apart into two
+ * different animations. Given a number, both dimensions travel together and it
+ * reads as one shape growing.
+ */
+.mm[data-open] .mm-panel {
+  width: var(--mm-open-w);
+  height: var(--mm-open-h);
+  border-radius: 26px;
+}
+
+/*
+ * Sized for the open card at all times, so nothing reflows while the panel
+ * grows — it is laid out once and the panel simply stops clipping it.
+ */
+.mm-inner {
+  width: var(--mm-open-w);
+  height: var(--mm-open-h);
+  padding: 1.9rem 1.6rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Links ── */
+.mm-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  /* Shallow, so the flip reads as the line standing up off the floor of the
+     card rather than tumbling in from somewhere off screen. */
+  perspective: 320px;
+  perspective-origin: bottom;
+}
+
+.mm-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  opacity: 0;
+  transform: rotateX(78deg) translateY(26px);
+  transform-origin: bottom;
+  /*
+   * Each line waits its turn, and every one of them waits for the panel. The
+   * stagger is the index handed down as a custom property, so adding a link
+   * needs no change here.
+   */
+  transition:
+    opacity 300ms ease,
+    transform 460ms var(--mm-spring);
+  transition-delay: calc(300ms + var(--i) * 60ms);
+}
+
+.mm[data-open] .mm-row {
+  opacity: 1;
+  transform: none;
+}
+
+/* Closing, everything leaves at once rather than in reverse order — a stagger
+   on the way out reads as hesitation. */
+.mm:not([data-open]) .mm-row,
+.mm:not([data-open]) .mm-foot {
+  transition-delay: 0ms;
+  transition-duration: 160ms;
+}
+
+/*
+ * The display face rather than the body one. Set in the same grotesk the page
+ * reads in, the menu was just larger paragraph text — it needs a voice of its
+ * own to be the thing the page stops for. Smaller than before, because this
+ * one is far heavier and the old size at this weight filled the card.
+ */
+.mm-link {
+  font-family: var(--font-display);
+  font-size: clamp(1.25rem, 3.6vw, 1.6rem);
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  line-height: 1.3;
+  color: var(--mm-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mm-link:focus-visible {
+  outline: 2px solid var(--mm-ink);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ── Foot ── */
+.mm-foot {
+  margin-top: auto;
+  padding-top: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 300ms ease,
+    transform 420ms var(--mm-spring);
+  transition-delay: calc(340ms + var(--i) * 60ms);
+}
+
+.mm[data-open] .mm-foot {
+  opacity: 1;
+  transform: none;
+}
+
+.mm-foot-label {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mm-soft);
+}
+
+.mm-foot-link {
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+  letter-spacing: -0.01em;
+  color: var(--mm-ink);
+  text-decoration: none;
+  width: fit-content;
+  border-bottom: 1px solid transparent;
+  transition: border-color 200ms ease;
+}
+
+.mm-foot-link:hover,
+.mm-foot-link:focus-visible {
+  border-bottom-color: var(--mm-ink);
+}
+
+/* ── The button ── */
+.mm-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: none;
+  border-radius: 23px;
+  background: none;
+  overflow: hidden;
+  cursor: pointer;
+  font-family: var(--font-body);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mm-btn:focus-visible {
+  outline: 2px solid var(--mm-ink);
+  outline-offset: 3px;
+}
+
+.mm-icon {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 12px;
+  margin: 0 auto;
+}
+
+.mm-icon span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--mm-ink);
+  transition:
+    top 220ms var(--mm-spring),
+    opacity 140ms linear,
+    transform 260ms var(--mm-spring) 200ms;
+}
+
+.mm-icon span:nth-child(1) { top: 0; }
+.mm-icon span:nth-child(2) { top: 5.25px; }
+.mm-icon span:nth-child(3) { top: 10.5px; }
+
+.mm[data-open] .mm-icon span:nth-child(1) {
+  top: 5.25px;
+  transform: rotate(45deg);
+}
+
+/* The middle one has nowhere to go, so it leaves. */
+.mm[data-open] .mm-icon span:nth-child(2) {
+  opacity: 0;
+}
+
+.mm[data-open] .mm-icon span:nth-child(3) {
+  top: 5.25px;
+  transform: rotate(-45deg);
+}
+
+/* Closing, the bars unturn before they part — the reverse of opening. */
+.mm:not([data-open]) .mm-icon span {
+  transition:
+    top 220ms var(--mm-spring) 180ms,
+    opacity 140ms linear 200ms,
+    transform 220ms var(--mm-spring);
+}
+
+/*
+ * The morph is the whole idea, so with motion reduced the panel does not open
+ * slowly — it is simply the size it needs to be, and the links are simply
+ * there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .mm-panel,
+  .mm-row,
+  .mm-foot,
+  .mm-icon span {
+    transition: none;
+  }
+}
