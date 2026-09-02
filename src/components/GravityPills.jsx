@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { ARTWORK } from "./heroArtwork.js";
+import { GARMENTS } from "./heroGarments.js";
 import "./GravityPills.css";
 
 /*
@@ -24,27 +25,40 @@ import "./GravityPills.css";
 /*
  * What falls, in the order it falls.
  *
- * The pills are off the page, not out of the file. Everything that draws them
- * — pillShape, the glass material, the hull the collision comes from — is
- * untouched, because they are a kind here rather than the only thing this
- * knows how to make. Putting them back is putting their rows back in this
- * array, and docs/HERO_OBJECTS.md has them written out.
+ * Clothes, drawn rather than photographed, in the same glass the capsules
+ * were. The photographs are off the page and not out of the file — the traced
+ * outlines, the flat unlit material and the silhouette their collision came
+ * from are all untouched, and so is everything that draws a capsule. Both are
+ * a kind here rather than the only thing this knows how to make; putting
+ * either back is putting its rows back in this array, and docs/HERO_OBJECTS.md
+ * has them written out.
  *
- * Every pill is placed by hand: where across the width it enters, the angle it
+ * Why drawn and not photographed: six product shots come from six studios with
+ * six different lights in them, and no arrangement makes them belong to one
+ * scene. Cut out and laid on a flat colour they read as a marketplace grid,
+ * because that is the format. Drawn in one hand and lit by this room, they are
+ * objects in this world instead of pictures placed on top of it.
+ *
+ * Each is placed by hand: where across the width it enters, the angle it
  * enters at, and how fast it is turning. Nothing here is random, and the
  * simulation is fed a fixed step, so the same page gives the same pile every
- * time — the same pills in the same places at the same angles. That matters
+ * time — the same things in the same places at the same angles. That matters
  * beyond looking consistent: these are going to become the links to About,
  * How it works and the rest, and a link should not be somewhere different on
  * every load.
+ *
+ * `size` is the longer side, because the outlines are normalised to it. A
+ * loafer is two and a half times as wide as it is tall and a pair of trousers
+ * is nearly twice as tall as wide, so the same number means the same amount of
+ * object either way rather than the same width.
  */
 const PILLS = [
-  { art: "leopardBag", size: 1.05, at: 0.12, tilt: -0.14, spin: 0.012 },
-  { art: "darkJeans", size: 1.15, at: 0.3, tilt: 0.1, spin: -0.014 },
-  { art: "sunglasses", size: 0.95, at: 0.48, tilt: 0.24, spin: -0.02 },
-  { art: "eyeSkirt", size: 0.9, at: 0.62, tilt: -0.18, spin: 0.016 },
-  { art: "loafer", size: 0.8, at: 0.78, tilt: 0.3, spin: -0.02 },
-  { art: "blackBag", size: 1.1, at: 0.92, tilt: 0.12, spin: -0.01 },
+  { garment: "tee", color: "#FF6B4A", size: 1.0, at: 0.102, tilt: -0.3, spin: 0.02 },
+  { garment: "trousers", color: "#4A7BE8", size: 1.15, at: 0.262, tilt: 0.24, spin: -0.03 },
+  { garment: "sunglasses", color: "#2BC8CE", size: 0.95, at: 0.419, tilt: 0.34, spin: -0.02 },
+  { garment: "skirt", color: "#F2A086", size: 0.95, at: 0.595, tilt: -0.2, spin: 0.03 },
+  { garment: "sneaker", color: "#D99A00", size: 0.85, at: 0.766, tilt: 0.4, spin: -0.015 },
+  { garment: "dress", color: "#8FAF6E", size: 1.1, at: 0.917, tilt: -0.36, spin: 0.02 },
 ];
 
 /*
@@ -65,7 +79,7 @@ function saturate(THREE, hex) {
 
 const DROP_INTERVAL = 230; // ms between one pill being released and the next
 const ENTRY_SPEED = 6; // px per tick, downward, at the moment a pill enters
-const PAPER = "#f9d9d1"; // the page behind the canvas, for the glass to refract
+const PAPER = "#faf8f7"; // the page behind the canvas, for the glass to refract
 
 /*
  * A long lens, far back, rather than a wide one up close.
@@ -302,7 +316,7 @@ function pillShape(THREE, length, girth) {
   return s;
 }
 
-export default function GravityPills() {
+export default function GravityPills({ startDelay = 0 }) {
   const mountRef = useRef(null);
 
   useEffect(() => {
@@ -324,7 +338,7 @@ export default function GravityPills() {
         // Without this Matter refuses concave outlines and silently falls back
         // to their convex hull — which is the thing this is here to avoid.
         M.Common.setDecomp(decomp.default ?? decomp);
-        stop = run(mount, THREE, RoomEnvironment, M);
+        stop = run(mount, THREE, RoomEnvironment, M, startDelay);
       })
       .catch(() => {
         // A decorative layer is not worth breaking the page over.
@@ -334,12 +348,14 @@ export default function GravityPills() {
       disposed = true;
       stop();
     };
-  }, []);
+    // startDelay is a constant from the caller; it is in here so the scene is
+    // never built against a stale one, not because it is expected to change.
+  }, [startDelay]);
 
   return <div className="pill-yard" ref={mountRef} aria-hidden="true" />;
 }
 
-function run(mount, THREE, RoomEnvironment, Matter) {
+function run(mount, THREE, RoomEnvironment, Matter, startDelay = 0) {
   const { Engine, Composite, Bodies, Body, Mouse, MouseConstraint, Events } = Matter;
 
   let width = mount.clientWidth;
@@ -505,16 +521,24 @@ function run(mount, THREE, RoomEnvironment, Matter) {
      * because length and girth are independent of each other.
      */
     const art = spec.art ? ARTWORK[spec.art] : null;
+    /*
+     * A garment is a drawn outline in glass, so it takes its silhouette the
+     * same way a photograph does and its material the same way a pill does.
+     * That split is the whole point: the shape says clothing, the material
+     * says this scene.
+     */
+    const garment = spec.garment ? GARMENTS[spec.garment] : null;
+    const traced = art || garment;
     const isShirt = spec.kind === "shirt";
-    const flat = Boolean(art) || isShirt;
+    const flat = Boolean(traced) || isShirt;
 
-    const lengthPx = art ? unit * spec.size : unit * spec.length;
-    const girthPx = art ? unit * spec.size : unit * spec.girth;
+    const lengthPx = traced ? unit * spec.size : unit * spec.length;
+    const girthPx = traced ? unit * spec.size : unit * spec.girth;
     const lw = lengthPx * scale;
     const gw = girthPx * scale;
 
-    const profile = art
-      ? artShape(THREE, art, gw)
+    const profile = traced
+      ? artShape(THREE, traced, gw)
       : isShirt
         ? shirtShape(THREE, lw, gw)
         : pillShape(THREE, lw, gw);
@@ -526,8 +550,22 @@ function run(mount, THREE, RoomEnvironment, Matter) {
      * bevel three times larger than the pills' — enough to swallow the notch
      * under each sleeve and render the whole thing as a blob.
      */
-    const solid = flat ? gw * 0.15 : gw * 0.52;
-    const rim = flat ? gw * 0.045 : gw * 0.2;
+    /*
+     * A garment sits between the two. A photograph is a decal and wants no
+     * depth at all; a capsule is a solid lozenge. Glass needs a distance to
+     * travel through before it picks up any colour, so at the photograph's
+     * thickness a drawn garment comes back as clear as a window — which is
+     * exactly the sticker the t-shirt looked like the first time. A third of
+     * the girth gives the light something to cross without rounding the
+     * silhouette into a blob.
+     *
+     * The bevel stays near the flat one. It was a bevel three times the pills'
+     * that swallowed the notch under each sleeve before, and these shapes have
+     * the same narrow gaps — between the legs, under the hood, either side of
+     * the bridge.
+     */
+    const solid = garment ? gw * 0.5 : flat ? gw * 0.15 : gw * 0.52;
+    const rim = garment ? gw * 0.02 : flat ? gw * 0.045 : gw * 0.2;
 
     /*
      * The bag is flat, because it is a photograph.
@@ -548,10 +586,21 @@ function run(mount, THREE, RoomEnvironment, Matter) {
           bevelThickness: rim,
           curveSegments: 24,
         });
-    if (art) {
-      // Aligned to where Matter will put the body, not to the bounding box.
-      const [ccx, ccy] = polygonCentroid(art.outer);
-      geometry.translate(-ccx * gw, -ccy * gw, 0);
+    if (traced) {
+      /*
+       * Aligned to where Matter will put the body, not to the bounding box.
+       * Both of these take their colliding outline from the same points, and
+       * Matter centres a body on the area centroid while geometry.center()
+       * uses the extremes — on a shape that is heavier at one end the two are
+       * a good few percent apart, which is a mesh that hangs off its own
+       * physics. It is why the leopard bag used to sit under the line.
+       *
+       * The z shift is only for the extruded ones: ExtrudeGeometry builds from
+       * z 0 forward, so a garment would otherwise sit half a thickness in
+       * front of where it is lit.
+       */
+      const [ccx, ccy] = polygonCentroid(traced.outer);
+      geometry.translate(-ccx * gw, -ccy * gw, garment ? -solid / 2 : 0);
     } else if (isShirt) {
       const [ccx, ccy] = polygonCentroid(shirtOutline(lw, gw));
       geometry.translate(-ccx, -ccy, 0);
@@ -615,15 +664,30 @@ function run(mount, THREE, RoomEnvironment, Matter) {
       roughness: 0.025,
       transmission: 1,
       ior: 1.46,
-      thickness: gw * 1.0,
+      // The volume the refraction is computed through. A garment is a third
+      // of a capsule's depth, so handed a capsule's thickness it stains the
+      // light for a distance that is not there and comes out as solid plastic.
+      thickness: garment ? gw * 0.95 : gw * 1.0,
       // Raw, not saturated. Attenuation deepens the colour on its own as the
       // light crosses the body, so feeding it a boosted one stacks two effects
       // and the glass comes out looking like solid candy.
       attenuationColor: new THREE.Color(spec.color),
-      // Just over two girths. Under one and almost nothing makes it through,
+      // One and a half girths. Under one and almost nothing makes it through,
       // which is opacity rather than glass; at five the colour washes out
       // entirely and they come back white.
-      attenuationDistance: gw * 2.2,
+      //
+      // Pulled in from 2.2 when the ground went from blush to off-white. The
+      // pills refract whatever is behind them, so on the pink page they were
+      // picking up warmth the page was giving them for free. On near-white
+      // they were being handed white, and the same distance that read as
+      // tinted glass there read as barely-there here.
+      //
+      // The garments keep the same distance. Shortening it for them gave solid
+      // poster colour rather than glass; what actually went wrong the first
+      // time was the palette, not the tint. Three of these were so light to
+      // begin with that a pastel of them is white, so the fix is a deeper base
+      // on those, not a heavier stain on all of them.
+      attenuationDistance: gw * 1.5,
       clearcoat: 1,
       clearcoatRoughness: 0.03,
       specularIntensity: 1,
@@ -663,8 +727,8 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     // is a hole in the glass, not somewhere another pill should fall through.
     // A traced object's colliding outline is its outer boundary only — a
     // handle's gap is a hole in the picture, not a way through the object.
-    const outline = art
-      ? art.outer.map(([px, py]) => ({
+    const outline = traced
+      ? traced.outer.map(([px, py]) => ({
           x: px * girthPx * 1.02,
           y: -py * girthPx * 1.02,
         }))
@@ -780,7 +844,9 @@ function run(mount, THREE, RoomEnvironment, Matter) {
     // reads a frame is a cheaper guarantee than either of them.
     if (mount.clientWidth !== width || mount.clientHeight !== height) onResize();
     elapsed += dt;
-    while (dropped < items.length && elapsed > dropped * DROP_INTERVAL) {
+    // Held back while the wordmark grows in. The clock still runs, so the
+    // spacing between one and the next is unchanged — only the first is late.
+    while (dropped < items.length && elapsed > startDelay + dropped * DROP_INTERVAL) {
       const item = items[dropped];
       item.released = true;
       item.mesh.visible = true;
