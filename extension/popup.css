@@ -124,3 +124,7 @@ button.secondary {
   color: var(--muted);
   line-height: 1.25;
 }
+
+.hidden {
+  display: none !important;
+}

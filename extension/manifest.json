@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "yom",
-  "version": "1.1.45",
+  "version": "1.1.48",
   "description": "yom — a stylist on clothing shops, wired to your calendar and closet.",
   "action": {
     "default_title": "yom",

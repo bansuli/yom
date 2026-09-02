@@ -69,6 +69,7 @@
 .yom-sos-toggle,
 .yom-panel-head button,
 .yom-new-yom,
+.yom-account-cta button,
 .yom-buddy,
 .yom-mode-pill {
   pointer-events: auto !important;
@@ -605,6 +606,44 @@
   font-size: 1rem;
 }
 
+.yom-account-cta {
+  margin-bottom: 0.65rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--yom-lime) 28%, var(--yom-paper));
+  border: 1px solid color-mix(in srgb, var(--yom-ink) 12%, transparent);
+}
+
+.yom-account-cta p {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--yom-ink);
+}
+
+.yom-account-btns {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.yom-account-cta button {
+  flex: 1;
+  border: 1px solid color-mix(in srgb, var(--yom-ink) 22%, transparent);
+  border-radius: 999px;
+  padding: 0.42rem 0.55rem;
+  font-family: var(--yom-font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--yom-lime);
+  color: var(--yom-ink);
+  cursor: pointer;
+}
+
+.yom-account-cta button.ghost {
+  background: var(--yom-paper);
+  font-weight: 600;
+}
+
 .yom-panel-head button {
   border: none;
   background: transparent;
@@ -659,10 +698,11 @@
 .yom-pdp-note,
 .yom-cart-panel {
   font-family: "Schibsted Grotesk", "Helvetica Neue", system-ui, sans-serif !important;
+  font-size: 16px !important;
   color: #111111 !important;
   letter-spacing: normal !important;
   text-transform: none !important;
-  line-height: 1.35 !important;
+  line-height: 1.45 !important;
   -webkit-font-smoothing: antialiased;
   box-sizing: border-box;
 }
@@ -948,15 +988,15 @@
 
 .yom-pdp-kicker {
   font-family: "Caveat", cursive !important;
-  font-size: 1.2rem !important;
+  font-size: 18px !important;
   font-weight: 700 !important;
   color: #5a5a5a !important;
   margin-bottom: 0.12rem;
 }
 
 .yom-pdp-note h3 {
-  margin: 0 0 0.25rem !important;
-  font-size: 1.28rem !important;
+  margin: 0 0 0.35rem !important;
+  font-size: 22px !important;
   font-weight: 700 !important;
   line-height: 1.35 !important;
   color: #111 !important;
@@ -966,7 +1006,7 @@
 
 .yom-pdp-note > p {
   margin: 0 !important;
-  font-size: 1.05rem !important;
+  font-size: 16px !important;
   color: #5a5a5a !important;
   line-height: 1.5 !important;
 }
@@ -987,11 +1027,11 @@
 
 .yom-pdp-closet strong {
   display: block;
-  font-size: 0.94rem !important;
+  font-size: 15px !important;
 }
 
 .yom-pdp-closet span {
-  font-size: 0.72rem !important;
+  font-size: 14px !important;
   color: #5a5a5a !important;
 }
 
@@ -999,8 +1039,8 @@
   background: color-mix(in srgb, #c8f060 32%, #fff);
   border-radius: 10px;
   padding: 0.55rem 0.65rem;
-  font-size: 0.84rem !important;
-  line-height: 1.4 !important;
+  font-size: 15px !important;
+  line-height: 1.45 !important;
   margin-top: 0.65rem;
   color: #111 !important;
 }
@@ -1014,7 +1054,7 @@
 .yom-fact em {
   display: block;
   font-style: normal;
-  font-size: 0.78rem !important;
+  font-size: 12px !important;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #5a5a5a !important;
@@ -1023,9 +1063,25 @@
 
 .yom-fact span {
   display: block;
-  font-size: 1rem !important;
+  font-size: 15px !important;
   line-height: 1.45 !important;
   color: #111 !important;
+}
+
+.yom-pdp-note .yom-fb-ask {
+  font-size: 15px !important;
+  line-height: 1.4 !important;
+  font-weight: 600 !important;
+}
+
+.yom-pdp-note .yom-fb-chip,
+.yom-pdp-note .yom-fb-btn {
+  font-size: 14px !important;
+}
+
+.yom-pdp-note .yom-chip {
+  font-size: 14px !important;
+  padding: 0.5rem 0.85rem !important;
 }
 
 .yom-regret {

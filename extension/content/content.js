@@ -139,20 +139,22 @@
     };
   }
 
-  function applyPersona(trait, preBuy, keepLean) {
+  function applyPersonaSilent(trait, preBuy, keepLean) {
     state.trait = trait;
     state.preBuy = preBuy;
     state.keepLean = keepLean;
     state.read = composeRead(trait, preBuy, keepLean);
     saveState();
-    closeAsk();
-    dockBuddy(true);
-    render();
-    whisper({ title: (state.read || "this is you").split(/[.!?]/)[0] }, 4200);
   }
 
   function hasPersona() {
     return Boolean(state.trait && state.read);
+  }
+
+  function ensurePersona() {
+    if (hasPersona()) return;
+    const h = hashedPersona();
+    applyPersonaSilent(h.trait, h.preBuy, h.keepLean);
   }
 
   function demoPersona() {
@@ -329,18 +331,20 @@
     return /gmail:|ordered|returned|closet/i.test(memory);
   }
 
-  function autoActivateSession() {
-    if (state.mode) return false;
-    const loggedIn = Boolean(livePersona()?.userId);
-    if (!loggedIn && !hasGoogleContext()) return false;
-    const events = occasionEvents();
-    const next = events.find((e) => (e.kind || "generic") !== "rush") || events[0];
-    if (next?.label) {
-      finishSession("purpose", next.label, null);
-      return true;
+  function isLoggedIn() {
+    return Boolean(liveAccount?.access_token && liveAccount?.user?.id);
+  }
+
+  function openYomUrl(path) {
+    const url = String(path || "").startsWith("http")
+      ? path
+      : `https://youryom.com${String(path || "/onboarding").startsWith("/") ? path : `/${path}`}`;
+    try {
+      chrome.runtime.sendMessage({ type: "OPEN_SHOP", url });
+    } catch {
+      window.open(url, "_blank", "noopener");
     }
-    finishSession("browse", null, null);
-    return true;
+    trackEvent("account_cta_clicked", { url, surface: "extension" });
   }
 
   function isReformationHost() {
@@ -985,6 +989,19 @@
     link.href =
       "https://fonts.googleapis.com/css2?family=Archivo+Black&family=Caveat:wght@500;700&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap";
     (document.head || document.documentElement).appendChild(link);
+  }
+
+  if (!document.getElementById("yom-overlay-page")) {
+    fetch(chrome.runtime.getURL("content/overlay.css"))
+      .then((r) => r.text())
+      .then((css) => {
+        if (document.getElementById("yom-overlay-page")) return;
+        const pageStyle = document.createElement("style");
+        pageStyle.id = "yom-overlay-page";
+        pageStyle.textContent = css;
+        (document.head || document.documentElement).appendChild(pageStyle);
+      })
+      .catch(() => {});
   }
 
   const buddy = el("button", {
@@ -2190,7 +2207,8 @@
     }
 
     if (!state.mode) {
-      if (!autoActivateSession()) openModePicker();
+      if (!isLoggedIn()) openAccountGate();
+      else openModePicker();
       return;
     }
     state.panelOpen = !state.panelOpen;
@@ -2201,6 +2219,27 @@
     state.panelOpen = !state.panelOpen;
     renderPanel();
   });
+
+  function openAccountGate() {
+    trackEvent("account_gate_shown", { surface: "extension" });
+    ask({
+      title: "create your yom",
+      body: "calendar, closet, and sizes follow you — not just this browser.",
+      options: [
+        { label: "create yom", block: true, onPick: () => openYomUrl("/onboarding?from=extension") },
+        { label: "log in", block: true, onPick: () => openYomUrl("/signin?from=extension") },
+      ],
+      otherChoices: [
+        {
+          label: "browse without account",
+          onPick: () => {
+            trackEvent("account_gate_skipped", { surface: "extension" });
+            openModePicker();
+          },
+        },
+      ],
+    });
+  }
 
   function openModePicker() {
     saveState();
@@ -2283,49 +2322,23 @@
     if (mode !== "sos") sosMin = false;
     if (mode === "sos") runSos();
     else whisper(welcomeTip());
-  }
-
-  function askPersona() {
-    ask({
-      title: "which is most you?",
-      body: "this is how yom reads you — it stays with this browser.",
-      options: DATA.persona.traits.map((t) => ({
-        label: t.label,
-        block: true,
-        onPick: () => askKeepLean(t.id),
-      })),
-      otherChoices: [
-        { label: "skip for now", onPick: () => applyHashedPersona() },
-      ],
-    });
-  }
-
-  function askKeepLean(trait) {
-    ask({
-      title: "you tend to keep…",
-      body: "the pieces that actually get worn.",
-      options: DATA.persona.keep.map((k) => ({
-        label: k.label,
-        onPick: () => {
-          const h = hashedPersona();
-          applyPersona(trait, h.preBuy, k.id);
-        },
-      })),
-      otherChoices: [
-        { label: "skip for now", onPick: () => applyHashedPersona(trait) },
-      ],
-    });
-  }
-
-  function applyHashedPersona(trait) {
-    const h = hashedPersona();
-    applyPersona(trait || h.trait, h.preBuy, h.keepLean);
+    if (!isLoggedIn()) {
+      setTimeout(() => {
+        whisper(
+          {
+            title: "create your yom",
+            body: "sizes, closet, and calendar stick when you have an account.",
+          },
+          5000
+        );
+      }, 4200);
+    }
   }
 
   function openPurposePicker() {
     ask({
       title: "what’s coming up?",
-      body: "pulled from your calendar.",
+      body: isLoggedIn() ? "pulled from your calendar." : "create a yom to pull from your calendar.",
       options: occasionEvents().map((e) => ({
         label: e.label,
         sub: `${e.when} · ${e.source}`,
@@ -2413,11 +2426,22 @@
           .join(" · ")}`
       : "";
 
+    const accountHtml = isLoggedIn()
+      ? ""
+      : `<div class="yom-account-cta">
+          <p>calendar + closet need a yom account.</p>
+          <div class="yom-account-btns">
+            <button type="button" data-create-yom>create yom</button>
+            <button type="button" data-login-yom class="ghost">log in</button>
+          </div>
+        </div>`;
+
     panel.innerHTML = `
       <div class="yom-panel-head">
         <strong>context</strong>
         <button type="button" data-close>close</button>
       </div>
+      ${accountHtml}
       <div class="yom-field">
         <label>shopping for</label>
         <div class="yom-chips" data-context></div>
@@ -2438,6 +2462,11 @@
         renderPanel();
       });
 
+    panel.querySelector("[data-create-yom]") &&
+      onTap(panel.querySelector("[data-create-yom]"), () => openYomUrl("/onboarding?from=extension"));
+    panel.querySelector("[data-login-yom]") &&
+      onTap(panel.querySelector("[data-login-yom]"), () => openYomUrl("/signin?from=extension"));
+
     panel.querySelector("[data-new-yom]") &&
       onTap(panel.querySelector("[data-new-yom]"), () => {
         state.userId = newUserId();
@@ -2445,10 +2474,10 @@
         state.preBuy = null;
         state.keepLean = null;
         state.read = null;
-        saveState();
+        ensurePersona();
         state.panelOpen = false;
         renderPanel();
-        askPersona();
+        openModePicker();
       });
 
     attachChips(
@@ -3793,8 +3822,7 @@
           hydrateSizesFromProfile();
         }
         if (state.panelOpen || askEl) render();
-        if (!state.mode) autoActivateSession();
-        else if (state.mode === "purpose" && !state.purpose && occasionEvents()[0]?.label) {
+        if (state.mode === "purpose" && !state.purpose && occasionEvents()[0]?.label) {
           state.purpose = occasionEvents()[0].label;
           saveState();
         }
@@ -3813,6 +3841,8 @@
     if (area !== "local" || !changes[LIVE_KEY]) return;
     liveAccount = changes[LIVE_KEY].newValue || null;
     applyLivePersona();
+    if (isLoggedIn() && askEl) closeAsk();
+    if (state.panelOpen) renderPanel();
   });
 
   async function boot() {
@@ -3833,9 +3863,9 @@
       state = defaultState();
     }
     applyLivePersona();
+    ensurePersona();
     hydrateSizesFromProfile();
     loadGoogleEvents();
-    if (!state.mode) autoActivateSession();
     dockBuddy(true);
     startHoverWatch();
     try {

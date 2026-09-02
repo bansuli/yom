@@ -34,6 +34,7 @@ test("detects shoes vs denim vs clothes", () => {
   eq(detectFamily({ href: "/products/jeans" }), "denim", "jeans url");
   eq(detectFamily({ name: "silk slip dress" }), "clothes", "dress");
   eq(detectFamily({ name: "denim jacket" }), "clothes", "denim jacket is not jeans");
+  eq(detectFamily({ name: "stretch denim pant" }), "clothes", "denim fabric is not waist sizing");
 });
 
 test("noisy picker copy still yields a size", () => {
@@ -71,6 +72,19 @@ test("normalizes denim waist", () => {
   eq(normalizeLabel("26", "denim").system, "denim", "26");
   eq(normalizeLabel("26x32", "denim").value, "26", "26x32 waist");
   eq(normalizeLabel("W26 L30", "denim").value, "26", "W26");
+  eq(normalizeLabel("6", "denim").label, "us 6", "us numeric on denim-tagged listing");
+  eq(normalizeLabel("10", "denim").label, "us 10", "two-digit us numeric");
+});
+
+test("everlane us 6 matches when listing uses numeric sizes", () => {
+  const options = collectOptions(["00", "0", "2", "4", "6", "8", "10"], "denim");
+  const m = matchUserSize(
+    { family: "denim", options, name: "Everywhere Pant" },
+    { brands: { everlane: "US 6" } },
+    { brand: "Everlane", name: "Everywhere Pant" }
+  );
+  eq(m.status, "in_stock", "status");
+  eq(m.listingLabel, "us 6", "listing");
 });
 
 test("US 4 matches Reformation 4", () => {
