@@ -1,0 +1,324 @@
+/*
+ * Same glass as the pet's bubble: a wash rather than a fill, a heavy blur to
+ * carry the softness, and a lit rim doing the work of making it an object.
+ */
+.dm {
+  --dm-glass: rgba(255, 255, 255, 0.2);
+  --dm-edge: rgba(255, 255, 255, 0.85);
+  --dm-ink: #111111;
+  --dm-soft: rgba(17, 17, 17, 0.52);
+  --dm-line: rgba(17, 17, 17, 0.16);
+  --dm-mark: rgba(17, 17, 17, 0.72);
+  --dm-mark-size: 5px;
+  --dm-rim:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.4);
+  --dm-spring: cubic-bezier(0.22, 1.16, 0.32, 1);
+
+  position: relative;
+}
+
+/* ── Trigger ── */
+/*
+ * The icon on its own — no chip around it.
+ *
+ * The frame belongs to the panel, which is the thing being drawn. Repeating it
+ * around the trigger boxed the lines in and made two rectangles where the page
+ * only needs one.
+ */
+.dm-trigger {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  color: var(--dm-ink);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dm-trigger:focus-visible {
+  outline: 2px solid var(--dm-ink);
+  outline-offset: 3px;
+}
+
+.dm-icon {
+  position: relative;
+  display: block;
+  width: 16px;
+  height: 11px;
+}
+
+.dm-icon span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1.5px;
+  border-radius: 2px;
+  background: var(--dm-ink);
+  transition:
+    top 220ms var(--dm-spring),
+    opacity 140ms linear,
+    transform 260ms var(--dm-spring) 200ms;
+}
+
+.dm-icon span:nth-child(1) { top: 0; }
+.dm-icon span:nth-child(2) { top: 4.75px; }
+.dm-icon span:nth-child(3) { top: 9.5px; }
+
+.dm[data-open] .dm-icon span:nth-child(1) {
+  top: 4.75px;
+  transform: rotate(45deg);
+}
+
+.dm[data-open] .dm-icon span:nth-child(2) {
+  opacity: 0;
+}
+
+.dm[data-open] .dm-icon span:nth-child(3) {
+  top: 4.75px;
+  transform: rotate(-45deg);
+}
+
+/* Closing, the bars unturn before they part — the reverse of opening. */
+.dm:not([data-open]) .dm-icon span {
+  transition:
+    top 220ms var(--dm-spring) 180ms,
+    opacity 140ms linear 200ms,
+    transform 220ms var(--dm-spring);
+}
+
+/* ── Panel ── */
+.dm-panel {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  /* Names beside the card, which is the whole shape of a mega drop-down. */
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 0.8fr) minmax(0, 1.25fr);
+  gap: 0.5rem;
+  width: min(90vw, 500px);
+  padding: 0.55rem;
+  /*
+   * Drawn, not moulded. The reference frames the panel as a rectangle with a
+   * hairline round it and a mark sitting on each corner — a drafting frame
+   * rather than a soft card, and it is most of why the thing reads as a piece
+   * of interface instead of a bubble. A twenty-pixel radius and a white lit
+   * rim were pulling in the opposite direction.
+   */
+  border: 1px solid var(--dm-line);
+  border-radius: 5px;
+  background: var(--dm-glass);
+  -webkit-backdrop-filter: blur(30px) saturate(170%);
+  backdrop-filter: blur(30px) saturate(170%);
+  box-shadow: 0 16px 44px rgba(120, 60, 50, 0.12);
+
+  /* Grows out of the corner it hangs from. */
+  transform-origin: top right;
+  opacity: 0;
+  transform: translateY(-8px) scale(0.96);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 220ms ease,
+    transform 380ms var(--dm-spring),
+    visibility 0s linear 380ms;
+}
+
+/*
+ * Four marks, one element.
+ *
+ * A pseudo-element carrying four one-colour gradients placed at its corners,
+ * rather than four spans in the markup — they are decoration and have no
+ * business being in the document. Inset by half a mark so each one straddles
+ * the corner it belongs to instead of sitting inside it.
+ */
+.dm-panel::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--dm-mark-size) / -2);
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--dm-mark), var(--dm-mark)),
+    linear-gradient(var(--dm-mark), var(--dm-mark)),
+    linear-gradient(var(--dm-mark), var(--dm-mark)),
+    linear-gradient(var(--dm-mark), var(--dm-mark));
+  background-size: var(--dm-mark-size) var(--dm-mark-size);
+  background-repeat: no-repeat;
+  background-position: left top, right top, left bottom, right bottom;
+}
+
+.dm[data-open] .dm-panel {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity 220ms ease,
+    transform 380ms var(--dm-spring),
+    visibility 0s;
+}
+
+/* ── The names ── */
+.dm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  align-self: start;
+}
+
+.dm-name {
+  display: block;
+  padding: 0.5rem 0.7rem;
+  border-radius: 3px;
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 500;
+  letter-spacing: -0.012em;
+  color: var(--dm-soft);
+  text-decoration: none;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition:
+    opacity 220ms ease,
+    transform 320ms var(--dm-spring),
+    color 150ms ease,
+    background-color 150ms ease;
+  transition-delay: calc(110ms + var(--i) * 45ms);
+}
+
+.dm[data-open] .dm-name {
+  opacity: 1;
+  transform: none;
+}
+
+.dm:not([data-open]) .dm-name {
+  transition-delay: 0ms;
+  transition-duration: 110ms;
+}
+
+/* The one the card is showing. Hover moves it, so the pair never disagree. */
+.dm-name[data-on] {
+  color: var(--dm-ink);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.dm-name:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dm-ink);
+}
+
+/* ── The card ── */
+.dm-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0.55rem 0.65rem 0.75rem;
+  border: 1px solid var(--dm-line);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.34);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition:
+    opacity 240ms ease,
+    transform 340ms var(--dm-spring);
+  transition-delay: 180ms;
+}
+
+.dm[data-open] .dm-card {
+  opacity: 1;
+  transform: none;
+}
+
+.dm:not([data-open]) .dm-card {
+  transition-delay: 0ms;
+  transition-duration: 110ms;
+}
+
+/*
+ * Standing in for a screenshot. Built from the tint rather than an image so it
+ * changes with the row and costs nothing to load; a real picture drops in here
+ * later without the layout moving.
+ */
+.dm-card-art {
+  display: block;
+  aspect-ratio: 16 / 10;
+  border-radius: 3px;
+  background:
+    radial-gradient(80% 120% at 22% 18%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(90% 130% at 80% 90%, color-mix(in srgb, var(--tint) 65%, white), transparent 65%),
+    color-mix(in srgb, var(--tint) 32%, white);
+  transition: background 260ms ease;
+}
+
+.dm-card-title {
+  margin-top: 0.55rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--dm-ink);
+}
+
+/*
+ * Two lines of room held open from the start. Without it the panel would grow
+ * and shrink as each line typed itself in, and the whole menu would jitter.
+ */
+.dm-card-note {
+  position: relative;
+  margin: 0.12rem 0 0;
+  min-height: 2.5em;
+  font-family: var(--font-body);
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--dm-soft);
+}
+
+.dm-card-typed::after {
+  /* The cursor, only while there is still something to type. */
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 0.06em;
+  vertical-align: -0.16em;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.dm-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .dm-panel {
+    grid-template-columns: minmax(0, 1fr);
+    width: min(88vw, 320px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-icon span,
+  .dm-panel,
+  .dm-name,
+  .dm-card,
+  .dm-card-art {
+    transition-duration: 0s;
+    transition-delay: 0s;
+  }
+}

@@ -1,0 +1,53 @@
+/*
+ * Barely there on purpose. It has to survive being looked at for a long time
+ * without ever competing with what is in front of it, which means an alpha low
+ * enough that reading a single token takes effort.
+ *
+ * Letter-spacing is what turns a block of text into a field: set solid, the
+ * tokens read as sentences; opened up, they read as a texture with words in it.
+ */
+.tf {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  margin: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.85;
+  letter-spacing: 0.22em;
+  white-space: pre;
+  color: rgba(17, 17, 17, 0.115);
+
+  /*
+   * Faded at the top so it does not crowd the bar, and at the very bottom
+   * where the page has gone fully blush and a grey text field would sit on it
+   * as a haze rather than under it.
+   */
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 14%,
+    #000 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    transparent 0%,
+    #000 14%,
+    #000 88%,
+    transparent 100%
+  );
+}
+
+/* On a phone the grid is only a few tokens wide, so it reads as a list rather
+   than a field. Smaller type buys back the columns. */
+@media (max-width: 640px) {
+  .tf {
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+  }
+}

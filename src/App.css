@@ -13,6 +13,22 @@
   --cream: #f9d9d1;
   --muted: #5a5a5a;
 
+  /*
+   * The homepage ground, and the pink demoted to an accent.
+   *
+   * --ground is off-white rather than white, and warm rather than neutral —
+   * biased a few degrees toward the blush so the two read as one palette
+   * instead of a white page with a pink sticker on it.
+   *
+   * Scoped to the homepage for now. --paper is still the ground everywhere
+   * else, so About, How it works and the legal pages are untouched until this
+   * is settled.
+   */
+  --ground: #faf8f7;
+  --blush: #f9d9d1;
+  --blush-deep: #f0c3b7;
+  --hair: rgba(17, 17, 17, 0.09);
+
   --font-display: 'Archivo Black', 'Arial Black', sans-serif;
   --font-brand: '080203', sans-serif;
   --font-body: 'Schibsted Grotesk', 'Helvetica Neue', sans-serif;
@@ -106,6 +122,190 @@ a {
   animation: bob 3.2s ease-in-out infinite;
 }
 
+/*
+ * ── The homepage ──
+ *
+ * A room with the pet in it, and nothing else yet. Its own class, so nothing
+ * put here reaches the other pages that share .hero.
+ */
+.home {
+  position: relative;
+  /*
+   * Placeholder height. There is nothing on the page yet, and the gradient
+   * cannot be seen without somewhere to scroll to — once real sections land
+   * this comes out and the page is as tall as they make it. The gradient is
+   * written in percentages, so it stretches to whatever that turns out to be
+   * rather than needing to be retuned.
+   */
+  min-height: 240vh;
+
+  /*
+   * White at the top, blush at the bottom.
+   *
+   * The linear layer is the ramp and the three radial ones are the aura: soft
+   * blooms low down that keep the pink from arriving as a flat band. They are
+   * placed in percentages of the page, not the viewport, so the bloom stays
+   * where it belongs in the scroll no matter how long the page gets.
+   *
+   * Painted on the page itself rather than fixed to the window, because the
+   * point is that scrolling takes you somewhere — a fixed background would sit
+   * still and the pink would never grow.
+   */
+  background:
+    radial-gradient(62% 30% at 16% 56%, rgba(249, 188, 172, 0.5), transparent 72%),
+    radial-gradient(58% 26% at 84% 70%, rgba(255, 202, 212, 0.45), transparent 74%),
+    radial-gradient(78% 28% at 50% 90%, rgba(246, 172, 152, 0.58), transparent 76%),
+    linear-gradient(
+      180deg,
+      var(--ground) 0%,
+      var(--ground) 10%,
+      #fdf1ec 32%,
+      #fbe4dc 56%,
+      var(--blush) 80%
+    );
+}
+
+/*
+ * ── The line at the top ──
+ *
+ * The row the homepage used to carry at its foot, brought up here: the mark and
+ * the routes on one line, with a hairline under them running the full width.
+ *
+ * The rule is a border on the header rather than an element of its own, so the
+ * line cannot drift out of step with the row it belongs to — the old one was a
+ * separate div and had to be kept in position by hand.
+ */
+/*
+ * Fixed, and carrying nothing but its line.
+ *
+ * No fill, no blur, no scrim — whatever the page is doing underneath simply
+ * shows through, and the field of tokens and the gradient run on past it. That
+ * only works because everything on this bar is ink on a pale ground the whole
+ * way down; the moment something dark scrolls under it, it will need a
+ * backdrop.
+ */
+.home-line {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  /*
+   * A whole pixel, faded — not half a pixel at full strength.
+   *
+   * The same conclusion the old footer rule came to. There is no half pixel to
+   * paint, so a 0.5px border is exact on a retina screen and antialiased into
+   * whatever the browser fancies on everything else. A 1px line at a low alpha
+   * reads as the thinner of the two and renders identically everywhere.
+   */
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+}
+
+.home-line-row {
+  display: flex;
+  /*
+   * Centred, not baseline-aligned. 080203 is a display face with its own
+   * metrics, and sat on the same baseline as Roboto Mono its glyphs rode
+   * visibly high — the mark looked lifted off the line the words were on.
+   */
+  align-items: center;
+  /* Spread, not bunched. The row is the width of the page and the space
+     between the items is what makes it read as a line with things on it
+     rather than a menu sitting in a corner. */
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  padding: clamp(0.85rem, 1.8vw, 1.25rem) clamp(1rem, 4vw, 3rem);
+}
+
+.home-line-row a {
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: clamp(0.7rem, 0.9vw, 0.85rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+  /*
+   * Text this small is a poor thing to aim a thumb at. The padding grows the
+   * hit area without growing the type, and the negative margin pulls the row
+   * back to the spacing the text asks for.
+   */
+  display: inline-block;
+  padding: 0.4rem 0;
+  margin: -0.4rem 0;
+  transition: opacity 160ms ease;
+}
+
+.home-line-row a:hover {
+  opacity: 0.55;
+}
+
+.home-line-row a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/*
+ * The mark is the anchor at the left, not one of the routes, so it keeps the
+ * brand face and its own size.
+ *
+ * Written as a.home-mark rather than .home-mark: the rule above it is
+ * `.home-line-row a`, which is a class and an element, and a bare class alone
+ * loses to that — the mark came out set in mono and shouted in capitals like
+ * one of the links.
+ */
+.home-line-row a.home-mark {
+  font-family: var(--font-brand), sans-serif;
+  font-size: clamp(1.45rem, 2.3vw, 1.95rem);
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink);
+}
+
+/*
+ * Everything on one line, including the mark.
+ *
+ * It used to take a row of its own below this width, which read as two stacked
+ * bars rather than one line with things on it. Keeping it inline means the four
+ * of them have to fit, so the routes give up a little size and tracking here
+ * rather than the mark giving up its place — the mark is the one thing on this
+ * line that has to hold its size.
+ */
+@media (max-width: 620px) {
+  .home-line-row {
+    gap: 0.5rem 0.9rem;
+  }
+
+  .home-line-row a {
+    font-size: clamp(0.56rem, 2.1vw, 0.7rem);
+    letter-spacing: 0.1em;
+  }
+}
+
+/* Above the field. */
+.home-stage {
+  position: relative;
+  z-index: 1;
+}
+
+/* The pet gets the first screen to itself. */
+.home-stage {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+}
+
+.home-pet {
+  width: min(72vw, 440px);
+  aspect-ratio: 1;
+}
+
 /* ── Hero ── */
 .hero {
   position: relative;
@@ -190,24 +390,6 @@ a {
   top: 50%;
   transform: rotate(90deg) translateX(50%);
   transform-origin: right top;
-}
-
-/* Tilted Studio Dogu–style nav */
-/* The gooey navbar sits at the top of the hero, centred over the wordmark. */
-.hero > .gooey-nav {
-  position: absolute;
-  top: 1.6rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 5;
-}
-
-@media (max-width: 640px) {
-  .hero > .gooey-nav {
-    top: 0.9rem;
-    left: 0.9rem;
-    transform: none;
-  }
 }
 
 .tilted-nav {
@@ -393,31 +575,34 @@ a {
   color: var(--ink);
 }
 
+/*
+ * The first of the two jobs left to the pink. A filled blush pill with a live
+ * dot, rather than the outlined square it was — the accent has to appear
+ * somewhere deliberate on a white page or it reads as a leftover.
+ */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
   font-family: var(--font-mono);
   font-size: 0.58rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.55);
-  border: 1px solid rgba(17, 17, 17, 0.22);
-  border-radius: 3px;
-  padding: 0.22em 0.5em;
+  color: rgba(17, 17, 17, 0.62);
+  background: var(--blush);
+  border: none;
+  border-radius: 999px;
+  padding: 0.42em 0.85em;
 }
 
-.top-cta {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.3);
-  padding-bottom: 0.2em;
+.chip::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  background: #e8613c;
 }
 
-.top-cta:hover {
-  border-bottom-color: var(--ink);
-}
 
 /*
  * ── The lede ──
@@ -429,10 +614,7 @@ a {
   width: 100vw;
   padding-inline: clamp(1rem, 4vw, 3.5rem);
   margin-bottom: clamp(1.2rem, 3vw, 2.6rem);
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  align-items: start;
-  gap: clamp(1.5rem, 5vw, 5rem);
+  display: block;
   text-align: left;
 }
 
@@ -443,29 +625,46 @@ a {
   gap: 0.6rem;
 }
 
+/*
+ * Bigger and lighter at the same time.
+ *
+ * The old setting was 800 — the weight was carrying the emphasis. The
+ * references do the opposite: one grotesk at 500 only, set very large and
+ * tracked in hard, with nothing bolder anywhere on the page to compete. The
+ * size is the emphasis, and dropping the weight is most of what separates
+ * expensive from loud.
+ */
 .brand-lede-line {
   margin: 0;
   font-family: var(--font-body);
-  /* 800 rather than 700, and tracked in hard. At display sizes the weight and
-     the tightness are doing the work — a headline set loose reads as a poster
-     however good the face is. */
-  font-weight: 800;
-  font-size: clamp(1.5rem, 3.2vw, 3rem);
-  line-height: 1.0;
-  letter-spacing: -0.04em;
+  font-weight: 500;
+  font-size: clamp(1.8rem, 4vw, 3.5rem);
+  line-height: 0.99;
+  letter-spacing: -0.035em;
   color: var(--ink);
-  max-width: 15ch;
+  max-width: 16ch;
+  text-wrap: balance;
 }
 
+/*
+ * The sub carries the emphasis the headline gave up: first sentence in ink at
+ * 500, the rest dropped to a soft grey. One idea foregrounded, the detail
+ * behind it, no bold anywhere.
+ */
 .brand-lede-sub {
   margin: 0;
   font-family: var(--font-body);
   font-weight: 400;
-  font-size: clamp(0.9rem, 1.1vw, 1.05rem);
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-  color: rgba(17, 17, 17, 0.62);
-  max-width: 40ch;
+  font-size: clamp(0.92rem, 1.15vw, 1.08rem);
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  color: rgba(17, 17, 17, 0.5);
+  max-width: 44ch;
+}
+
+.brand-lede-sub strong {
+  font-weight: 500;
+  color: var(--ink);
 }
 
 /* ── Buttons ── */
@@ -488,8 +687,8 @@ a {
 
 .btn-primary {
   background: var(--ink);
-  color: var(--paper);
-  padding: 0.62em 1.25em;
+  color: var(--ground);
+  padding: 0.72em 1.35em;
   border-radius: 999px;
 }
 
@@ -497,56 +696,7 @@ a {
   background: #000;
 }
 
-/* Sits beside the button and answers the question a button raises: what does
-   pressing this cost me. */
-.brand-lede-note {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.45);
-}
 
-/*
- * ── The spec list ──
- * The machine voice: mono labels against prose. That contrast is the whole
- * type system on this page — uppercase mono for anything the product asserts,
- * the grotesque for anything a person says.
- */
-.spec {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  padding-top: 0.35rem;
-}
-
-.spec-row {
-  display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr);
-  gap: 0.4rem 1rem;
-  align-items: baseline;
-  padding-top: 0.55rem;
-  border-top: 1px solid rgba(17, 17, 17, 0.14);
-}
-
-.spec dt {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.5);
-}
-
-.spec dd {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
 
 /* The left anchor in the footer row. */
 .brand-links-mark {
@@ -554,19 +704,6 @@ a {
   font-size: 1rem;
   line-height: 1;
   color: var(--ink);
-}
-
-@media (max-width: 900px) {
-  /* One column below this: side by side, the spec loses too much width to
-     read as sentences and starts breaking every line. */
-  .brand-lede {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.1rem;
-  }
-
-  .spec-row {
-    grid-template-columns: 5.5rem minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 640px) {
@@ -582,13 +719,6 @@ a {
     padding-inline: 4vw;
   }
 
-  .spec {
-    gap: 0.5rem;
-  }
-
-  .spec dd {
-    font-size: 0.8rem;
-  }
 }
 
 /*
@@ -620,10 +750,28 @@ a {
  * page. Set wide — at this size the letterspacing is doing as much of the work
  * as the face is, and without it the words close up into blocks.
  */
+/*
+ * The pink's second job: the strip under the black rule.
+ *
+ * Everything above this line is off-white, so the footer is where the brand
+ * colour gets to be a surface rather than a detail. It reads as the floor the
+ * page stands on, and it keeps the blush in the identity without letting it
+ * set the tone of the whole screen — which is what made the old ground feel
+ * like a zine rather than a product.
+ *
+ * The bleed pulls it out past .hero-center's bottom padding so the colour runs
+ * to the very edge; .hero clips it.
+ */
 .brand-links {
   width: 100vw;
-  margin-top: 0.85rem;
-  padding-inline: clamp(1rem, 4vw, 3.5rem);
+  margin-top: 0;
+  padding: 0.85rem clamp(1rem, 4vw, 3.5rem) calc(clamp(1.25rem, 3.5vh, 2.5rem) + 0.85rem);
+  margin-bottom: calc(-1 * clamp(1.25rem, 3.5vh, 2.5rem));
+  /* Under the drifting field, and what shows if it is switched off. */
+  background: var(--blush);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -635,7 +783,7 @@ a {
 .brand-links a {
   font-family: var(--font-mono);
   font-weight: 300;
-  font-size: clamp(0.62rem, 0.78vw, 0.76rem);
+  font-size: clamp(0.7rem, 0.9vw, 0.85rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -673,6 +821,17 @@ a {
     justify-content: center;
     gap: 1.4rem 4.5vw;
     padding-inline: 4vw;
+  }
+
+  /*
+   * The anchor goes on a phone. It is a sixth item in a row sized for five,
+   * and it was the one pushing HELP onto a line of its own — the row above is
+   * the whole width of the screen here, so the left edge is already anchored
+   * without it. The mark at the top of the page is a few hundred pixels away
+   * and says the same thing.
+   */
+  .brand-links-mark {
+    display: none;
   }
 
   .brand-links a {

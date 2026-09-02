@@ -1,18 +1,28 @@
-# The homepage navbars — both parked, and how to bring either back
+# The homepage navbars — one live, four parked
 
-The homepage carries **no navigation**. It is a blank canvas being rebuilt on,
-and `src/App.jsx` holds the wordmark and nothing else.
+**Live: none of the components.** The homepage carries a plain line at the top —
+a hairline edge to edge with the mark and the routes sitting on it, written
+directly in `src/App.jsx` as `.home-line` and styled in `src/App.css`. It is a
+header and a border, not a component, so there is nothing to import.
 
-Two finished navbars are switched off, not deleted. Both are whole and working.
-Neither has an importer, so **anything sweeping for unused files will offer to
-delete them — don't.**
+Four finished navbars are switched off, not deleted. All are whole and working,
+and **none of them has an importer, so anything sweeping for unused files will
+offer to delete them.** That is now four components being kept on the strength
+of this file alone — worth deleting the ones that have been ruled out rather
+than carrying all of them indefinitely.
 
 | | Files | What it is |
 |---|---|---|
-| **Pill row** | `src/components/GooeyNavbar.{jsx,css}` | Separate glass pills that grow a waist to their neighbours on hover, over a drifting field of colour |
-| **Curtain menu** | `src/components/LayerNav.{jsx,css}` | An icon that sends four coloured bands down from the top edge, the menu read on the last one |
+| **Pill row** | `GooeyNavbar.{jsx,css}` | Separate glass pills that grow a waist to their neighbours on hover. Neutral white now; the five-colour field is in the history. |
+| **Curtain menu** | `LayerNav.{jsx,css}` | An icon that sends four coloured bands down from the top edge, the menu read on the last one. Draws its own bar, including a wordmark and an account control. |
+| **Morphed menu** | `MorphedMenu.{jsx,css}` | A glass pill that springs out into a card — the button *is* the panel. Links flip up on a perspective. |
+| **Drop-down** | `DropMenu.{jsx,css}` | Three lines that turn into a cross, opening a framed panel: names on the left, a card on the right that swaps as you move down them, its line typing itself in. |
 
-Last commit where a navbar was live on the homepage: `613a23c`.
+Putting any of them back is one import and one element in `src/App.jsx`, in
+place of the `<header className="home-line">` block. Only the curtain menu
+needs more than that, because it brings its own bar: see below.
+
+Last commit where the curtain menu was live on the homepage: `613a23c`.
 
 ```
 git show 613a23cow
