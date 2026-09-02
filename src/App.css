@@ -166,42 +166,93 @@ a {
 }
 
 /*
- * Mark on the left, the way into the menu on the right.
+ * ── The line at the top ──
  *
- * Absolute rather than sticky: it belongs to the top of the page. Making it
- * follow the scroll is a one-line change if it should.
+ * The row the homepage used to carry at its foot, brought up here: the mark and
+ * the routes on one line, with a hairline under them running the full width.
  *
- * align-items is flex-start rather than centre because the menu grows
- * downward out of its own top edge — centred, the whole bar would shift as it
- * opened and take the wordmark with it.
+ * The rule is a border on the header rather than an element of its own, so the
+ * line cannot drift out of step with the row it belongs to — the old one was a
+ * separate div and had to be kept in position by hand.
  */
-.home-bar {
+.home-line {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   z-index: 5;
+  border-bottom: 1px solid var(--ink);
+}
+
+.home-line-row {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
+  /* Spread, not bunched. The row is the width of the page and the space
+     between the items is what makes it read as a line with things on it
+     rather than a menu sitting in a corner. */
   justify-content: space-between;
-  gap: 1rem;
-  padding: clamp(0.9rem, 2vw, 1.6rem) clamp(1rem, 4vw, 3rem);
-  pointer-events: none;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.5rem;
+  padding: clamp(0.85rem, 1.8vw, 1.25rem) clamp(1rem, 4vw, 3rem);
 }
 
-.home-bar > * {
-  pointer-events: auto;
+.home-line-row a {
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: clamp(0.62rem, 0.78vw, 0.76rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+  /*
+   * Text this small is a poor thing to aim a thumb at. The padding grows the
+   * hit area without growing the type, and the negative margin pulls the row
+   * back to the spacing the text asks for.
+   */
+  display: inline-block;
+  padding: 0.4rem 0;
+  margin: -0.4rem 0;
+  transition: opacity 160ms ease;
 }
 
-/* Its own class, not .brand — that one is shared with half a dozen pages and
-   is sized for a wordmark that fills the screen. */
-.home-mark {
+.home-line-row a:hover {
+  opacity: 0.55;
+}
+
+.home-line-row a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+/*
+ * The mark is the anchor at the left, not one of the routes, so it keeps the
+ * brand face and its own size.
+ *
+ * Written as a.home-mark rather than .home-mark: the rule above it is
+ * `.home-line-row a`, which is a class and an element, and a bare class alone
+ * loses to that — the mark came out set in mono and shouted in capitals like
+ * one of the links.
+ */
+.home-line-row a.home-mark {
   font-family: var(--font-brand), sans-serif;
   font-size: clamp(1.15rem, 1.7vw, 1.5rem);
   line-height: 1;
-  /* Nudged down so it sits on the middle of the closed pill opposite it. */
-  margin-top: 0.55rem;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--ink);
+}
+
+/* On a phone the four of them will not sit on one line, so the mark takes the
+   first and the routes share the second. */
+@media (max-width: 560px) {
+  .home-line-row {
+    gap: 0.55rem 1.1rem;
+  }
+
+  .home-line-row a.home-mark {
+    flex-basis: 100%;
+  }
 }
 
 /* Above the field. */

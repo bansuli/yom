@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import DropMenu from './components/DropMenu.jsx'
 import TokenField from './components/TokenField.jsx'
 import Pet from './components/Pet.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
@@ -42,32 +41,21 @@ function App() {
         * Laid over the page rather than stacked above it, so the pet's screen
         * is a whole viewport tall and the bar costs it nothing.
         */}
-      <header className="home-bar">
-        <Link to="/" className="home-mark" aria-label="yom, home">
-          yom
-        </Link>
-        <DropMenu
-          items={[
-            {
-              label: 'Sign in',
-              to: '/signin',
-              note: 'Pick up where you left off.',
-              tint: '#4A7BE8',
-            },
-            {
-              label: 'About yom',
-              to: '/about',
-              note: 'Why we built it, and who it is for.',
-              tint: '#e85a86',
-            },
-            {
-              label: 'How it works',
-              to: '/how-it-works',
-              note: 'What yom does on a product page.',
-              tint: '#6faa10',
-            },
-          ]}
-        />
+      {/*
+        * The old footer row, moved to the top: a line edge to edge with the
+        * mark and the routes sitting on it. Mono, small and letterspaced,
+        * which is the machine voice this site uses for anything that labels
+        * rather than speaks.
+        */}
+      <header className="home-line">
+        <nav className="home-line-row" aria-label="Site">
+          <Link to="/" className="home-mark" aria-label="yom, home">
+            yom
+          </Link>
+          <Link to="/signin">Sign in</Link>
+          <Link to="/about">About yom</Link>
+          <Link to="/how-it-works">How it works</Link>
+        </nav>
       </header>
 
       <section className="home-stage">
