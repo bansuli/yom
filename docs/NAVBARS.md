@@ -1,18 +1,25 @@
-# The homepage navbars — both parked, and how to bring either back
+# The homepage navbars — one live, three parked
 
-The homepage carries **no navigation**. It is a blank canvas being rebuilt on,
-and `src/App.jsx` holds the wordmark and nothing else.
+**Live: the drop-down.** `src/components/DropMenu.{jsx,css}`, at the top right
+of `src/App.jsx` opposite the wordmark. Three lines that turn into a cross,
+opening a framed panel with the link names on the left and a card on the right
+that swaps as you move down them, its description typing itself in. Positioned
+by `.home-bar` in `src/App.css`.
 
-Two finished navbars are switched off, not deleted. Both are whole and working.
-Neither has an importer, so **anything sweeping for unused files will offer to
-delete them — don't.**
+Three finished navbars are switched off, not deleted. All are whole and
+working, and none has an importer, so **anything sweeping for unused files will
+offer to delete them — don't.**
 
 | | Files | What it is |
 |---|---|---|
-| **Pill row** | `src/components/GooeyNavbar.{jsx,css}` | Separate glass pills that grow a waist to their neighbours on hover, over a drifting field of colour |
-| **Curtain menu** | `src/components/LayerNav.{jsx,css}` | An icon that sends four coloured bands down from the top edge, the menu read on the last one |
+| **Pill row** | `GooeyNavbar.{jsx,css}` | Separate glass pills that grow a waist to their neighbours on hover. Its colour field was neutralised to white — the five-colour version is in the history. |
+| **Curtain menu** | `LayerNav.{jsx,css}` | An icon that sends four coloured bands down from the top edge, the menu read on the last one. Draws its own bar, including a wordmark and an account control. |
+| **Morphed menu** | `MorphedMenu.{jsx,css}` | A glass pill that springs out into a card — the button *is* the panel. Links flip up on a perspective. |
 
-Last commit where a navbar was live on the homepage: `613a23c`.
+Swapping between them is one import and one element in `src/App.jsx`. Only the
+curtain menu needs more than that, because it brings its own bar: see below.
+
+Last commit where the curtain menu was live on the homepage: `613a23c`.
 
 ```
 git show 613a23cow

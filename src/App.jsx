@@ -1,4 +1,7 @@
 import { useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import DropMenu from './components/DropMenu.jsx'
+import TokenField from './components/TokenField.jsx'
 import Pet from './components/Pet.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
@@ -32,6 +35,41 @@ function App() {
 
   return (
     <main className="home">
+      {/* Behind everything, and hidden from readers — it is texture. */}
+      <TokenField />
+
+      {/*
+        * Laid over the page rather than stacked above it, so the pet's screen
+        * is a whole viewport tall and the bar costs it nothing.
+        */}
+      <header className="home-bar">
+        <Link to="/" className="home-mark" aria-label="yom, home">
+          yom
+        </Link>
+        <DropMenu
+          items={[
+            {
+              label: 'Sign in',
+              to: '/signin',
+              note: 'Pick up where you left off.',
+              tint: '#4A7BE8',
+            },
+            {
+              label: 'About yom',
+              to: '/about',
+              note: 'Why we built it, and who it is for.',
+              tint: '#e85a86',
+            },
+            {
+              label: 'How it works',
+              to: '/how-it-works',
+              note: 'What yom does on a product page.',
+              tint: '#6faa10',
+            },
+          ]}
+        />
+      </header>
+
       <section className="home-stage">
         <div className="home-pet">
           <Pet />
