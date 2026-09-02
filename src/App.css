@@ -175,18 +175,40 @@ a {
  * line cannot drift out of step with the row it belongs to — the old one was a
  * separate div and had to be kept in position by hand.
  */
+/*
+ * Fixed, and carrying nothing but its line.
+ *
+ * No fill, no blur, no scrim — whatever the page is doing underneath simply
+ * shows through, and the field of tokens and the gradient run on past it. That
+ * only works because everything on this bar is ink on a pale ground the whole
+ * way down; the moment something dark scrolls under it, it will need a
+ * backdrop.
+ */
 .home-line {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 5;
-  border-bottom: 1px solid var(--ink);
+  /*
+   * A whole pixel, faded — not half a pixel at full strength.
+   *
+   * The same conclusion the old footer rule came to. There is no half pixel to
+   * paint, so a 0.5px border is exact on a retina screen and antialiased into
+   * whatever the browser fancies on everything else. A 1px line at a low alpha
+   * reads as the thinner of the two and renders identically everywhere.
+   */
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
 }
 
 .home-line-row {
   display: flex;
-  align-items: baseline;
+  /*
+   * Centred, not baseline-aligned. 080203 is a display face with its own
+   * metrics, and sat on the same baseline as Roboto Mono its glyphs rode
+   * visibly high — the mark looked lifted off the line the words were on.
+   */
+  align-items: center;
   /* Spread, not bunched. The row is the width of the page and the space
      between the items is what makes it read as a line with things on it
      rather than a menu sitting in a corner. */
@@ -199,7 +221,7 @@ a {
 .home-line-row a {
   font-family: var(--font-mono);
   font-weight: 300;
-  font-size: clamp(0.62rem, 0.78vw, 0.76rem);
+  font-size: clamp(0.7rem, 0.9vw, 0.85rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -236,22 +258,30 @@ a {
  */
 .home-line-row a.home-mark {
   font-family: var(--font-brand), sans-serif;
-  font-size: clamp(1.15rem, 1.7vw, 1.5rem);
+  font-size: clamp(1.45rem, 2.3vw, 1.95rem);
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
   color: var(--ink);
 }
 
-/* On a phone the four of them will not sit on one line, so the mark takes the
-   first and the routes share the second. */
-@media (max-width: 560px) {
+/*
+ * Everything on one line, including the mark.
+ *
+ * It used to take a row of its own below this width, which read as two stacked
+ * bars rather than one line with things on it. Keeping it inline means the four
+ * of them have to fit, so the routes give up a little size and tracking here
+ * rather than the mark giving up its place — the mark is the one thing on this
+ * line that has to hold its size.
+ */
+@media (max-width: 620px) {
   .home-line-row {
-    gap: 0.55rem 1.1rem;
+    gap: 0.5rem 0.9rem;
   }
 
-  .home-line-row a.home-mark {
-    flex-basis: 100%;
+  .home-line-row a {
+    font-size: clamp(0.56rem, 2.1vw, 0.7rem);
+    letter-spacing: 0.1em;
   }
 }
 
@@ -753,7 +783,7 @@ a {
 .brand-links a {
   font-family: var(--font-mono);
   font-weight: 300;
-  font-size: clamp(0.62rem, 0.78vw, 0.76rem);
+  font-size: clamp(0.7rem, 0.9vw, 0.85rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
