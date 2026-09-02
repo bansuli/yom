@@ -13,6 +13,22 @@
   --cream: #f9d9d1;
   --muted: #5a5a5a;
 
+  /*
+   * The homepage ground, and the pink demoted to an accent.
+   *
+   * --ground is off-white rather than white, and warm rather than neutral —
+   * biased a few degrees toward the blush so the two read as one palette
+   * instead of a white page with a pink sticker on it.
+   *
+   * Scoped to the homepage for now. --paper is still the ground everywhere
+   * else, so About, How it works and the legal pages are untouched until this
+   * is settled.
+   */
+  --ground: #faf8f7;
+  --blush: #f9d9d1;
+  --blush-deep: #f0c3b7;
+  --hair: rgba(17, 17, 17, 0.09);
+
   --font-display: 'Archivo Black', 'Arial Black', sans-serif;
   --font-brand: '080203', sans-serif;
   --font-body: 'Schibsted Grotesk', 'Helvetica Neue', sans-serif;
@@ -104,6 +120,64 @@ a {
 
 .bob {
   animation: bob 3.2s ease-in-out infinite;
+}
+
+/*
+ * ── The homepage ──
+ *
+ * A room with the pet in it, and nothing else yet. Its own class, so nothing
+ * put here reaches the other pages that share .hero.
+ */
+.home {
+  position: relative;
+  /*
+   * Placeholder height. There is nothing on the page yet, and the gradient
+   * cannot be seen without somewhere to scroll to — once real sections land
+   * this comes out and the page is as tall as they make it. The gradient is
+   * written in percentages, so it stretches to whatever that turns out to be
+   * rather than needing to be retuned.
+   */
+  min-height: 240vh;
+
+  /*
+   * White at the top, blush at the bottom.
+   *
+   * The linear layer is the ramp and the three radial ones are the aura: soft
+   * blooms low down that keep the pink from arriving as a flat band. They are
+   * placed in percentages of the page, not the viewport, so the bloom stays
+   * where it belongs in the scroll no matter how long the page gets.
+   *
+   * Painted on the page itself rather than fixed to the window, because the
+   * point is that scrolling takes you somewhere — a fixed background would sit
+   * still and the pink would never grow.
+   */
+  background:
+    radial-gradient(62% 30% at 16% 56%, rgba(249, 188, 172, 0.5), transparent 72%),
+    radial-gradient(58% 26% at 84% 70%, rgba(255, 202, 212, 0.45), transparent 74%),
+    radial-gradient(78% 28% at 50% 90%, rgba(246, 172, 152, 0.58), transparent 76%),
+    linear-gradient(
+      180deg,
+      var(--ground) 0%,
+      var(--ground) 10%,
+      #fdf1ec 32%,
+      #fbe4dc 56%,
+      var(--blush) 80%
+    );
+}
+
+/* The pet gets the first screen to itself. */
+.home-stage {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+}
+
+.home-pet {
+  width: min(72vw, 440px);
+  aspect-ratio: 1;
 }
 
 /* ── Hero ── */
@@ -393,15 +467,32 @@ a {
   color: var(--ink);
 }
 
+/*
+ * The first of the two jobs left to the pink. A filled blush pill with a live
+ * dot, rather than the outlined square it was — the accent has to appear
+ * somewhere deliberate on a white page or it reads as a leftover.
+ */
 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
   font-family: var(--font-mono);
   font-size: 0.58rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.55);
-  border: 1px solid rgba(17, 17, 17, 0.22);
-  border-radius: 3px;
-  padding: 0.22em 0.5em;
+  color: rgba(17, 17, 17, 0.62);
+  background: var(--blush);
+  border: none;
+  border-radius: 999px;
+  padding: 0.42em 0.85em;
+}
+
+.chip::before {
+  content: "";
+  width: 0.42em;
+  height: 0.42em;
+  border-radius: 50%;
+  background: #e8613c;
 }
 
 
@@ -426,29 +517,46 @@ a {
   gap: 0.6rem;
 }
 
+/*
+ * Bigger and lighter at the same time.
+ *
+ * The old setting was 800 — the weight was carrying the emphasis. The
+ * references do the opposite: one grotesk at 500 only, set very large and
+ * tracked in hard, with nothing bolder anywhere on the page to compete. The
+ * size is the emphasis, and dropping the weight is most of what separates
+ * expensive from loud.
+ */
 .brand-lede-line {
   margin: 0;
   font-family: var(--font-body);
-  /* 800 rather than 700, and tracked in hard. At display sizes the weight and
-     the tightness are doing the work — a headline set loose reads as a poster
-     however good the face is. */
-  font-weight: 800;
-  font-size: clamp(1.5rem, 3.2vw, 3rem);
-  line-height: 1.0;
-  letter-spacing: -0.04em;
+  font-weight: 500;
+  font-size: clamp(1.8rem, 4vw, 3.5rem);
+  line-height: 0.99;
+  letter-spacing: -0.035em;
   color: var(--ink);
-  max-width: 15ch;
+  max-width: 16ch;
+  text-wrap: balance;
 }
 
+/*
+ * The sub carries the emphasis the headline gave up: first sentence in ink at
+ * 500, the rest dropped to a soft grey. One idea foregrounded, the detail
+ * behind it, no bold anywhere.
+ */
 .brand-lede-sub {
   margin: 0;
   font-family: var(--font-body);
   font-weight: 400;
-  font-size: clamp(0.9rem, 1.1vw, 1.05rem);
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-  color: rgba(17, 17, 17, 0.62);
-  max-width: 40ch;
+  font-size: clamp(0.92rem, 1.15vw, 1.08rem);
+  line-height: 1.5;
+  letter-spacing: -0.012em;
+  color: rgba(17, 17, 17, 0.5);
+  max-width: 44ch;
+}
+
+.brand-lede-sub strong {
+  font-weight: 500;
+  color: var(--ink);
 }
 
 /* ── Buttons ── */
@@ -471,8 +579,8 @@ a {
 
 .btn-primary {
   background: var(--ink);
-  color: var(--paper);
-  padding: 0.62em 1.25em;
+  color: var(--ground);
+  padding: 0.72em 1.35em;
   border-radius: 999px;
 }
 
@@ -534,10 +642,28 @@ a {
  * page. Set wide — at this size the letterspacing is doing as much of the work
  * as the face is, and without it the words close up into blocks.
  */
+/*
+ * The pink's second job: the strip under the black rule.
+ *
+ * Everything above this line is off-white, so the footer is where the brand
+ * colour gets to be a surface rather than a detail. It reads as the floor the
+ * page stands on, and it keeps the blush in the identity without letting it
+ * set the tone of the whole screen — which is what made the old ground feel
+ * like a zine rather than a product.
+ *
+ * The bleed pulls it out past .hero-center's bottom padding so the colour runs
+ * to the very edge; .hero clips it.
+ */
 .brand-links {
   width: 100vw;
-  margin-top: 0.85rem;
-  padding-inline: clamp(1rem, 4vw, 3.5rem);
+  margin-top: 0;
+  padding: 0.85rem clamp(1rem, 4vw, 3.5rem) calc(clamp(1.25rem, 3.5vh, 2.5rem) + 0.85rem);
+  margin-bottom: calc(-1 * clamp(1.25rem, 3.5vh, 2.5rem));
+  /* Under the drifting field, and what shows if it is switched off. */
+  background: var(--blush);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -587,6 +713,17 @@ a {
     justify-content: center;
     gap: 1.4rem 4.5vw;
     padding-inline: 4vw;
+  }
+
+  /*
+   * The anchor goes on a phone. It is a sixth item in a row sized for five,
+   * and it was the one pushing HELP onto a line of its own — the row above is
+   * the whole width of the screen here, so the left edge is already anchored
+   * without it. The mark at the top of the page is a few hundred pixels away
+   * and says the same thing.
+   */
+  .brand-links-mark {
+    display: none;
   }
 
   .brand-links a {
