@@ -1,6 +1,6 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.41") return;
-  window.__YOM_BUILD__ = "1.1.41";
+  if (window.__YOM_BUILD__ === "1.1.43") return;
+  window.__YOM_BUILD__ = "1.1.43";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
@@ -8,14 +8,36 @@
   const EXTRACT = window.YOM_EXTRACT;
   const SIZES = window.YOM_SIZES;
   const Sites = window.YOM_SITES;
-  const pageHost = location.hostname;
-  if (
-    Sites?.isSkippedHost?.(pageHost) ||
-    EXTRACT?.skipHost?.(pageHost) ||
-    !Sites?.isAllowedHost?.(pageHost)
-  ) {
-    return;
+
+  function pageEligible() {
+    const host = location.hostname;
+    if (Sites?.isSkippedHost?.(host) || EXTRACT?.skipHost?.(host)) return false;
+
+    /* Depop, Vinted, Grailed, etc. — fashion resale, always in scope on product/browse pages. */
+    if (Sites?.isFashionResale?.(host)) {
+      if (EXTRACT?.isPdp?.()) return true;
+      if (EXTRACT?.looksLikeShop?.()) return true;
+      if (Sites?.pageLooksLikeClothing?.()) return true;
+      return false;
+    }
+
+    /* Amazon, eBay, Target… — only when this page is clearly clothes, not a blender. */
+    if (Sites?.isBroadMarketplace?.(host)) {
+      if (EXTRACT?.isPdp?.()) {
+        const info = EXTRACT?.pdpInfo?.();
+        const blob = `${info?.name || ""} ${info?.category || ""} ${info?.text || ""}`;
+        if (Sites?.pageLooksLikeClothing?.(blob)) return true;
+      }
+      if (Sites?.pageLooksLikeClothing?.()) return true;
+      return false;
+    }
+
+    if (Sites?.pageLooksLikeClothing?.()) return true;
+    if (EXTRACT?.looksLikeShop?.()) return true;
+    return false;
   }
+
+  if (!pageEligible()) return;
   const USER_KEY = "yom-user";
   const STORAGE_KEY = "yom-companion-v4";
   const PROFILE_KEY = "yom-profile";
@@ -288,8 +310,37 @@
 
   let calendarEvents = [];
 
+  function isRushShopper() {
+    const p = liveAccount?.profile || {};
+    return p.shopping_context === "berkeley_fpr_2026" || p.acquisition_context === "berkeley_fpr_2026";
+  }
+
   function occasionEvents() {
-    return Array.isArray(calendarEvents) && calendarEvents.length ? calendarEvents : DATA.events || [];
+    const raw = Array.isArray(calendarEvents) && calendarEvents.length ? calendarEvents : DATA.events || [];
+    if (isRushShopper()) return raw;
+    return raw.filter((e) => (e.kind || "generic") !== "rush");
+  }
+
+  function hasGoogleContext() {
+    if (occasionEvents().length) return true;
+    const purchases = liveAccount?.profile?.purchases;
+    if (Array.isArray(purchases) && purchases.length) return true;
+    const memory = String(liveAccount?.profile?.memory || state.memory || "");
+    return /gmail:|ordered|returned|closet/i.test(memory);
+  }
+
+  function autoActivateSession() {
+    if (state.mode) return false;
+    const loggedIn = Boolean(livePersona()?.userId);
+    if (!loggedIn && !hasGoogleContext()) return false;
+    const events = occasionEvents();
+    const next = events.find((e) => (e.kind || "generic") !== "rush") || events[0];
+    if (next?.label) {
+      finishSession("purpose", next.label, null);
+      return true;
+    }
+    finishSession("browse", null, null);
+    return true;
   }
 
   function isReformationHost() {
@@ -297,10 +348,7 @@
   }
 
   async function shouldRun() {
-    const host = location.hostname;
-    if (Sites?.isSkippedHost?.(host) || EXTRACT.skipHost(host)) return false;
-    if (Sites?.isAllowedHost?.(host)) return true;
-    return false;
+    return pageEligible();
   }
 
   function asset(file) {
@@ -772,12 +820,12 @@
       border-radius: 12px;
       padding: 8px 10px;
       color: #111;
-      font: 500 13px/1.3 Schibsted Grotesk, Helvetica Neue, sans-serif;
+      font: 500 15px/1.35 Schibsted Grotesk, Helvetica Neue, sans-serif;
       pointer-events: auto !important;
       box-shadow: 2px 3px 0 #111;
     }
-    .yom-tile-note strong { display: block; font-size: 13px; }
-    .yom-tile-note span { display: block; font-size: 12px; color: #5a5a5a; }
+    .yom-tile-note strong { display: block; font-size: 15px; }
+    .yom-tile-note span { display: block; font-size: 14px; color: #5a5a5a; }
     .yom-tile-note img { width: 40px; height: 50px; object-fit: cover; border-radius: 6px; }
     .yom-fb {
       display: flex;
@@ -1381,15 +1429,81 @@
     return [L.notes.slice(-10).join(" "), brandLine && `brand sizes: ${brandLine}.`].filter(Boolean).join(" ");
   }
 
+  function sizesFromOrders() {
+    const purchases = liveAccount?.profile?.purchases || [];
+    const out = { us: "", denim: "", shoes: "", brands: {} };
+    for (const p of purchases) {
+      if (!p || p.kept === false) continue;
+      const size = String(p.size || "").trim();
+      if (!size) continue;
+      const brand = String(p.brand || "").trim();
+      if (brand) out.brands[brand.toLowerCase()] = size;
+      const item = String(p.item || "").toLowerCase();
+      const kind = String(p.kind || "").toLowerCase();
+      if (/shoe|sneaker|boot|heel|mule|sandal|loafer|flat/.test(item) || kind === "shoes") {
+        if (!out.shoes) out.shoes = size;
+      } else if (/jean|denim/.test(item) || kind === "jeans") {
+        if (!out.denim) out.denim = size;
+      } else if (!out.us) {
+        out.us = size;
+      }
+    }
+    return out;
+  }
+
+  function hasSizeKnowledge(info, brand = "") {
+    const sizes = learnedSizes();
+    const b = String(brand || shopBrand(info) || "").toLowerCase();
+    if (b && sizes.brands && Object.entries(sizes.brands).some(([k, v]) => k.toLowerCase() === b && v)) {
+      return true;
+    }
+    const fam =
+      SIZES?.familyOf?.(info) ||
+      (isShoeProduct(info) ? "shoes" : kindOf(info) === "jeans" ? "denim" : "clothes");
+    if (fam === "shoes" && sizes.shoes) return true;
+    if (fam === "denim" && sizes.denim) return true;
+    if (sizes.us) return true;
+    return false;
+  }
+
+  function hydrateSizesFromProfile() {
+    const L = learnedState();
+    const persona = activePersona();
+    const base = persona?.sizes || {};
+    const orders = sizesFromOrders();
+    let changed = false;
+    const take = (key, value) => {
+      if (!value || L[key]) return;
+      L[key] = value;
+      changed = true;
+    };
+    take("us", base.us || orders.us);
+    take("denim", base.denim || orders.denim);
+    take("shoes", base.shoes || orders.shoes);
+    const brands = { ...orders.brands, ...(base.brands || {}), ...(L.brands || {}) };
+    for (const [brand, size] of Object.entries(brands)) {
+      if (!size) continue;
+      const key = String(brand).toLowerCase();
+      if (L.brands[key] !== size) {
+        L.brands[key] = size;
+        changed = true;
+      }
+    }
+    if (changed) saveState();
+    return changed;
+  }
+
   function learnedSizes() {
     const L = learnedState();
     const base = activePersona().sizes || {};
+    const orders = sizesFromOrders();
     return {
+      ...orders,
       ...base,
       ...(L.us ? { us: L.us } : {}),
       ...(L.denim ? { denim: L.denim } : {}),
       ...(L.shoes ? { shoes: L.shoes } : {}),
-      brands: { ...(base.brands || {}), ...(L.brands || {}) },
+      brands: { ...orders.brands, ...(base.brands || {}), ...(L.brands || {}) },
     };
   }
 
@@ -1512,7 +1626,7 @@
         size: String(item.size).toLowerCase(),
         note: `kept ${name} in ${String(item.size).toLowerCase()} at ${brand} (from your orders).`,
       });
-      paintFitCheck(host, ctx, String(item.size).toLowerCase());
+      markNoted(host);
       return;
     }
     host.innerHTML = "";
@@ -1663,18 +1777,40 @@
     const brand = shopBrand(ctx.info);
     const pack = isPdp() ? listingPack(ctx.info) : null;
     const past = brandPurchases(brand).find((p) => p.item && p.kept !== false);
-    if (pack?.match?.ask && !L.askedBrand[brand]) {
+    const knowsSize = hasSizeKnowledge(ctx.info, brand);
+
+    if (past?.size && !L.brands[String(brand).toLowerCase()]) {
+      applyLearn(ctx, {
+        size: String(past.size).toLowerCase(),
+        note: `${past.item || "past order"} from ${brand} in ${past.size} (from your orders).`,
+      });
+    }
+
+    if (pack?.match?.ask && !L.askedBrand[brand] && !knowsSize) {
       L.askedBrand[brand] = true;
       saveState();
+      if (past?.size) {
+        markNoted(host);
+        return;
+      }
       if (past) paintPastSizeAsk(host, ctx, past);
       else paintSizeAsk(host, ctx);
       return;
     }
-    if (isPdp() && past && pack?.match?.known && !L.askedPast[brand]) {
+    if (pack?.match?.ask && !L.askedBrand[brand]) {
+      L.askedBrand[brand] = true;
+      saveState();
+    }
+
+    if (isPdp() && past && pack?.match?.known && !L.askedPast[brand] && !knowsSize && !past.size) {
       L.askedPast[brand] = true;
       saveState();
       paintPastFit(host, ctx, past);
       return;
+    }
+    if (isPdp() && past && !L.askedPast[brand]) {
+      L.askedPast[brand] = true;
+      saveState();
     }
     host.innerHTML = "";
     host.appendChild(
@@ -2054,7 +2190,7 @@
     }
 
     if (!state.mode) {
-      openModePicker();
+      if (!autoActivateSession()) openModePicker();
       return;
     }
     state.panelOpen = !state.panelOpen;
@@ -2480,6 +2616,14 @@
   function reviewsRead(info) {
     const href = info?.href || (isPdp() ? location.href : "");
     const cached = href && state.reviewBrief?.[href];
+    if (cached?.tiktok?.consensus) return cached.tiktok.consensus;
+    const tiktokSig = cached?.tiktok?.sizing_signals?.[0];
+    if (tiktokSig?.text) {
+      const bits = [tiktokSig.height, tiktokSig.size_worn ? `size ${tiktokSig.size_worn}` : "", tiktokSig.text].filter(
+        Boolean
+      );
+      return `tiktok: ${bits.join(", ")}`;
+    }
     if (cached?.fit_note) return cached.fit_note;
     const hit = cached?.highlights?.find((h) => h?.text);
     if (hit) return `${hit.channel}: ${hit.text}`;
@@ -2831,6 +2975,10 @@
     saveState();
     renderPanel();
     positionCluster();
+    if (hasGoogleContext() || livePersona()) {
+      runCheck();
+      return;
+    }
     const info = pdpInfo();
     const prior = findPrior(info);
     const tip = prior?.title ? { title: prior.title, body: prior.body } : deliveryTip();
@@ -2969,7 +3117,7 @@
     saveState();
     clearPdp();
     render();
-    if (state.budget == null && !state.budgetAsked) {
+    if (state.budget != null && !state.budgetAsked) {
       askBudgetChips();
       return;
     }
@@ -3418,6 +3566,10 @@
     }
 
     if (!isGift() && isGreenProduct(info)) {
+      if (hasGoogleContext() || livePersona()) {
+        speakOnce(`pdp:${pageKey}`, () => runCheck());
+        return;
+      }
       speakOnce(`green:${pageKey}`, () => {
         pdpNote(DATA.tips.forWhat, { closetKey: "green", ...purposeAskChips(DATA.tips.green) });
       });
@@ -3596,16 +3748,20 @@
             /* ignore */
           }
           applyLivePersona();
+          hydrateSizesFromProfile();
         }
         const events = Array.isArray(res.events) ? res.events : [];
-        calendarEvents = events.map((e) => ({
-          id: e.id,
-          label: e.label,
-          when: e.when,
-          source: "from your calendar",
-          kind: e.kind || "generic",
-          location: e.location || "",
-        }));
+        const rushOk = isRushShopper();
+        calendarEvents = events
+          .filter((e) => rushOk || (e.kind || "generic") !== "rush")
+          .map((e) => ({
+            id: e.id,
+            label: e.label,
+            when: e.when,
+            source: "from your calendar",
+            kind: e.kind || "generic",
+            location: e.location || "",
+          }));
         if (Array.isArray(res.gmail) && res.gmail.length && liveAccount?.profile) {
           const bits = res.gmail
             .slice(0, 8)
@@ -3634,8 +3790,14 @@
             });
           }
           liveAccount.profile.purchases = purchases;
+          hydrateSizesFromProfile();
         }
         if (state.panelOpen || askEl) render();
+        if (!state.mode) autoActivateSession();
+        else if (state.mode === "purpose" && !state.purpose && occasionEvents()[0]?.label) {
+          state.purpose = occasionEvents()[0].label;
+          saveState();
+        }
         if (res.synced) {
           listingPack.path = "";
           listingPack.cache = null;
@@ -3671,7 +3833,9 @@
       state = defaultState();
     }
     applyLivePersona();
+    hydrateSizesFromProfile();
     loadGoogleEvents();
+    if (!state.mode) autoActivateSession();
     dockBuddy(true);
     startHoverWatch();
     try {

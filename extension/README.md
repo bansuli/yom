@@ -5,7 +5,7 @@ A stylist on clothing sites. Reformation is just another shop — there is no ha
 ## Load
 
 1. `chrome://extensions` → Load unpacked → `~/Desktop/yom/extension`
-2. Reload after pulls
+2. Reload after pulls (Chrome will ask to read/change data on all websites — that's expected)
 3. Click the yom icon
 
 Triple-click the character to reset.
@@ -63,7 +63,21 @@ Do not put `SUPABASE_SERVICE_ROLE_KEY` in the extension.
 
 ## Test another website
 
-1. Open Aritzia / SSENSE / COS / etc.
-2. Popup → **use this tab** if yom didn’t appear
-3. Click yom → pick an occasion + budget (occasions come from Google when connected)
-4. Pause on products. Open a PDP. Takes should name the piece and take a side.
+yom runs on any site that looks like a clothing shop. Resale apps (Depop, Vinted, Poshmark, Grailed, etc.) are always in scope. Big marketplaces (Amazon, eBay, Target) only when the page is clearly fashion — a dress PDP yes, the homepage or a kitchen gadget no.
+
+1. Open any fashion retailer — Aritzia, SSENSE, COS, a boutique in Tokyo, etc.
+2. Click yom → pick an occasion + budget (occasions come from Google when connected)
+3. Pause on products. Open a PDP. Takes should name the piece and take a side.
+
+## TikTok product evidence
+
+On a PDP, **look into this** / advise calls `/api/yom-advise`, which runs the TikTok pipeline server-side (not in the extension):
+
+1. **Discovery** — DuckDuckGo `site:tiktok.com/video` plus **Reddit** posts that embed TikTok links (free; fashion subs + sitewide search)
+2. **Metadata** — public TikTok oembed captions (no comment scraping)
+3. **Verification** — OpenAI filters false positives (e.g. Roberto Cavalli tiger jeans vs Jaded London) and optional vision compare against the PDP image
+4. **Cache** — results keyed by product fingerprint for 24h so repeat opens are cheap
+
+Structured output lands in `review_brief.tiktok` (consensus, sizing signals, fit claims). The overlay **reviews** line prefers TikTok consensus when present.
+
+Requires `OPENAI_API_KEY` on Vercel. Set `TIKTOK_RESEARCH=0` to disable. Cached in Supabase (`product_tiktok_evidence`) for 7 days by default — run [`../supabase/tiktok-evidence.sql`](../supabase/tiktok-evidence.sql). Override with `TIKTOK_CACHE_DAYS=14` on Vercel.

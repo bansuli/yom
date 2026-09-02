@@ -77,6 +77,15 @@ See [`lineup.sql`](./lineup.sql). Run it in Supabase.
 
 See [`shares.sql`](./shares.sql). Enables `/s/:id` friend votes and persists every scan check.
 
+## TikTok product evidence cache
+
+See [`tiktok-evidence.sql`](./tiktok-evidence.sql). Run it in Supabase.
+
+- `/api/yom-advise` caches verified TikTok evidence in `product_tiktok_evidence` (keyed by brand + name + color + retailer host)
+- Default TTL: **7 days** (`TIKTOK_CACHE_DAYS` on Vercel)
+- Negative results are cached too (no verified videos → skip DuckDuckGo until expiry)
+- Server-only table (service role); no extension access
+
 ## Google Calendar + Gmail
 
 See [`GOOGLE.md`](./GOOGLE.md). Run `google.sql`, set `GOOGLE_CLIENT_*` on Vercel, then **connect google** on `/beta`.

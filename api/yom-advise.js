@@ -33,6 +33,7 @@ Prefer useful calls:
 - "this is trying too hard for a tuesday office"
 
 Never invent data. If calendar isn't connected, don't invent an event.
+Unless occasion explicitly mentions sorority recruitment or rush, never mention unity, sisterhood, preference, philanthropy, or bid day.
 
 Return ONLY compact JSON:
 {

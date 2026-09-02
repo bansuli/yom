@@ -1,7 +1,7 @@
 /* Generic shop reading — JSON-LD, Open Graph, common product cards */
 window.YOM_EXTRACT = (() => {
   const SKIP_HOST =
-    /(^|\.)(google\.com|gmail\.com|github\.com|stackoverflow\.com|notion\.so|slack\.com|facebook\.com|instagram\.com|youtube\.com|twitter\.com|x\.com|linkedin\.com|chatgpt\.com|openai\.com|cursor\.com|youryom\.com|vercel\.app|reddit\.com|tiktok\.com|amazon\.com|ebay\.com|walmart\.com|target\.com|etsy\.com)$/i;
+    /(^|\.)(google\.com|gmail\.com|github\.com|stackoverflow\.com|notion\.so|slack\.com|facebook\.com|instagram\.com|youtube\.com|twitter\.com|x\.com|linkedin\.com|chatgpt\.com|openai\.com|cursor\.com|youryom\.com|vercel\.app|reddit\.com|tiktok\.com|paypal\.com|stripe\.com|chase\.com|bankofamerica\.com|wellsfargo\.com|apple\.com|microsoft\.com)$/i;
 
   const REC_COPY =
     /complete the look|looks good with|things you looked at|you may also|recently viewed|recommended|customers also|we’re cute too|we're cute too|similar items|you might also/i;

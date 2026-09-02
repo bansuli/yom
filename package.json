@@ -14,6 +14,7 @@
     "test:size:live": "node scripts/test-size-live.mjs",
     "test:size:browser": "node scripts/test-size-browser.mjs",
     "test:size:golden": "node scripts/test-size-golden.mjs",
+    "test:tiktok": "node scripts/test-tiktok-research.mjs",
     "test:gmail": "node scripts/test-gmail-parse.mjs",
     "size:gen": "node scripts/gen-size-read.mjs",
     "hero:cut": "node scripts/knockout-hero-images.mjs",
@@ -46,7 +47,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
     "playwright": "^1.62.1",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.4",
     "vite": "^8.1.1"
   },
   "allowScripts": {
@@ -54,6 +55,11 @@
     "fsevents@2.3.3": true,
     "sharp@0.32.6": true,
     "sharp@0.33.5": true,
-    "sharp@0.35.3": true
+    "sharp@0.35.3": true,
+    "sharp@0.35.4": true
+  },
+  "overrides": {
+    "sharp": "^0.35.4",
+    "tar": "^7.5.22"
   }
 }
