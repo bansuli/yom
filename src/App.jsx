@@ -38,9 +38,6 @@ function App() {
             <span className="top-mark">yom</span>
             <span className="chip">Open beta</span>
           </div>
-          <Link to="/onboarding" className="top-cta">
-            Create your yom <span aria-hidden="true">→</span>
-          </Link>
         </div>
 
         <div className="hero-center">
@@ -71,32 +68,9 @@ function App() {
                 <Link to="/onboarding" className="btn btn-primary">
                   Create your yom
                 </Link>
-                <span className="brand-lede-note">
-                  Free while we are in beta. No card.
-                </span>
               </div>
             </div>
 
-            {/*
-              * Three claims, in the machine voice. The third is the one worth
-              * having: saying nothing when the data is thin is the position
-              * docs/SIZING.md takes, and it is the hardest of the three for
-              * anyone else to copy.
-              */}
-            <dl className="spec">
-              <div className="spec-row">
-                <dt>Reads</dt>
-                <dd>Size, fit and returns off the listing you are already on.</dd>
-              </div>
-              <div className="spec-row">
-                <dt>Learns</dt>
-                <dd>What you actually wear, not what you clicked on.</dd>
-              </div>
-              <div className="spec-row">
-                <dt>Holds back</dt>
-                <dd>Says nothing when the data is not there to say it.</dd>
-              </div>
-            </dl>
           </div>
 
           <p className="brand" aria-label="yom">

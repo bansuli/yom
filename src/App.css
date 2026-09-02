@@ -404,20 +404,6 @@ a {
   padding: 0.22em 0.5em;
 }
 
-.top-cta {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.3);
-  padding-bottom: 0.2em;
-}
-
-.top-cta:hover {
-  border-bottom-color: var(--ink);
-}
 
 /*
  * ── The lede ──
@@ -429,10 +415,7 @@ a {
   width: 100vw;
   padding-inline: clamp(1rem, 4vw, 3.5rem);
   margin-bottom: clamp(1.2rem, 3vw, 2.6rem);
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-  align-items: start;
-  gap: clamp(1.5rem, 5vw, 5rem);
+  display: block;
   text-align: left;
 }
 
@@ -497,56 +480,7 @@ a {
   background: #000;
 }
 
-/* Sits beside the button and answers the question a button raises: what does
-   pressing this cost me. */
-.brand-lede-note {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.45);
-}
 
-/*
- * ── The spec list ──
- * The machine voice: mono labels against prose. That contrast is the whole
- * type system on this page — uppercase mono for anything the product asserts,
- * the grotesque for anything a person says.
- */
-.spec {
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  padding-top: 0.35rem;
-}
-
-.spec-row {
-  display: grid;
-  grid-template-columns: 6.5rem minmax(0, 1fr);
-  gap: 0.4rem 1rem;
-  align-items: baseline;
-  padding-top: 0.55rem;
-  border-top: 1px solid rgba(17, 17, 17, 0.14);
-}
-
-.spec dt {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  font-weight: 400;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.5);
-}
-
-.spec dd {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: 0.85rem;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-}
 
 /* The left anchor in the footer row. */
 .brand-links-mark {
@@ -554,19 +488,6 @@ a {
   font-size: 1rem;
   line-height: 1;
   color: var(--ink);
-}
-
-@media (max-width: 900px) {
-  /* One column below this: side by side, the spec loses too much width to
-     read as sentences and starts breaking every line. */
-  .brand-lede {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1.1rem;
-  }
-
-  .spec-row {
-    grid-template-columns: 5.5rem minmax(0, 1fr);
-  }
 }
 
 @media (max-width: 640px) {
@@ -582,13 +503,6 @@ a {
     padding-inline: 4vw;
   }
 
-  .spec {
-    gap: 0.5rem;
-  }
-
-  .spec dd {
-    font-size: 0.8rem;
-  }
 }
 
 /*
