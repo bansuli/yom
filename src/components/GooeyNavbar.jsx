@@ -18,9 +18,9 @@ import './GooeyNavbar.css'
  * independent numbers.
  */
 
-const PAD_X = 18
-const PAD_Y = 11
-const GAP = 12
+const PAD_X = 14
+const PAD_Y = 8
+const GAP = 9
 const PUSH = 8
 const NECK_RATIO = 0.4
 const RADIUS = 999
@@ -319,8 +319,12 @@ export default function GooeyNavbar({ items, activePath }) {
                 <path d={shape} />
               </clipPath>
               <radialGradient id="gooey-nav-halo">
-                <stop offset="0%" stopColor="var(--lime)" stopOpacity="0.55" />
-                <stop offset="100%" stopColor="var(--lime)" stopOpacity="0" />
+                {/* White, not lime. This was the last of the pastel palette
+                    left in here — it only shows under the pill you are on, so
+                    it survived the field going neutral and read as a green
+                    stain on hover. */}
+                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
               </radialGradient>
               {/*
                * The bevel: light gathered hard against the top and bottom

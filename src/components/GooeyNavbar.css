@@ -5,8 +5,8 @@
    * Scoped here rather than to :root because nothing outside this component
    * reads them, and the component is parked — its colours travel with it.
    */
-  --nav-glass: rgba(255, 255, 255, 0.03);
-  --nav-glass-edge: rgba(255, 255, 255, 0.92);
+  --nav-glass: rgba(255, 255, 255, 0.55);
+  --nav-glass-edge: rgba(255, 255, 255, 0.95);
 
   /*
    * The colour field, named once. The drawn row crops it to the pill outlines;
@@ -14,12 +14,21 @@
    * surfaces, one palette — worth a custom property so a colour change lands
    * on both.
    */
+  /*
+   * Neutral. The five-colour field this had was built when the brief was a
+   * pastel gradient bar; the page it sits on now is off-white going to blush,
+   * and a rainbow over that is the loudest thing on a page whose whole point
+   * is restraint.
+   *
+   * What is left is glass rather than paint: a barely-there white wash, a
+   * touch cooler where the light would fall off, so the pills read by their
+   * blur and their lit edge rather than by any colour of their own. Kept as a
+   * field, and still drifting, so the surface stays alive.
+   */
   --gooey-nav-field:
-    radial-gradient(58% 210% at 4% 26%, rgba(255, 138, 110, 0.95), rgba(255, 138, 110, 0.5) 34%, rgba(255, 138, 110, 0) 76%),
-    radial-gradient(52% 190% at 26% 86%, rgba(255, 207, 92, 0.95), rgba(255, 207, 92, 0.5) 34%, rgba(255, 207, 92, 0) 74%),
-    radial-gradient(54% 205% at 50% 12%, rgba(177, 140, 240, 0.94), rgba(177, 140, 240, 0.5) 34%, rgba(177, 140, 240, 0) 74%),
-    radial-gradient(52% 195% at 74% 90%, rgba(138, 155, 240, 0.92), rgba(138, 155, 240, 0.48) 34%, rgba(138, 155, 240, 0) 74%),
-    radial-gradient(60% 215% at 97% 28%, rgba(111, 220, 224, 0.95), rgba(111, 220, 224, 0.5) 36%, rgba(111, 220, 224, 0) 76%);
+    radial-gradient(70% 220% at 8% 22%, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.3) 40%, rgba(255, 255, 255, 0) 78%),
+    radial-gradient(64% 200% at 44% 88%, rgba(232, 234, 238, 0.62), rgba(232, 234, 238, 0.24) 42%, rgba(232, 234, 238, 0) 76%),
+    radial-gradient(68% 215% at 92% 30%, rgba(246, 247, 249, 0.7), rgba(246, 247, 249, 0.28) 40%, rgba(246, 247, 249, 0) 78%);
 
   position: relative;
   display: block;
@@ -152,7 +161,7 @@
      veil this thin would be paper on pink. */
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   text-decoration: none;
@@ -220,7 +229,7 @@
   }
 
   .gooey-nav-link {
-    padding: 0.45rem 1rem;
+    padding: 0.38rem 0.85rem;
     border-radius: 999px;
     /* The SVG is gone here, so the lens is rebuilt on the element itself: the
        veil, the lit rim, and the bevel as an inset highlight top and bottom.
