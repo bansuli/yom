@@ -63,7 +63,7 @@ Do not put `SUPABASE_SERVICE_ROLE_KEY` in the extension.
 
 ## Test another website
 
-yom runs on any site that looks like a clothing shop. Resale apps (Depop, Vinted, Poshmark, Grailed, etc.) are always in scope. Big marketplaces (Amazon, eBay, Target) only when the page is clearly fashion — a dress PDP yes, the homepage or a kitchen gadget no.
+yom runs on **clothing shops only** — mainstream brands (Reformation, Everlane, Zara, Nike…), small apparel sites, and fashion resale (Depop, Vinted, Grailed…). Big marketplaces (Amazon, eBay, Target) only on clearly apparel pages. Beauty (Sephora, Ulta), home, grocery, and electronics are out.
 
 1. Open any fashion retailer — Aritzia, SSENSE, COS, a boutique in Tokyo, etc.
 2. Click yom → pick an occasion + budget (occasions come from Google when connected)

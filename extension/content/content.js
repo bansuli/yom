@@ -1,6 +1,6 @@
 (() => {
-  if (window.__YOM_BUILD__ === "1.1.43") return;
-  window.__YOM_BUILD__ = "1.1.43";
+  if (window.__YOM_BUILD__ === "1.1.50") return;
+  window.__YOM_BUILD__ = "1.1.50";
   window.__YOM_LOADED__ = true;
   document.getElementById("yom-root")?.remove();
 
@@ -13,28 +13,28 @@
     const host = location.hostname;
     if (Sites?.isSkippedHost?.(host) || EXTRACT?.skipHost?.(host)) return false;
 
-    /* Depop, Vinted, Grailed, etc. — fashion resale, always in scope on product/browse pages. */
-    if (Sites?.isFashionResale?.(host)) {
-      if (EXTRACT?.isPdp?.()) return true;
-      if (EXTRACT?.looksLikeShop?.()) return true;
-      if (Sites?.pageLooksLikeClothing?.()) return true;
-      return false;
+    const clothing = Boolean(Sites?.pageLooksLikeClothing?.());
+    const shop = Boolean(EXTRACT?.looksLikeShop?.());
+    const pdp = Boolean(EXTRACT?.isPdp?.());
+
+    /* Known fashion brands + resale — shop/PDP is enough. */
+    if (Sites?.isFashionRetail?.(host) || Sites?.isFashionResale?.(host)) {
+      return pdp || shop;
     }
 
-    /* Amazon, eBay, Target… — only when this page is clearly clothes, not a blender. */
+    /* Amazon, eBay, Target… — only apparel pages, never beauty/home-only. */
     if (Sites?.isBroadMarketplace?.(host)) {
-      if (EXTRACT?.isPdp?.()) {
+      if (pdp) {
         const info = EXTRACT?.pdpInfo?.();
         const blob = `${info?.name || ""} ${info?.category || ""} ${info?.text || ""}`;
         if (Sites?.pageLooksLikeClothing?.(blob)) return true;
       }
-      if (Sites?.pageLooksLikeClothing?.()) return true;
-      return false;
+      return clothing && shop;
     }
 
-    if (Sites?.pageLooksLikeClothing?.()) return true;
-    if (EXTRACT?.looksLikeShop?.()) return true;
-    return false;
+    /* Small / unknown shops — must look like apparel AND a clothing shop.
+       Beauty/home copy without garments stays out. */
+    return clothing && shop;
   }
 
   if (!pageEligible()) return;

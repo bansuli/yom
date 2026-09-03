@@ -200,19 +200,25 @@ window.YOM_EXTRACT = (() => {
   }
 
   function looksLikeShop() {
-    if (jsonLdProduct()) return true;
-    if (/product/i.test(meta("og:type"))) return true;
-    if (/\/(product|products|p|dp|item|shop|clothing|collections|c)\b/i.test(location.pathname)) {
-      return true;
-    }
+    /* Path alone is not enough — too many SaaS / docs sites use /products or /shop. */
     const add = [...document.querySelectorAll("button, a, input")].some((n) =>
       /add to (bag|cart)/i.test(`${n.textContent || ""} ${n.value || ""}`)
     );
     if (add) return true;
-    return findTiles().length >= 4;
+    if (findTiles().length >= 4) return true;
+    if (jsonLdProduct() && (document.querySelector("h1") || /product/i.test(meta("og:type")))) return true;
+    if (/product/i.test(meta("og:type")) && document.querySelector("h1")) return true;
+    if (
+      /\/(products?|clothing|collections)\b/i.test(location.pathname) &&
+      (jsonLdProduct() || add || findTiles().length >= 2)
+    ) {
+      return true;
+    }
+    return false;
   }
 
   function skipHost(hostname) {
+    if (window.YOM_SITES?.isSkippedHost?.(hostname)) return true;
     return SKIP_HOST.test(hostname);
   }
 
