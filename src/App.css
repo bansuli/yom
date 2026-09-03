@@ -322,28 +322,13 @@ a {
   margin: 0;
   font-family: var(--font-display-alt);
   font-weight: 600;
-  font-size: clamp(2.6rem, 8.4vw, 7rem);
+  font-size: clamp(2.35rem, 7.4vw, 6.1rem);
   line-height: 0.94;
   letter-spacing: -0.045em;
   color: var(--ink);
   max-width: 18ch;
 }
 
-/*
- * The turn, lit from behind.
- *
- * The letters stay ink; what carries them is a blurred copy of the same words
- * sitting underneath, painted with a spectrum and clipped to the glyphs. A
- * text-shadow cannot do this — a shadow is one colour, and the whole point is
- * that the bloom changes hue across the word.
- *
- * The glow is masked away to the right, so it is strongest where the phrase
- * begins and gone by the time it ends. Even across the whole word it reads as
- * a sticker; fading it makes it read as light.
- *
- * The span makes its own stacking context, so the copy can sit behind the
- * letters without falling behind the page.
- */
 /* The turn, held back rather than pushed forward — it is the quiet half of
    the sentence and the size is already doing the shouting. */
 .home-head-turn {
