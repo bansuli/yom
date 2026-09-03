@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import TokenField from './components/TokenField.jsx'
 import Pet from './components/Pet.jsx'
+import YomPicker from './components/YomPicker.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
 
@@ -60,45 +61,22 @@ function App() {
 
       <section className="home-stage">
         {/*
-          * Everything the first screen has to say, in one column on the left.
-          * The right is left to the field of shop language, which is the only
-          * other thing on this screen and reads as part of the composition
-          * rather than as wallpaper behind it.
+          * Type first, and at the top edge — the headline is the layout rather
+          * than a block sitting inside one. Everything else is placed against
+          * it: a tag on the pet, the small print in the corner, the way in
+          * under the words.
           */}
-        <div className="home-say">
-          <p className="home-eyebrow">An online shopping companion</p>
-
-          {/*
-            * Two tones, one sentence. The problem is set back and the answer
-            * is in full ink, so the turn lands on "yom does." rather than
-            * having to be underlined or coloured.
-            */}
-          <h1 className="home-head">
-            <span className="home-head-set">your shopping knows nothing about you.</span>{' '}
-            <span className="home-head-turn">yom does.</span>
-          </h1>
-
-          <p className="home-sub">
-            it learns your taste, remembers what you own, and does the research
-            while you shop.
-          </p>
-
-          {/*
-            * A line and an arrow, not a filled pill. The page is built out of
-            * hairlines and letterspaced mono, and a glossy button would be the
-            * only object of its kind on it.
-            */}
-          <Link to="/onboarding" className="home-cta">
-            Create your yom
-            <span className="home-cta-arrow" aria-hidden="true">
-              →
-            </span>
-          </Link>
-        </div>
+        <h1 className="home-head">
+          your shopping knows nothing about you.{' '}
+          <span className="home-head-turn">yom does.</span>
+        </h1>
 
         <div className="home-pet">
           <Pet />
         </div>
+
+        <YomPicker />
+
       </section>
     </main>
   )
