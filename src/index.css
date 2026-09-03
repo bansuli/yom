@@ -1,8 +1,20 @@
+/*
+ * White, because this is the colour the overscroll bounce shows.
+ *
+ * It was blush, which is what put a pink band above the homepage whenever the
+ * page was dragged past its top or bottom. Nothing renders against this in
+ * normal use — every page paints its own ground over it — so the only thing it
+ * ever does is fill the rubber band, and that should match the page it is
+ * stretching away from.
+ *
+ * Beta and Legal still paint blush themselves; their bounce is white now
+ * rather than matching, which is a much smaller mismatch than the homepage had.
+ */
 html,
 body,
 #root {
   min-height: 100%;
-  background: #f9d9d1;
+  background: #ffffff;
   color-scheme: light only;
   -webkit-tap-highlight-color: transparent;
 }

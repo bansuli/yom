@@ -51,7 +51,7 @@ html {
 body {
   font-family: var(--font-body);
   color: var(--ink);
-  background: var(--paper);
+  background: #ffffff;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
