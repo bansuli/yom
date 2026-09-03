@@ -1,8 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import TokenField from './components/TokenField.jsx'
-import Pet from './components/Pet.jsx'
-import YomPicker from './components/YomPicker.jsx'
+import CreateYom from './components/CreateYom.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
 
@@ -71,11 +70,7 @@ function App() {
           <span className="home-head-turn">yom does.</span>
         </h1>
 
-        <div className="home-pet">
-          <Pet />
-        </div>
-
-        <YomPicker />
+        <CreateYom />
 
       </section>
     </main>

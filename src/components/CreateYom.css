@@ -1,0 +1,45 @@
+/*
+ * A square the size of the whole piece, with the arc drawn over its top half
+ * and the character sitting inside it.
+ */
+.cy {
+  position: relative;
+  display: block;
+  width: min(74vw, 470px);
+  aspect-ratio: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cy:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 6px;
+  border-radius: 50%;
+}
+
+.cy-arc {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.cy-arc text {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  /* In viewBox units, so it scales with the piece and never needs a clamp. */
+  font-size: 5.4px;
+  letter-spacing: 1.15px;
+  fill: var(--ink);
+}
+
+/*
+ * Inset so the character clears the arc above it. The pet's own bubble already
+ * carries a margin of empty space, so this only has to make room for the type.
+ */
+.cy-face {
+  position: absolute;
+  inset: 13%;
+  display: block;
+}

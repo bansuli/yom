@@ -303,7 +303,7 @@ a {
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto 1fr;
   gap: clamp(1.5rem, 4vh, 3rem) clamp(1.5rem, 4vw, 3rem);
   padding: clamp(5rem, 11vh, 7rem) clamp(1rem, 4vw, 3rem) clamp(2rem, 5vh, 3.5rem);
@@ -329,6 +329,21 @@ a {
   max-width: 18ch;
 }
 
+/*
+ * The turn, lit from behind.
+ *
+ * The letters stay ink; what carries them is a blurred copy of the same words
+ * sitting underneath, painted with a spectrum and clipped to the glyphs. A
+ * text-shadow cannot do this — a shadow is one colour, and the whole point is
+ * that the bloom changes hue across the word.
+ *
+ * The glow is masked away to the right, so it is strongest where the phrase
+ * begins and gone by the time it ends. Even across the whole word it reads as
+ * a sticker; fading it makes it read as light.
+ *
+ * The span makes its own stacking context, so the copy can sit behind the
+ * letters without falling behind the page.
+ */
 /* The turn, held back rather than pushed forward — it is the quiet half of
    the sentence and the size is already doing the shouting. */
 .home-head-turn {
@@ -346,11 +361,12 @@ a {
 }
 
 /* ── The way in ── */
-.yp {
-  grid-column: 1;
-  grid-row: 4;
+/* Centred under the headline — the piece is the whole lower half now. */
+.cy {
+  grid-column: 1 / -1;
+  grid-row: 2;
   align-self: start;
-  justify-self: start;
+  justify-self: center;
 }
 
 /*
@@ -432,7 +448,7 @@ a {
   }
 
 
-  .yp {
+  .cy {
     grid-row: 2;
   }
 }
