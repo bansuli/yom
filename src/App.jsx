@@ -72,6 +72,16 @@ function App() {
 
         <CreateYom />
 
+        {/*
+          * The cue at the foot of the first screen. Not a button: there is
+          * nothing below to jump to yet, and a control that goes nowhere is
+          * worse than a label that only points.
+          */}
+        <p className="home-cue">
+          <span>Scroll to learn more</span>
+          <span className="home-cue-rule" aria-hidden="true" />
+        </p>
+
       </section>
     </main>
   )

@@ -396,6 +396,74 @@ a {
 }
 
 /*
+ * ── The cue ──
+ *
+ * A label and a hairline, in the same letterspaced mono everything else on
+ * this page labels things in — no chevron, no bouncing arrow. The line is the
+ * page's own vocabulary, and a segment travelling down it says "there is more
+ * this way" without borrowing an icon from somewhere else.
+ */
+.home-cue {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  align-self: end;
+  justify-self: center;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: clamp(0.56rem, 0.68vw, 0.66rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.42);
+}
+
+.home-cue-rule {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 46px;
+  overflow: hidden;
+  background: rgba(17, 17, 17, 0.14);
+}
+
+/*
+ * The travelling segment. Transform only, so it never costs a layout, and it
+ * runs the length of the rule rather than fading in place — the movement is
+ * the whole message.
+ */
+.home-cue-rule::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 40%;
+  background: rgba(17, 17, 17, 0.55);
+  animation: home-cue-fall 2.4s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+}
+
+@keyframes home-cue-fall {
+  0% {
+    transform: translateY(-100%);
+  }
+  60%,
+  100% {
+    transform: translateY(250%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-cue-rule::after {
+    animation: none;
+    transform: translateY(130%);
+  }
+}
+
+/*
  * Grain, over everything and fixed to the window.
  *
  * A flat page of pure CSS colour is the cleanest surface a screen can produce,
