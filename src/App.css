@@ -132,38 +132,16 @@ a {
 .home {
   position: relative;
   /*
-   * Placeholder height. There is nothing on the page yet, and the gradient
-   * cannot be seen without somewhere to scroll to — once real sections land
-   * this comes out and the page is as tall as they make it. The gradient is
-   * written in percentages, so it stretches to whatever that turns out to be
-   * rather than needing to be retuned.
+   * Room held for the sections that are coming, rather than a prop for the
+   * background — it was originally here so the gradient had somewhere to be
+   * seen, and that gradient is gone. Real content replaces it; until then the
+   * scroll cue at the foot of the first screen has somewhere to point.
    */
   min-height: 240vh;
 
-  /*
-   * White at the top, blush at the bottom.
-   *
-   * The linear layer is the ramp and the three radial ones are the aura: soft
-   * blooms low down that keep the pink from arriving as a flat band. They are
-   * placed in percentages of the page, not the viewport, so the bloom stays
-   * where it belongs in the scroll no matter how long the page gets.
-   *
-   * Painted on the page itself rather than fixed to the window, because the
-   * point is that scrolling takes you somewhere — a fixed background would sit
-   * still and the pink would never grow.
-   */
-  background:
-    radial-gradient(62% 30% at 16% 56%, rgba(249, 188, 172, 0.5), transparent 72%),
-    radial-gradient(58% 26% at 84% 70%, rgba(255, 202, 212, 0.45), transparent 74%),
-    radial-gradient(78% 28% at 50% 90%, rgba(246, 172, 152, 0.58), transparent 76%),
-    linear-gradient(
-      180deg,
-      var(--ground) 0%,
-      var(--ground) 10%,
-      #fdf1ec 32%,
-      #fbe4dc 56%,
-      var(--blush) 80%
-    );
+  /* Plain white. The ramp into blush and the three blooms low down are gone;
+     the grain is the only thing on it now. */
+  background: #ffffff;
 }
 
 /*
