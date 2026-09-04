@@ -17,6 +17,7 @@ import {
   yomPhoneVerify,
   yomSignup,
 } from "./lib/yom-api.js";
+import DialSelect from "./components/DialSelect.jsx";
 import { claimGoogleGrant, startGoogleConnect } from "./lib/google-session.js";
 import { clearSurvey, loadSurvey } from "./lib/survey-store.js";
 import {
@@ -179,7 +180,14 @@ const DIAL_CODES = [
   { code: "JP", dial: "+81" },
 ];
 
-export default function Beta() {
+/*
+ * `variant` is dress, not behaviour. As a page this is the whole account
+ * experience; in a dialog it is the gate only, because the panel it becomes
+ * after signing in has nowhere to go in a box that size — so it reports back
+ * instead and lets whoever opened it decide where to send you.
+ */
+export default function Beta({ variant = "page", onAuthed }) {
+  const inDialog = variant === "dialog";
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [email, setEmail] = useState("");
@@ -196,6 +204,10 @@ export default function Beta() {
   const [google, setGoogle] = useState({ loading: true });
   const [googleEvents, setGoogleEvents] = useState([]);
   const [googleBusy, setGoogleBusy] = useState(false);
+
+  useEffect(() => {
+    if (authed && onAuthed) onAuthed();
+  }, [authed, onAuthed]);
 
   const finishAuthRedirect = () => {
     const next = params.get("next");
@@ -530,9 +542,13 @@ export default function Beta() {
   if (!authed) {
     return (
       <div className="beta-page">
-        <Link to="/" className="beta-close" aria-label="Back to Yom">
-          ×
-        </Link>
+        {/* The dialog brings its own close, and a link back to the homepage
+            makes no sense when the homepage is what is behind it. */}
+        {inDialog ? null : (
+          <Link to="/" className="beta-close" aria-label="Back to Yom">
+            ×
+          </Link>
+        )}
         <div className="beta-gate">
           <div className="beta-card">
             <p className="beta-wordmark">yom</p>
@@ -577,17 +593,7 @@ export default function Beta() {
               ) : (
                 <form onSubmit={sendCode}>
                   <div className="beta-phone">
-                    <select
-                      aria-label="country code"
-                      value={dial}
-                      onChange={(e) => setDial(e.target.value)}
-                    >
-                      {DIAL_CODES.map((c) => (
-                        <option key={c.code} value={c.dial}>
-                          {c.code} {c.dial}
-                        </option>
-                      ))}
-                    </select>
+                    <DialSelect options={DIAL_CODES} value={dial} onChange={setDial} />
                     <input
                       type="tel"
                       autoComplete="tel-national"
@@ -686,6 +692,11 @@ export default function Beta() {
       </div>
     );
   }
+
+  /* Signed in, in a dialog: the effect above has already handed back, and this
+     is where the page-sized panel would otherwise start rendering into a box it
+     does not fit. */
+  if (inDialog) return null;
 
   const profile = authed.profile;
   const name = profile?.name || authed.user?.name || authed.user?.email?.split("@")[0] || "you";

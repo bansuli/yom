@@ -1,0 +1,107 @@
+.ds {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+}
+
+/*
+ * The closed field. It lives inside the phone row's border, so it carries no
+ * edge of its own except the hairline that separates it from the number.
+ */
+.ds-field {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1rem 1rem 1rem 1.15rem;
+  border: none;
+  border-right: 1px solid #ececec;
+  background: none;
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 1rem;
+  line-height: 1;
+  color: #111;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Its own outer corners, now that the row above it no longer clips them. */
+  border-radius: 9px 0 0 9px;
+}
+
+.ds-field:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: -2px;
+  border-radius: 9px 0 0 9px;
+}
+
+/* Tabular figures, so the field does not change width as the dial code does
+   and shove the hairline sideways. */
+.ds-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-chev {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  color: rgba(17, 17, 17, 0.45);
+  transition: transform 160ms ease;
+}
+
+.ds[data-open] .ds-chev,
+.ds-field[aria-expanded='true'] .ds-chev {
+  transform: rotate(180deg);
+}
+
+/* ── The open list ── */
+.ds-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 3;
+  min-width: 168px;
+  max-height: 232px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border-radius: 14px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  background: #fff;
+  box-shadow:
+    0 18px 40px rgba(38, 26, 36, 0.16),
+    0 2px 6px rgba(38, 26, 36, 0.06);
+}
+
+.ds-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 9px;
+  font-family: 'Schibsted Grotesk', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1;
+  color: #111;
+  cursor: pointer;
+}
+
+.ds-opt[data-on='true'] {
+  background: #f2f0f3;
+}
+
+/* The one in use, marked by weight rather than by another colour — a second
+   highlight competing with the cursor's is two things claiming to be current. */
+.ds-opt[aria-selected='true'] .ds-opt-code {
+  font-weight: 600;
+}
+
+.ds-opt-dial {
+  color: rgba(17, 17, 17, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-chev {
+    transition: none;
+  }
+}

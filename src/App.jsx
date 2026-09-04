@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import TokenField from './components/TokenField.jsx'
 import CreateYom from './components/CreateYom.jsx'
+import SignInDialog from './components/SignInDialog.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
 
@@ -26,6 +27,11 @@ import './App.css'
  * Dropping it would break attribution rather than clear the canvas.
  */
 function App() {
+  const [signIn, setSignIn] = useState(false)
+  /* Memoised: the dialog keys an effect on it, and a fresh arrow every render
+     would tear that effect down and set it up again on each keystroke. */
+  const closeSignIn = useCallback(() => setSignIn(false), [])
+
   useEffect(() => {
     const acq = captureAcquisitionFromUrl()
     track('landing_viewed', { path: '/' })
@@ -33,7 +39,8 @@ function App() {
   }, [])
 
   return (
-    <main className="home">
+    <>
+      <main className="home">
       {/* Behind everything, and hidden from readers — it is texture. */}
       <TokenField />
 
@@ -52,7 +59,12 @@ function App() {
           <Link to="/" className="home-mark" aria-label="yom, home">
             yom
           </Link>
-          <Link to="/signin">Sign in</Link>
+          {/* A button, not a link: it opens something here rather than going
+              anywhere, and a link that does not navigate is a link that lies to
+              anyone reading the status bar or opening it in a new tab. */}
+          <button type="button" onClick={() => setSignIn(true)}>
+            Sign in
+          </button>
           <Link to="/about">About yom</Link>
           <Link to="/how-it-works">How it works</Link>
         </nav>
@@ -84,6 +96,9 @@ function App() {
 
       </section>
     </main>
+
+      <SignInDialog open={signIn} onClose={closeSignIn} />
+    </>
   )
 }
 

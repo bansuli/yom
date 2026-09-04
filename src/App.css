@@ -197,7 +197,17 @@ a {
   padding: clamp(0.85rem, 1.8vw, 1.25rem) clamp(1rem, 4vw, 3rem);
 }
 
-.home-line-row a {
+/* The sign-in control is a button and the rest are links; they look like the
+   same thing, so they share everything but the reset the button needs. */
+.home-line-row button {
+  appearance: none;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.home-line-row a,
+.home-line-row button {
   font-family: var(--font-mono);
   font-weight: 300;
   font-size: clamp(0.7rem, 0.9vw, 0.85rem);
@@ -217,11 +227,13 @@ a {
   transition: opacity 160ms ease;
 }
 
-.home-line-row a:hover {
+.home-line-row a:hover,
+.home-line-row button:hover {
   opacity: 0.55;
 }
 
-.home-line-row a:focus-visible {
+.home-line-row a:focus-visible,
+.home-line-row button:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }

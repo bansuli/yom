@@ -169,15 +169,28 @@
 }
 
 .beta-card input:focus {
-  border-color: #111;
-  box-shadow: 0 0 0 3px #c8f060;
+  /*
+   * One soft halo instead of a black edge under a lime ring. The acid green is
+   * the brand's and it still is everywhere else in here, but three pixels of it
+   * wrapped around a hard black border is two focus rings arguing, and on a
+   * field this size it was the loudest thing on the form.
+   */
+  border-color: rgba(17, 17, 17, 0.55);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.07);
 }
 
 .beta-go {
   align-self: stretch;
   margin-top: 0.35rem;
   padding: 1.05rem 24px;
-  background: #111;
+  /*
+   * Off black, and lifted. Pure #111 as a solid pill is a hole cut in the page,
+   * and on glass it was the only thing in the panel with no light on it at all.
+   * A hair of warmth and a shadow under it make it an object on the surface
+   * rather than a gap in it.
+   */
+  background: #1c1a20;
+  box-shadow: 0 6px 18px rgba(28, 26, 32, 0.22);
   color: #fff;
   font-family: "Schibsted Grotesk", sans-serif;
   font-size: 1rem;
@@ -192,8 +205,8 @@
 .beta-go:focus-visible,
 .beta-back:focus-visible,
 .beta-toggle:focus-visible {
-  outline: 2px solid #c8f060;
-  outline-offset: 4px;
+  outline: 2px solid #1c1a20;
+  outline-offset: 3px;
   border-radius: 999px;
 }
 
@@ -205,7 +218,7 @@
 .beta-toggle {
   align-self: stretch;
   padding: 1.05rem 24px;
-  border: 1.5px solid #111;
+  border: 1px solid rgba(17, 17, 17, 0.16);
   border-radius: 999px;
   background: #fff;
   font-family: "Schibsted Grotesk", sans-serif;
@@ -229,25 +242,30 @@
   border: 1px solid #dcdcdc;
   border-radius: 10px;
   background: #fff;
-  overflow: hidden;
+  /*
+   * Not hidden. It was, to round off the square corners of the input inside —
+   * and it cropped the country list to a single row the moment that became a
+   * dropdown of its own rather than a native menu drawn over the page. The two
+   * children round their own outer corners instead, which is what the clip was
+   * standing in for.
+   */
+  overflow: visible;
+}
+
+/* One less than the container's, because the border sits between them. */
+.beta-phone input {
+  border-radius: 0 9px 9px 0 !important;
 }
 
 .beta-phone:focus-within {
-  border-color: #111;
-  box-shadow: 0 0 0 3px #c8f060;
+  border-color: rgba(17, 17, 17, 0.55);
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.07);
 }
 
-.beta-phone select {
-  flex: 0 0 auto;
-  border: none;
-  border-right: 1px solid #ececec;
-  background: transparent;
-  padding: 1rem 0.75rem 1rem 1.15rem;
-  font-family: "Schibsted Grotesk", sans-serif;
-  font-size: 1rem;
-  cursor: pointer;
-  outline: none;
-}
+/* The country code is its own listbox now — see DialSelect. What was here
+   dressed a native <select>, whose open list is drawn by the operating system
+   and cannot be reached from CSS at all. That is why it never matched the form
+   around it: the closed field could be styled and the list could not. */
 
 .beta-phone input {
   flex: 1;
@@ -277,7 +295,13 @@
   gap: 0.6rem;
   width: 100%;
   padding: 1.05rem 24px;
-  border: 1.5px solid #111;
+  /*
+   * A hairline, not a keyline. At 1.5px of solid black this read as the primary
+   * action — heavier than the filled button above it — when it is the
+   * alternative. The border only has to say where the button ends.
+   */
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  box-shadow: 0 1px 3px rgba(28, 26, 32, 0.06);
   border-radius: 999px;
   background: #fff;
   font-family: "Schibsted Grotesk", sans-serif;
