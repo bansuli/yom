@@ -375,7 +375,7 @@ a {
    * and it is her head, not the type, that decides how close to the bar this
    * can sit. It grows a little with the window and then stops.
    */
-  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(11rem, 29vh, 18rem);
+  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 8vh, 5rem);
 }
 
 /*
@@ -399,7 +399,9 @@ a {
      instead of above the first one. */
   grid-template-rows: auto minmax(0, 1fr);
   column-gap: clamp(0.75rem, 3vw, 2.75rem);
-  row-gap: clamp(0.4rem, 2.5vh, 1.6rem);
+  /* The one number between her and the line under her, now that the line is
+     ranged to the top of its row rather than to the foot of the screen. */
+  row-gap: clamp(1rem, 4.5vh, 3.25rem);
   align-items: center;
   margin: 0;
   width: 100%;
@@ -470,7 +472,16 @@ a {
 .home-role {
   grid-area: 2 / 2;
   justify-self: end;
-  align-self: end;
+  /*
+   * Ranged to the top of its row, not the foot of the screen.
+   *
+   * Pinned to the bottom, moving it up meant growing the page's bottom padding
+   * and the two blocks drifted apart as the window got taller. Hung off the
+   * row above it, it sits a fixed distance under her at every height and all
+   * the spare room falls below it, which is where empty space is supposed to
+   * go on a page that ends here.
+   */
+  align-self: start;
   max-width: 15ch;
   text-align: right;
   text-wrap: balance;
@@ -550,7 +561,7 @@ a {
   .home-role {
     grid-area: 3 / 1;
     justify-self: start;
-    align-self: end;
+    align-self: start;
     text-align: left;
     max-width: none;
   }
