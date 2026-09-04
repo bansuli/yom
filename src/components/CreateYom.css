@@ -35,17 +35,18 @@
 }
 
 /*
- * Thin, and lighter than the type. It is a connector rather than a mark of its
- * own — at the same weight as the words it competes with them, and the point of
- * it is to be read after them rather than alongside.
+ * The same face and the same size as the label, so the arrow is a character in
+ * the line rather than a mark drawn next to it.
+ *
+ * Qualified with the element, because `.cy-arc text` above is (0,1,1) and a
+ * bare class is (0,1,0) — the rule would lose and the arrow would silently keep
+ * the label's letter-spacing. That spacing is the reason this needs its own
+ * anyway: trailing space on a single centred glyph pushes it off the middle.
  */
-.cy-tick {
-  fill: none;
-  stroke: var(--ink);
-  stroke-width: 0.85;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.55;
+.cy-arc text.cy-tick {
+  font-size: 5.4px;
+  letter-spacing: 0;
+  fill: var(--ink);
 }
 
 /*

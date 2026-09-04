@@ -40,16 +40,19 @@ export default function CreateYom({ to = '/onboarding', label = 'CREATE YOUR YOM
         </text>
 
         {/*
-          * A tick down from the words to the character, so the two read as one
-          * thing rather than as a caption that happens to be sitting above a
-          * picture. Drawn in the same viewBox as the arc, so it keeps its place
-          * between them at every size without a second set of units.
+          * An arrow down from the words to the character, so the two read as
+          * one thing rather than as a caption sitting above a picture.
           *
-          * Slightly curved, following the arc it hangs from — dead straight
-          * under a line of curved type looks like it belongs to something else.
+          * The glyph, not a drawing of one. It was two hand-drawn paths, which
+          * meant its weight and its proportions were mine to guess at and they
+          * never quite sat with the type beside them. Set in the same face at
+          * the same size, it matches by construction rather than by eye — and
+          * being text in the same viewBox, it keeps its place between the words
+          * and her at every size without a second set of units.
           */}
-        <path className="cy-tick" d="M 50 13.4 q -0.5 4.4 0 8" />
-        <path className="cy-tick" d="M 47 18.6 L 50 21.8 L 53 18.6" />
+        <text className="cy-tick" x="50" y="21" textAnchor="middle">
+          ↓
+        </text>
       </svg>
 
       <span className="cy-face">
