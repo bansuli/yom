@@ -366,6 +366,15 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
     /* Further out than the other two. The hair is at its widest down here, and
        at 1.3 the bag was sitting half behind it. */
     { shape: bagShape(), at: [-1.58, -0.6, 0.18], size: 0.19, color: 0xffb3c9 },
+    /*
+     * Out at the bag's radius rather than the one this sat at originally. The
+     * old spacing was set around a head with no hair reaching past it; the bob
+     * is at its widest right here, so at 1.3 the star was sitting on it.
+     *
+     * A little smaller than the rest — four things at one size around a head
+     * reads as a diagram.
+     */
+    { shape: roundedStar(1, 0.46, 0.34), at: [1.64, -0.64, -0.2], size: 0.15, color: 0xb7e3c8 },
   ];
 
   const decoGeos = [];

@@ -58,8 +58,8 @@ export function drawDecal(ctx, S, p, blink, lip, blush) {
    * good margin at the temples; the eyes are large relative to the face, not
    * larger than it.
    */
-  const rx = 0.235;
-  const ry = 0.3;
+  const rx = 0.23;
+  const ry = 0.272;
 
   // ── Blush ──
   /* Under the eyes rather than down on the jaw, and soft enough to read as
