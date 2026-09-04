@@ -406,9 +406,16 @@ a {
      instead of above the first one. */
   grid-template-rows: auto minmax(0, 1fr);
   column-gap: clamp(0.75rem, 3vw, 2.75rem);
-  /* The one number between her and the line under her, now that the line is
-     ranged to the top of its row rather than to the foot of the screen. */
-  row-gap: clamp(1rem, 4.5vh, 3.25rem);
+  /*
+   * The one number between her and the line under her, now that the line is
+   * ranged to the top of its row rather than to the foot of the screen.
+   *
+   * It is doing real work rather than just separating them: the row below is
+   * the one that stretches, so widening this gap walks the line down the screen
+   * and eats the slack that was sitting under it, instead of making the first
+   * screen taller.
+   */
+  row-gap: clamp(3rem, 15vh, 9rem);
   align-items: center;
   margin: 0;
   width: 100%;

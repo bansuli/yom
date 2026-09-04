@@ -46,28 +46,29 @@
  * The only words in the section, and they arrive two thirds of the way through
  * it. Everything before them is the picture making the same point without help.
  *
- * Out of the flow, and at the foot rather than the head.
+ * Above the shot, and out of the flow.
  *
- * In the flow, an invisible two-line headline was still reserving its height at
- * the top of every frame — for the first two thirds of the section, before it
- * had said a word, it was pushing the cart a hundred and thirty pixels down and
- * opening a band of nothing under the line in the hero above.
+ * Out of the flow because in it, an invisible two-line headline was still
+ * reserving its height at the top of every frame — for the first two thirds of
+ * the section, before it had said a word, it was pushing the cart a hundred and
+ * thirty pixels down the screen.
  *
- * At the foot because that is what lets the aisle sit high. The signs stand
- * above the lane, so a headline at the top put a floor under how far the whole
- * shot could rise; down here the top of the screen is free and the bottom, which
- * was empty anyway, has something in it.
+ * Smaller than it was, and that is what buys it the top. The signs stand above
+ * the lane, so a headline up here sets a floor under how far the whole shot can
+ * rise; at four and a bit rem it took two deep lines and shoved the aisle to
+ * the middle of the screen. At three it clears the first sign and still reads
+ * as the loudest thing in the frame, because nothing else here is type.
  */
 .wk-line {
   position: absolute;
   left: var(--gut, clamp(1.25rem, 4vw, 3.25rem));
-  bottom: clamp(2rem, 6vh, 4rem);
+  top: clamp(4.5rem, 9vh, 5.5rem);
   z-index: 2;
   margin: 0;
-  max-width: 20ch;
+  max-width: 24ch;
   font-family: var(--font-display-alt), sans-serif;
   font-weight: 600;
-  font-size: clamp(1.9rem, 5.2vw, 4.2rem);
+  font-size: clamp(1.5rem, 3.2vw, 2.7rem);
   line-height: 0.96;
   letter-spacing: -0.045em;
   color: var(--ink);
@@ -98,7 +99,14 @@
    * the screen, a long way under the line they are supposed to be answering —
    * so the section read as starting somewhere else rather than as continuing.
    */
-  --lane: 28%;
+  /*
+   * Low enough to clear the headline that is now above it.
+   *
+   * The signs stand a fixed distance above the lane, so this number is not
+   * really where the cart goes — it is where the topmost sign ends up, and that
+   * has to land under the last line of type.
+   */
+  --lane: 36%;
   --cart-w: clamp(8rem, 17vw, 15rem);
 }
 
@@ -120,7 +128,7 @@
 .wk-stop {
   position: absolute;
   left: calc(17% + var(--i) * 12%);
-  top: calc(var(--lane) - 7rem + (var(--i) - 2) * 1.5rem);
+  top: calc(var(--lane) - 5.5rem + (var(--i) - 2) * 1.4rem);
   font-family: var(--font-mono);
   font-weight: 300;
   font-size: clamp(0.62rem, 0.95vw, 0.86rem);
@@ -363,12 +371,12 @@
  */
 @media (max-width: 860px) {
   .wk-floor {
-    --lane: 34%;
+    --lane: 42%;
   }
 
   .wk-stop {
     left: calc(13% + var(--i) * 13%);
-    top: calc(var(--lane) - 6rem + (var(--i) - 2) * 1.2rem);
+    top: calc(var(--lane) - 4.75rem + (var(--i) - 2) * 1.15rem);
   }
 }
 

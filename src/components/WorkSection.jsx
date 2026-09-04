@@ -66,13 +66,16 @@ const TRAVEL_END = 0.95
  * copy in the CSS would only be a copy that drifts, and the first thing to
  * break when it did would be the cart quietly parking on top of the checkout.
  *
- * The button is not in the list on purpose: it is measured, not placed. It has
- * to sit midway between the cart's right edge and the jeans' left one, and the
- * cart's width is a clamp — so any fraction written here would be centred at
- * one size and off at every other.
+ * Only two of the four are in this list, and that is the point. The jeans are
+ * placed by mirroring the cart's margin and the button by splitting what is
+ * left between them, so all three are measured rather than guessed.
+ *
+ * Written as three separate fractions they could not stay centred: the cart is
+ * 217px wide and the jeans 153, both from clamps that resolve differently at
+ * every width, so a margin of 6% on the left came out as 12% on the right and
+ * the whole group sat left of centre.
  */
 const CART_AT = 0.06
-const JEANS_AT = 0.75
 const TILL_AT = 0.88
 
 function span(p, a, b) {
@@ -84,6 +87,7 @@ export default function WorkSection() {
   const stageRef = useRef(null)
   const floorRef = useRef(null)
   const rigRef = useRef(null)
+  const jeansRef = useRef(null)
 
   /* The only two things that go through React are the two that are events
      rather than positions. Everything else is a custom property. */
@@ -129,7 +133,8 @@ export default function WorkSection() {
 
       const floor = floorRef.current
       const rig = rigRef.current
-      if (!floor || !rig) return
+      const jeans = jeansRef.current
+      if (!floor || !rig || !jeans) return
 
       /*
        * Every position is measured off the floor rather than written as a vw
@@ -141,9 +146,19 @@ export default function WorkSection() {
       const rigX = rig.offsetLeft
       const cartW = rig.offsetWidth
 
-      /* Dead centre of the space between the two of them, and the cursor goes
-         wherever it goes. */
-      stage.style.setProperty('--buy-x', `${((rigX + cartW + W * JEANS_AT) / 2).toFixed(1)}px`)
+      /*
+       * The jeans stand as far in from the right edge as the cart does from the
+       * left, and the button splits the gap between them. That makes the trio
+       * symmetrical about the middle of the floor at any width, whatever the
+       * two clamps happen to have resolved to.
+       *
+       * offsetWidth rather than the bounding rect: the jeans are rotated for
+       * most of the entrance and a rotated box measures wider than the thing
+       * inside it, which would walk the resting position around as it spun.
+       */
+      const jeansW = jeans.offsetWidth
+      const jeansRest = W * (1 - CART_AT) - jeansW
+      stage.style.setProperty('--buy-x', `${((rigX + cartW + jeansRest) / 2).toFixed(1)}px`)
 
       /* ── In from the sides ── */
       const a = arriving ? rise : 1
@@ -153,7 +168,7 @@ export default function WorkSection() {
       stage.style.setProperty('--cart-x', `${((ea - 1) * (rigX + cartW * 1.6)).toFixed(1)}px`)
       stage.style.setProperty(
         '--jeans-x',
-        `${(W * 1.25 + (W * JEANS_AT - W * 1.25) * ea - rigX).toFixed(1)}px`,
+        `${(W * 1.25 + (jeansRest - W * 1.25) * ea - rigX).toFixed(1)}px`,
       )
       stage.style.setProperty('--jeans-turn', `${((1 - ea) * 214).toFixed(1)}deg`)
 
@@ -284,7 +299,7 @@ export default function WorkSection() {
                 * in three places would be three different pairs, and the point
                 * of the shot is that it is the one pair the whole time.
                 */}
-              <img className="wk-jeans" src="/pinkjeans.jpg" alt="" />
+              <img className="wk-jeans" ref={jeansRef} src="/pinkjeans.jpg" alt="" />
             </div>
 
             {/* Between the two of them, in the bar's own voice. */}
