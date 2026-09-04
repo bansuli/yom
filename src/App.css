@@ -375,7 +375,7 @@ a {
    * and it is her head, not the type, that decides how close to the bar this
    * can sit. It grows a little with the window and then stops.
    */
-  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(4.5rem, 12vh, 8rem);
+  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(11rem, 29vh, 18rem);
 }
 
 /*
