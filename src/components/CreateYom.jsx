@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { Link } from 'react-router-dom'
-import Pet from './Pet.jsx'
+import Doll from './Doll.jsx'
 import './CreateYom.css'
 
 /*
@@ -38,10 +38,22 @@ export default function CreateYom({ to = '/onboarding', label = 'CREATE YOUR YOM
             {label}
           </textPath>
         </text>
+
+        {/*
+          * A tick down from the words to the character, so the two read as one
+          * thing rather than as a caption that happens to be sitting above a
+          * picture. Drawn in the same viewBox as the arc, so it keeps its place
+          * between them at every size without a second set of units.
+          *
+          * Slightly curved, following the arc it hangs from — dead straight
+          * under a line of curved type looks like it belongs to something else.
+          */}
+        <path className="cy-tick" d="M 50 13.4 q -0.5 4.4 0 8" />
+        <path className="cy-tick" d="M 47 18.6 L 50 21.8 L 53 18.6" />
       </svg>
 
       <span className="cy-face">
-        <Pet />
+        <Doll />
       </span>
     </Link>
   )

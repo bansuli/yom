@@ -35,6 +35,20 @@
 }
 
 /*
+ * Thin, and lighter than the type. It is a connector rather than a mark of its
+ * own — at the same weight as the words it competes with them, and the point of
+ * it is to be read after them rather than alongside.
+ */
+.cy-tick {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 0.85;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.55;
+}
+
+/*
  * Inset so the character clears the arc above it. The pet's own bubble already
  * carries a margin of empty space, so this only has to make room for the type.
  */

@@ -17,6 +17,7 @@ import Me from './Me.jsx'
 import ClosetBoard from './ClosetBoard.jsx'
 import PublicLineup from './PublicLineup.jsx'
 import Admin from './Admin.jsx'
+import DollPage from './DollPage.jsx'
 import PetPage from './PetPage.jsx'
 import { Privacy, Terms } from './Legal.jsx'
 import AccountMenu from './components/AccountMenu.jsx'
@@ -176,6 +177,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/create" element={<Create />} />
         {/* A bare room for looking at the pet on its own. */}
         <Route path="/pet" element={<PetPage />} />
+        <Route path="/doll" element={<DollPage />} />
         <Route path="/s/:shareId" element={<SharePage />} />
         <Route path="/l/:lineupId" element={<PublicLineup />} />
         <Route path="/admin" element={<Admin />} />

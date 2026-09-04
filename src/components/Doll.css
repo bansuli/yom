@@ -1,0 +1,16 @@
+/* Fills whatever it is given, like the pet. The canvas is sized by CSS and the
+   renderer is told not to touch the element's style, so the layout decides how
+   big the doll is and the scene follows. */
+.doll {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.doll canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
