@@ -352,12 +352,19 @@ a {
  * top edge and sets the layout, the object is tagged rather than captioned, and
  * the prose is small and justified in a corner like a specimen note.
  */
-/* A whole screen, and the only one. */
+/*
+ * Just short of a whole screen.
+ *
+ * The line at the foot is ranged to the top of its row, so every spare pixel of
+ * the first screen piles up underneath it — at a full hundred that was three
+ * hundred of them between the line and the cart arriving in the section below.
+ * Taking the screen down opens the join instead of padding it.
+ */
 .home-stage {
   position: relative;
   z-index: 1;
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 82vh;
+  min-height: 82dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   /*
@@ -375,7 +382,7 @@ a {
    * and it is her head, not the type, that decides how close to the bar this
    * can sit. It grows a little with the window and then stops.
    */
-  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 8vh, 5rem);
+  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(2.5rem, 5vh, 3.5rem);
 }
 
 /*
