@@ -68,18 +68,24 @@
   flex-direction: column;
 
   /*
-   * A browser, not a billboard.
+   * A browser, not a billboard — and a browser's shape, not a letterbox.
    *
-   * Left to fill the viewport this spanned two thousand pixels on a desktop and
-   * the listing inside it came apart — a narrow photograph adrift in one half,
-   * a panel of small type adrift in the other, and a great deal of nothing
-   * between them. No shop is laid out at that width. Held to a believable
-   * window and centred, the same page reads as a page.
+   * Capping the width alone was not enough. The window still took whatever
+   * height was left over, which came out around two and a half to one: nothing
+   * anyone has ever looked at a shop through. Sixteen to ten is a laptop, and
+   * the shape is most of what makes this read as a screen rather than a strip.
+   *
+   * The width is what carries the ratio, because a box whose width is clamped
+   * and whose height is already definite simply ignores aspect-ratio. So the
+   * width takes the smallest of three things — the room available, a sensible
+   * ceiling, and the height there is to spend, converted through the ratio —
+   * and the height follows from it.
    */
-  width: 100%;
-  max-width: 1180px;
-  max-height: 700px;
-  margin-inline: auto;
+  flex: 0 1 auto;
+  aspect-ratio: 16 / 10;
+  width: min(100%, 1180px, 96dvh);
+  /* Centred in whatever the headline and the clock leave behind. */
+  margin: auto;
 }
 
 /*
