@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import TokenField from './components/TokenField.jsx'
 import Doll from './components/Doll.jsx'
+import WorkSection from './components/WorkSection.jsx'
 import SignInDialog from './components/SignInDialog.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
@@ -199,10 +200,9 @@ function App() {
           * looked at, and it is what turns her from a graphic into someone.
           * Only then does the page say what she is for.
           *
-          * The old headline said "your personal shopping assistant" over a
-          * character nobody had been told the name of, so she read as
-          * decoration on a product line. Named first, everything after it is
-          * about her.
+          * The old headline said what she was over a character nobody had been
+          * told the name of, so she read as decoration on a product line. Named
+          * first, everything after it is about her.
           */}
         {/*
           * Her name, and then her, on the same line.
@@ -243,10 +243,12 @@ function App() {
 
           {/* Already there, in ink, before anything has happened. It is what
               the page is about rather than part of the greeting. */}
-          <span className="home-role">your personal shopping assistant.</span>
+          <span className="home-role">your online shopping companion.</span>
         </h1>
 
       </section>
+
+      <WorkSection />
 
     </main>
 

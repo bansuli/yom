@@ -482,7 +482,9 @@ a {
    * go on a page that ends here.
    */
   align-self: start;
-  max-width: 15ch;
+  /* Wide enough to hold "your online shopping" on one line — at 15ch, which
+     was measured for the old wording, it broke into three. */
+  max-width: 21ch;
   text-align: right;
   text-wrap: balance;
   color: var(--ink);

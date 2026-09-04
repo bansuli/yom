@@ -1,0 +1,431 @@
+/*
+ * One continuous shot, scrubbed by the wheel.
+ *
+ * Everything visible lives in a sticky stage; the tall rail around it is only
+ * distance. The two things that move continuously — the cart down the aisle and
+ * the letters of the first line — are driven straight from the scroll position.
+ * Everything else is a state the stage is in, so the transitions between them
+ * are CSS's problem rather than a per-frame calculation.
+ */
+.wk {
+  position: relative;
+  /* Clears the fixed bar when the nav jumps here. */
+  scroll-margin-top: 4.5rem;
+}
+
+.wk-rail {
+  height: 700vh;
+}
+
+.wk-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 5vh, 3.5rem);
+  padding: clamp(4.5rem, 11vh, 7rem) var(--gut, clamp(1.25rem, 4vw, 3.25rem))
+    clamp(2rem, 6vh, 4rem);
+  overflow: hidden;
+}
+
+/* ── The line ── */
+/*
+ * Both sentences share one cell so the picture underneath never moves when the
+ * sentence changes. Left, and in full ink — this is the claim, not a caption.
+ */
+.wk-line {
+  display: grid;
+  margin: 0;
+  max-width: 20ch;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.9rem, 5.2vw, 4.2rem);
+  line-height: 0.96;
+  letter-spacing: -0.045em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.wk-l1,
+.wk-l2 {
+  grid-area: 1 / 1;
+}
+
+/*
+ * Each letter switches on as the wheel reaches it. No travel and no easing:
+ * this one is not a flourish, it is the page being drawn by the scroll, and a
+ * letter that eases in lags behind the wheel that asked for it.
+ */
+.wk-l1 > span {
+  opacity: 0;
+}
+
+.wk-l1 > span[data-on] {
+  opacity: 1;
+}
+
+/* The first line leaves and the second arrives on the same beat the cart sets
+   off, so the sentence and the movement are one event. */
+.wk-l1 {
+  opacity: 1;
+  transition: opacity 380ms ease;
+}
+
+.wk-l1[data-off] {
+  opacity: 0;
+}
+
+.wk-l2 {
+  opacity: 0;
+  transition: opacity 420ms ease 160ms;
+}
+
+[data-phase='research'] .wk-l2,
+[data-phase='checkout'] .wk-l2 {
+  opacity: 1;
+}
+
+/* ── The floor ── */
+/*
+ * The band everything happens in. A single positioning context, so every
+ * element in the shot is placed in the same coordinate space and nothing has to
+ * be kept in step with anything else by hand.
+ */
+.wk-floor {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/*
+ * The aisle, named once.
+ *
+ * --lane is the height everything stands on, so the cart, the jeans, the
+ * button and the signs all sit on one line without four separate numbers that
+ * drift apart the first time one of them changes.
+ */
+.wk-floor {
+  --lane: 62%;
+  --cart-w: clamp(7rem, 15vw, 13rem);
+}
+
+/* ── The signs ── */
+.wk-stops {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+/*
+ * Spread along the aisle from the index, so adding a sixth means adding a
+ * string and nothing else. Staggered in height as well as across, because five
+ * labels on one line is a legend and five at different heights is a place.
+ */
+.wk-stop {
+  position: absolute;
+  left: calc(17% + var(--i) * 12%);
+  top: calc(var(--lane) - 9rem + (var(--i) - 2) * 1.6rem);
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: clamp(0.62rem, 0.95vw, 0.86rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(17, 17, 17, 0.24);
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity 320ms ease,
+    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    color 320ms ease;
+}
+
+/*
+ * They light as the cart reaches them and they stay lit. You do not stop having
+ * read the reviews because you have moved on to the size chart — that is the
+ * entire complaint, and having them fade out behind the cart would quietly say
+ * the opposite.
+ */
+.wk-stop[data-on] {
+  opacity: 1;
+  transform: none;
+  color: rgba(17, 17, 17, 0.62);
+}
+
+/* A hairline dropping to the aisle, so a sign is over a place rather than
+   floating in the middle of the screen. */
+.wk-stop::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(100% + 0.5rem);
+  width: 1px;
+  height: 2.4rem;
+  background: linear-gradient(rgba(17, 17, 17, 0.22), rgba(17, 17, 17, 0));
+}
+
+/* ── The end of the aisle ── */
+/*
+ * Up from the moment the cart sets off and no nearer for any of it. It is the
+ * thing you were trying to do the whole time, in view the whole time.
+ */
+.wk-checkout {
+  position: absolute;
+  left: 88%;
+  top: var(--lane);
+  transform: translateY(-50%);
+  padding: 0.62em 1.2em;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 500;
+  font-size: clamp(0.85rem, 1.35vw, 1.2rem);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+[data-phase='research'] .wk-checkout,
+[data-phase='checkout'] .wk-checkout {
+  opacity: 1;
+}
+
+/* And at the very end it is finally being aimed at. */
+[data-phase='checkout'] .wk-checkout {
+  border-color: var(--ink);
+}
+
+/* ── The cart, and what is in it ── */
+/*
+ * The rig is what travels. The cart and the jeans each have a transform of
+ * their own inside it, so "rolling in", "being thrown in" and "going down the
+ * aisle" are three separate movements that never have to be reconciled.
+ */
+.wk-rig {
+  position: absolute;
+  left: 6%;
+  top: var(--lane);
+  width: var(--cart-w);
+  /*
+   * --travel is how far down the aisle it has got, in pixels, measured in the
+   * component off the actual distance between the cart and the till. It stops
+   * short of the button on purpose: the whole point of the aisle is that it
+   * never quite gets there.
+   */
+  transform: translate(var(--travel, 0px), -50%);
+}
+
+/*
+ * And then it sees it.
+ *
+ * A short push toward the button after the aisle has run out, on a transition
+ * rather than off the scroll, so it reads as the cart setting off again of its
+ * own accord rather than as more of the same dragging.
+ */
+.wk-stage[data-phase='checkout'] .wk-rig {
+  transform: translate(var(--travel-on, 0px), -50%);
+  transition: transform 900ms cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.wk-cart {
+  display: block;
+  width: 100%;
+  /* Rolls in from off the left edge, and is simply there from then on. */
+  transform: translateX(-46vw);
+  opacity: 0;
+  transition:
+    transform 900ms cubic-bezier(0.22, 0.9, 0.28, 1),
+    opacity 400ms ease;
+}
+
+.wk-cart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.wk-stage:not([data-phase='title']) .wk-cart {
+  transform: none;
+  opacity: 1;
+}
+
+/*
+ * Off to the right and turned right over to start with, then upright and
+ * still, then in the basket.
+ *
+ * One element and one transform the whole way through — three pictures of some
+ * jeans in three places would be three different pairs, and the point of the
+ * shot is that it is the one pair the whole time.
+ */
+.wk-jeans {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: clamp(5rem, 11vw, 9.5rem);
+  transform: translate(58vw, -50%) rotate(214deg) scale(0.86);
+  opacity: 0;
+  /* The photograph's own white ground, knocked back into the page's. */
+  mix-blend-mode: multiply;
+  transition:
+    transform 1000ms cubic-bezier(0.22, 0.86, 0.3, 1),
+    opacity 500ms ease;
+}
+
+/* Spun in and standing still, waiting to be clicked into something. */
+.wk-stage:not([data-phase='title']) .wk-jeans {
+  transform: translate(46vw, -50%) rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+/*
+ * Written against .wk-stage rather than the bare attribute.
+ *
+ * The resting rule above is `.wk-stage:not([data-phase='title']) .wk-jeans`,
+ * which is three class-level selectors; a bare `[data-phase='thrown']` is two
+ * and loses to it, so the throw silently never happened and the jeans stood
+ * there while the cursor clicked at them.
+ *
+ * The landing spot is measured off the cart's own width, so the jeans go into
+ * the basket at every size rather than at the one this was eyeballed on.
+ */
+.wk-stage[data-phase='thrown'] .wk-jeans,
+.wk-stage[data-phase='research'] .wk-jeans,
+.wk-stage[data-phase='checkout'] .wk-jeans {
+  transform: translate(
+      calc(var(--cart-w) * 0.3),
+      calc(-50% - var(--cart-w) * 0.22)
+    )
+    rotate(-14deg) scale(0.3);
+  /* Faster than it arrived and on a tighter curve — a thing being thrown and a
+     thing arriving are not the same movement, and the easing is most of what
+     carries that. */
+  transition:
+    transform 620ms cubic-bezier(0.4, -0.28, 0.3, 1),
+    opacity 500ms ease;
+}
+
+/* ── The button, and the hand ── */
+.wk-buy {
+  position: absolute;
+  left: 40%;
+  top: var(--lane);
+  transform: translate(-50%, -50%);
+  padding: 0.62em 1.3em;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 500;
+  font-size: clamp(0.9rem, 1.5vw, 1.35rem);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--ink);
+  opacity: 0;
+  transition:
+    opacity 380ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+[data-phase='arrive'] .wk-buy,
+[data-phase='click'] .wk-buy {
+  opacity: 1;
+}
+
+/* Pressed. A hair smaller and filled — the whole of a click, and no more. */
+[data-phase='click'] .wk-buy {
+  background: #f1f1f4;
+  transform: translate(-50%, -50%) scale(0.97);
+}
+
+.wk-cursor {
+  position: absolute;
+  left: 40%;
+  top: var(--lane);
+  width: clamp(1.8rem, 3.4vw, 2.9rem);
+  /* Comes in low and to the right of the button and rises onto it. */
+  transform: translate(9vw, 7rem);
+  opacity: 0;
+  transition:
+    transform 760ms cubic-bezier(0.3, 0.85, 0.3, 1),
+    opacity 320ms ease;
+}
+
+.wk-cursor svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 3px 7px rgba(17, 17, 17, 0.16));
+}
+
+[data-phase='arrive'] .wk-cursor {
+  opacity: 1;
+}
+
+/* On the button, tip first. */
+[data-phase='click'] .wk-cursor {
+  opacity: 1;
+  transform: translate(-0.3rem, -0.4rem);
+}
+
+/* And gone, the moment the jeans are in the cart. */
+[data-phase='thrown'] .wk-cursor {
+  opacity: 0;
+  transform: translate(-0.3rem, 1.2rem);
+}
+
+.wk-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Narrower, the aisle has less room to run down and the signs need to sit
+ * closer together, or the last two are off the edge before the cart reaches
+ * them.
+ */
+@media (max-width: 860px) {
+  .wk-floor {
+    --lane: 66%;
+  }
+
+  .wk-stop {
+    left: calc(13% + var(--i) * 13%);
+    top: calc(var(--lane) - 7rem + (var(--i) - 2) * 1.2rem);
+  }
+
+  .wk-checkout {
+    left: 84%;
+  }
+}
+
+/*
+ * The shot still happens on scroll — it is the section — but nothing eases to
+ * get there, so none of it is in motion of its own accord.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .wk-cart,
+  .wk-jeans,
+  .wk-buy,
+  .wk-cursor,
+  .wk-stop,
+  .wk-checkout,
+  .wk-l1,
+  .wk-l2 {
+    transition-duration: 1ms;
+  }
+}
