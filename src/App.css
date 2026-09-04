@@ -361,15 +361,21 @@ a {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   /*
-   * Held in the middle rather than pinned to the top edge.
+   * The composition fills the screen rather than floating in the middle of it.
    *
-   * The type owned the top when there was a character parked in the space
-   * below it to balance against. She is inside the sentence now, so there is
-   * nothing under it — top-aligned, the screen was a headline and then half a
-   * page of nothing.
+   * Centred, the slack above the block grew with the window — on a tall screen
+   * the name ended up a couple of hundred pixels under the bar with nothing in
+   * between, which is the gap this is fixing. Stretched, the name sits a fixed
+   * distance below the bar at every height and the extra room goes into the
+   * space between her and the line at the bottom, where it belongs.
+   *
+   * The top padding is the one number that sets how far under the bar the pair
+   * starts, and it has to account for her: she is taller than the words she is
+   * centred on, so she reaches roughly half her own height above their middle
+   * and it is her head, not the type, that decides how close to the bar this
+   * can sit. It grows a little with the window and then stops.
    */
-  align-content: center;
-  padding: clamp(5rem, 11vh, 7rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 8vh, 5rem);
+  padding: clamp(5rem, 9.5vh, 7.5rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 8vh, 5rem);
 }
 
 /*
@@ -388,11 +394,16 @@ a {
 .home-head {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
+  /* The second row takes every spare pixel, so the line at the bottom is
+     ranged to the foot of the screen and the air lands between the two rows
+     instead of above the first one. */
+  grid-template-rows: auto minmax(0, 1fr);
   column-gap: clamp(0.75rem, 3vw, 2.75rem);
   row-gap: clamp(0.4rem, 2.5vh, 1.6rem);
   align-items: center;
   margin: 0;
   width: 100%;
+  height: 100%;
   font-family: var(--font-display-alt);
   font-weight: 600;
   font-size: clamp(2.1rem, 6.6vw, 5.4rem);
@@ -406,6 +417,15 @@ a {
  * Grey because it is the introduction and not the point — "meet" is a stage
  * direction. What she actually is stays in full ink underneath, so the loudest
  * thing on the screen is the claim rather than the greeting.
+ */
+/*
+ * Centred on her, because they are one thing.
+ *
+ * It was ranged to the top of the row for a while to close the gap under the
+ * bar, which fixed the gap and broke the pair — she is four times the cap
+ * height, so top-ranged the words sat level with her hairline and she hung
+ * below them. The gap is dealt with by the stage's top padding instead, which
+ * is the number that should have been carrying it all along.
  */
 .home-name {
   grid-area: 1 / 1;
@@ -450,6 +470,7 @@ a {
 .home-role {
   grid-area: 2 / 2;
   justify-self: end;
+  align-self: end;
   max-width: 15ch;
   text-align: right;
   text-wrap: balance;
@@ -529,8 +550,14 @@ a {
   .home-role {
     grid-area: 3 / 1;
     justify-self: start;
+    align-self: end;
     text-align: left;
     max-width: none;
+  }
+
+  /* Three rows at this width, and the last one is still the one that stretches. */
+  .home-head {
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
 }
 
