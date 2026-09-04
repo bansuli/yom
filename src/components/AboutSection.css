@@ -7,7 +7,7 @@
 /* The distance the sequence is scrolled through. Everything visible is in the
    sticky stage inside it; this is only length. */
 .aw-rail {
-  height: 460vh;
+  height: 560vh;
 }
 
 .aw-stage {
@@ -21,6 +21,60 @@
   padding: clamp(4.5rem, 11vh, 7rem) var(--gut, clamp(1.25rem, 4vw, 3.25rem))
     clamp(2rem, 5vh, 3.5rem);
   overflow: hidden;
+}
+
+/* The sentence on the left, the count on the right, on one line together. */
+.aw-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(1.5rem, 5vw, 4rem);
+}
+
+/*
+ * Set as big as the headline, because it is making the same point the headline
+ * is. Small and tucked in the corner it was a statistic; at this size it is the
+ * argument.
+ */
+.aw-tally {
+  display: flex;
+  align-items: baseline;
+  /* Scales with the words either side of it rather than staying a fixed few
+     pixels while they grow. */
+  gap: clamp(0.4rem, 1.1vw, 0.85rem);
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.aw-tally-n {
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 600;
+  font-size: clamp(2.4rem, 6.5vw, 5rem);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  /* Digits of one width, or the number jumps sideways every time it passes a
+     one and the whole line twitches as it climbs. */
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/*
+ * The same face, weight, size and colour as the number, so the two read as one
+ * phrase rather than a figure with a caption under it.
+ *
+ * The only thing that differs is the tracking, and it has to: capitals set at
+ * the figures' -0.05em close up on each other, because that tightening is
+ * there to answer the sidebearings of lining numerals and uppercase does not
+ * have them.
+ */
+.aw-tally-w {
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 600;
+  font-size: clamp(2.4rem, 6.5vw, 5rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  color: var(--ink);
 }
 
 /*
@@ -41,22 +95,174 @@
   text-wrap: balance;
 }
 
-.aw-said,
-.aw-turn {
+/*
+ * All four occupy the same cell; only one is ever up. Marked by an attribute
+ * rather than by class, so the component names the beat once and the stylesheet
+ * has no list of line numbers to keep in step with it.
+ */
+.aw-line span {
   grid-area: 1 / 1;
+  opacity: 0;
   transition: opacity 420ms ease;
 }
 
-.aw-turn {
-  opacity: 0;
-}
-
-[data-beat='yom'] .aw-said {
-  opacity: 0;
-}
-
-[data-beat='yom'] .aw-turn {
+.aw-line span[data-on] {
   opacity: 1;
+}
+
+/*
+ * The first beat is the jeans and one button.
+ *
+ * Everything the shop says about itself — the chrome, the crumb, the swatches,
+ * the size row, the style code — is off. None of it is what the beat is about,
+ * and all of it is what makes a product page unreadable at a glance. The photo
+ * and the click, and nothing between them.
+ *
+ * It all comes back at the next beat, in place, because it never moved.
+ */
+[data-beat='find'] .aw-strip,
+[data-beat='find'] .pdp,
+[data-beat='find'] .pdp-top,
+[data-beat='find'] .aw-thumbs,
+[data-beat='find'] .aw-count {
+  opacity: 0;
+}
+
+/*
+ * ── The opening ──
+ *
+ * In the listing's own grid cell, so when the page arrives it arrives around
+ * the jeans rather than shoving them sideways.
+ */
+.aw-buy {
+  grid-area: 1 / 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+[data-beat='find'] .aw-buy {
+  opacity: 1;
+}
+
+/*
+ * The tabs' own dress — same rule weight, same radius, same face and size.
+ *
+ * They are the two things in this section you can click, and a section whose
+ * whole argument is "all of this is the same amount of work" cannot afford to
+ * draw them in two different visual languages.
+ */
+.aw-buy-btn {
+  padding: 0.62em 1.4em;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  border-radius: 8px;
+  background: #ffffff;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 500;
+  font-size: clamp(1rem, 1.65vw, 1.45rem);
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  white-space: nowrap;
+  transition:
+    opacity 260ms ease,
+    filter 260ms ease;
+}
+
+/* Behind the pause once it lands — the button is still there, it is just no
+   longer the thing being answered. */
+[data-held] .aw-buy-btn {
+  opacity: 0.4;
+}
+
+/*
+ * The interruption.
+ *
+ * Two bars in a ring, and drawn rather than filled, because everything else
+ * that has arrived on screen so far is drawn too.
+ *
+ * Sat on the button's top edge rather than in the middle of it. Centred, it
+ * covered the words and left "add to" and "rt" sticking out either side, which
+ * read as a rendering fault rather than as an interruption. Raised, both are
+ * whole: the button is still legibly the thing being reached for, and the pause
+ * is legibly in the way of it.
+ */
+.aw-pause {
+  position: absolute;
+  left: 50%;
+  bottom: 62%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.26em;
+  width: clamp(3.2rem, 6.5vw, 5rem);
+  aspect-ratio: 1;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  border-radius: 50%;
+  /* Opaque, not a wash — it has to actually block what is behind it. */
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(17, 17, 17, 0.08);
+  opacity: 0;
+  /* Comes in a touch oversized and settles, which is what makes it read as
+     something arriving rather than something that was always there. */
+  transform: translateX(-50%) scale(0.55);
+  transition:
+    opacity 260ms ease,
+    transform 460ms cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+
+.aw-pause i {
+  display: block;
+  width: 0.16em;
+  height: 1.05em;
+  border-radius: 1px;
+  background: var(--ink);
+  font-size: inherit;
+}
+
+[data-held] .aw-pause {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/*
+ * ── The cursor ──
+ *
+ * Travels from the bottom of the page up to the button, scrubbed by --q. The
+ * coordinates are the tip of the arrow, and the arrow's own top-left corner is
+ * its tip, so no offset is needed to make it point where it is placed.
+ *
+ * It stops short of the button rather than on it. The pause arrives while the
+ * click is still coming — landed first, it would be a receipt rather than an
+ * interruption.
+ */
+.aw-cursor {
+  position: absolute;
+  z-index: 7;
+  left: calc(34% + 33% * var(--q, 0));
+  top: calc(96% - 44% * var(--q, 0));
+  width: clamp(1.6rem, 3.2vw, 2.6rem);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 320ms ease;
+}
+
+.aw-cursor svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 3px 7px rgba(17, 17, 17, 0.16));
+}
+
+[data-beat='find'] .aw-cursor {
+  opacity: 1;
+}
+
+.aw-strip,
+.aw-page {
+  transition: opacity 420ms ease 200ms;
 }
 
 /* ── The window ── */
@@ -89,14 +295,51 @@
 }
 
 /*
- * The tabs. flex: 1 1 0 with a floor of nothing is the whole mechanism — every
- * tab asks for an equal share, so opening one takes width off all the others
- * and the titles start to disappear on their own. Nothing measures anything.
+ * The tabs wrap. They do not compress, and that is the whole repair.
+ *
+ * Sharing one row between twenty of them meant every title was gone by the
+ * fifth, so the peak — the frame that has to carry the argument — showed a
+ * ribbon of blank slivers. Wrapping keeps every one of them readable and turns
+ * the accumulation into something you can actually look at: by the end it is a
+ * wall of twenty places you had to go, in your own words.
+ *
+ * It also does the burying for free. The rows push down into a window of fixed
+ * height, so the listing underneath gets shorter with every question — the
+ * research crowding out the thing you were trying to buy, without a line of
+ * code that says so.
  */
 .aw-strip {
+  /*
+   * Over the page, not above it.
+   *
+   * Pushing the listing smaller was too quiet to be the argument — a thing
+   * getting shorter is something you have to notice and compare. Covering it is
+   * not: a pile landing on top of what you wanted needs no language at all, and
+   * that is the test this has to pass. The jeans stay exactly where they were
+   * and disappear under the research.
+   */
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+
+  /*
+   * A solid sheet, not a lattice.
+   *
+   * Left as bare tabs over the listing, the gaps between them and the ragged
+   * end of each row let the jeans show through in slivers — which reads as a
+   * broken layout rather than as something being buried. On a ground of its
+   * own the pile is one object with an edge, and what it covers is simply gone.
+   */
+  background: #ffffff;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+
   display: flex;
-  align-items: flex-end;
-  gap: 2px;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 5px;
+  padding: 7px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -106,43 +349,83 @@
     opacity 300ms ease;
 }
 
+/*
+ * Its own width and no more.
+ *
+ * Growing to fill the row was what made the strip look like rubble: nineteen
+ * boxes at nineteen arbitrary widths, none of them meaning anything, the
+ * short titles stretched to match the long ones. Sized to their words they
+ * come out as a ragged-right list, which is what a list of things you opened
+ * actually looks like.
+ *
+ * Set in the body face rather than the machine one, and left in lower case.
+ * Mono uppercase with tracking is the site's labelling voice — right for two
+ * words in a corner, and at nineteen titles it was a wall of shouting nobody
+ * could scan.
+ */
 .aw-tab {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
+  max-width: 100%;
+  /* Taller than a tab needs to be. Each row of them buys height, and height is
+     how much of the jeans is gone by the end — at the tighter setting the pile
+     stopped at just over half the window, which reads as crowded rather than
+     as buried. */
   padding: 0.62em 0.85em;
-  border: 1px solid rgba(17, 17, 17, 0.12);
-  border-bottom: none;
-  border-radius: 9px 9px 0 0;
-  background: rgba(255, 255, 255, 0.72);
-  font-family: var(--font-mono);
-  font-weight: 400;
-  font-size: clamp(0.54rem, 0.72vw, 0.66rem);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.6);
-}
-
-/* The first one is the thing you actually wanted, and it stays legible longest
-   so it is still there to be read at the peak. */
-.aw-tab:first-child {
-  flex: 1.6 1 0;
-  background: #ffffff;
-  color: rgba(17, 17, 17, 0.85);
-}
-
-.aw-tab-name {
-  display: block;
-  overflow: hidden;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 8px;
+  background: #f1f1f4;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 500;
+  /*
+   * Oversized, and that is the whole idea now. At browser-chrome size they were
+   * accurate and invisible — nineteen things you had to lean in to read, which
+   * is no way to make a point about how much of them there were. At this size
+   * they are the loudest thing on the screen and you can read every one from
+   * across the room.
+   */
+  font-size: clamp(1rem, 1.65vw, 1.45rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  color: rgba(17, 17, 17, 0.62);
+}
+
+/* The thing you actually wanted, in ink and filled, so it is still the one you
+   notice with eighteen others stacked over it. */
+.aw-tab:first-child {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #ffffff;
+  font-weight: 600;
 }
 
 /* Shut. Squeezed to nothing from the left, which is where a browser's tabs go
    when you close them one after another. */
-[data-beat='shut'] .aw-strip,
+/*
+ * Shut, and the jeans are back. Up and out rather than squeezed sideways —
+ * there are rows of them now, and a row of tabs does not close by getting
+ * thinner. This is the moment the whole section turns on, so it is the one
+ * thing here allowed to be a little slow.
+ */
+/*
+ * They do not go up and out. They go *in* — the whole pile shrinks toward the
+ * middle of the window, which is where she is standing by the time it lands.
+ *
+ * The origin is measured rather than guessed: at nineteen tabs the strip covers
+ * about 78% of the window from the top edge, so the window's own centre line
+ * falls at roughly 64% of the strip's height. Scaling from there collapses the
+ * pile onto her and not onto its own top corner.
+ *
+ * This is the moment the section turns on, so it is the one thing here allowed
+ * to be a little slow.
+ */
 [data-beat='yom'] .aw-strip {
-  transform: scaleX(0.04);
+  transform-origin: 50% 64%;
+  transform: scale(0.04);
   opacity: 0;
+  transition:
+    transform 620ms cubic-bezier(0.55, 0, 0.2, 1),
+    opacity 460ms ease 160ms;
 }
 
 .aw-yomtab {
@@ -172,10 +455,21 @@
   transform: none;
 }
 
+/*
+ * The doubt, over the page.
+ *
+ * Set at headline weight because it is the cause of everything that follows,
+ * and a cause whispered under the thing it caused is not a cause. Its opacity
+ * is written per frame from the scroll rather than transitioned — it has to be
+ * up and gone inside a single tab's worth of scrolling, and a transition would
+ * still be easing in when the tab it belongs to had already opened.
+ */
 /* ── The page under the tabs ── */
 .aw-page {
   position: relative;
-  flex: 1;
+  /* Full height, always. It does not move or shrink as the tabs arrive — it
+     gets covered, which is the point. */
+  flex: 1 1 auto;
   min-height: 0;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -183,7 +477,7 @@
   align-items: start;
   column-gap: clamp(1rem, 3vw, 2.6rem);
   border: 1px solid rgba(17, 17, 17, 0.12);
-  border-radius: 0 12px 12px 12px;
+  border-radius: 12px;
   background: #ffffff;
   overflow: hidden;
 }
@@ -319,8 +613,7 @@
   padding: clamp(0.6rem, 1.6vh, 1.2rem) clamp(0.7rem, 1.6vw, 1.3rem);
 }
 
-.pdp,
-.aw-knows {
+.pdp {
   grid-area: 1 / 1;
   transition: opacity 380ms ease;
 }
@@ -440,6 +733,7 @@
 /* Outlined rather than filled — which is how the real one is, and why the page
    reads as expensive rather than as a checkout. */
 .pdp-cart {
+  position: relative;
   margin: 0 0 0.8rem;
   padding: 0.85em 1em;
   border: 1.5px solid #111111;
@@ -470,41 +764,19 @@
   text-decoration: underline;
 }
 
-/* What yom has instead of all of that. Nothing until the turn. */
-.aw-knows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-family: var(--font-body), sans-serif;
-  font-size: clamp(0.95rem, 1.4vw, 1.3rem);
-  line-height: 1.3;
-  color: var(--ink);
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 420ms ease 380ms,
-    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1) 380ms;
-}
-
-/* At the turn the shop goes and only the jeans are left. */
+/*
+ * At the turn the shop goes quiet and only the jeans are left.
+ *
+ * Not hidden — dimmed. The listing is still the thing being decided about, and
+ * the next section picks it straight back up; blanking it here would mean the
+ * page had to be rebuilt on the other side of a section break for no reason
+ * anyone watching could see.
+ */
 [data-beat='yom'] .pdp,
 [data-beat='yom'] .pdp-top,
 [data-beat='yom'] .aw-thumbs,
 [data-beat='yom'] .aw-count {
-  opacity: 0;
-}
-
-[data-beat='yom'] .aw-knows {
-  opacity: 1;
-  transform: none;
-}
-
-.aw-knows li::before {
-  content: '— ';
-  color: rgba(17, 17, 17, 0.32);
+  opacity: 0.12;
 }
 
 /* One step down where the window is narrow enough that the desktop sizes stop
@@ -531,8 +803,174 @@
   }
 }
 
+/* On a narrow screen the count goes under the sentence rather than squeezing
+   it into two words a line. */
+@media (max-width: 720px) {
+  .aw-head {
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+}
+
+
+/*
+ * ── The thinking ──
+ *
+ * The other half of the pile, and the half a screenshot never shows. Tabs are
+ * only the residue; the weight of buying something is the asking, and none of
+ * that is written down anywhere.
+ *
+ * Hung off the window's own edges, so on a wide screen they fall into the
+ * gutters either side of the shop and on a narrow one they crowd it directly.
+ * Both are true — that is what the questions do.
+ *
+ * Anchored to the window rather than to the stage, which is what they were
+ * first. Over the stage they had the headline's band to sit in too, and the
+ * first one landed on top of "somehow, shopping became work" — the two loudest
+ * things in the section printed over each other.
+ *
+ * Body face and lower case, because this is a person thinking. Set in mono it
+ * would be the machine labelling them, and set any larger or any darker it
+ * would be a pull quote. It is meant to be overheard, not read out.
+ */
+.aw-thoughts {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.aw-thought {
+  position: absolute;
+  width: max-content;
+  max-width: 19ch;
+  padding: 0.5em 0.85em;
+  /*
+   * A soft ground, because on a narrow screen these land on the shop page and
+   * grey text on a photograph is not text. Rounded hard on one corner so they
+   * read as something said rather than a chip in a design system.
+   */
+  border-radius: 14px 14px 14px 3px;
+  background: rgba(255, 255, 255, 0.88);
+  font-family: var(--font-body), sans-serif;
+  font-size: clamp(0.8rem, 1.05vw, 0.98rem);
+  line-height: 1.32;
+  letter-spacing: -0.01em;
+  color: rgba(17, 17, 17, 0.72);
+  opacity: 0;
+  /* Arrives from where it sits rather than from off screen — a thought does not
+     travel, it is just suddenly there. */
+  transform: translateY(8px) scale(0.96);
+  transition:
+    opacity 380ms ease,
+    transform 460ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+/*
+ * They arrive, and then they stay. A question you have not answered does not go
+ * away because you opened a tab about it — that is the entire point, and having
+ * them fade out one by one would quietly say the opposite.
+ */
+.aw-thought[data-on] {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * Three down each side, alternating, so they fill in left-right-left rather
+ * than stacking up one flank. Each is turned a degree or two — none of these
+ * were written down neatly.
+ *
+ * `right: 100%` puts a box's right edge exactly on its container's left edge,
+ * which is how they end up outside the window rather than on it. The gap is
+ * added on top of that.
+ */
+.aw-thought:nth-child(odd) {
+  right: calc(100% + var(--aw-gap));
+}
+
+.aw-thought:nth-child(even) {
+  left: calc(100% + var(--aw-gap));
+  text-align: right;
+}
+
+.aw-thoughts {
+  --aw-gap: clamp(0.6rem, 1.6vw, 1.6rem);
+}
+
+.aw-thought:nth-child(1) { top: 2%; rotate: -1.4deg; }
+.aw-thought:nth-child(2) { top: 14%; rotate: 1.1deg; }
+.aw-thought:nth-child(3) { top: 40%; rotate: 0.9deg; }
+.aw-thought:nth-child(4) { top: 52%; rotate: -1.2deg; }
+.aw-thought:nth-child(5) { top: 74%; rotate: -0.7deg; }
+.aw-thought:nth-child(6) { top: 84%; rotate: 1.5deg; }
+
+/*
+ * Below this the gutters either side of the window are narrower than a line of
+ * this text, so they come inside and sit on the shop instead. Which is not a
+ * fallback — it is the same thing said harder.
+ */
+@media (max-width: 1180px) {
+  .aw-thought:nth-child(odd) {
+    right: auto;
+    left: var(--aw-gap);
+  }
+
+  .aw-thought:nth-child(even) {
+    left: auto;
+    right: var(--aw-gap);
+  }
+}
+
+/* Everything shuts at once at the turn, questions included — they are the loud
+   half, so they have to be the half that goes quiet. */
+[data-beat='find'] .aw-thought,
+[data-beat='yom'] .aw-thought {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.94);
+  transition-duration: 300ms;
+}
+
+/*
+ * ── Her ──
+ *
+ * In the middle of the window, where the pile collapses to. Nothing until the
+ * turn, and then she is simply standing in the space nineteen tabs were
+ * occupying a moment ago.
+ *
+ * Sized against the window's height rather than the viewport's, so she is
+ * always the same fraction of the screen she has just cleared.
+ */
+.aw-doll {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 50%;
+  width: min(46vh, 40vw, 380px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.55);
+  transition:
+    opacity 420ms ease 240ms,
+    transform 620ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 240ms;
+}
+
+[data-beat='yom'] .aw-doll {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
 /* ── The cost ── */
+[data-beat='find'] .aw-clock {
+  opacity: 0;
+}
+
 .aw-clock {
+  transition: opacity 320ms ease;
   display: flex;
   align-items: baseline;
   gap: 0.9rem;
@@ -545,15 +983,26 @@
   color: rgba(17, 17, 17, 0.42);
 }
 
+/*
+ * Set at a size that has to be read, not glanced past.
+ *
+ * It sat at mono caption size next to its own label, which made it a footnote
+ * on the argument rather than half of it. The tab count says how much of this
+ * there was; this says what it cost, and that is the number people actually
+ * recognise themselves in.
+ *
+ * The display face rather than the mono, because the label beside it is already
+ * doing the machine voice and two of them side by side is just small print.
+ */
 .aw-clock-value {
-  /* Digits that do not shuffle the line about as they change. */
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 600;
+  /* Digits of one width, or the line twitches sideways every time it jumps. */
   font-variant-numeric: tabular-nums;
-  font-size: clamp(0.8rem, 1.1vw, 1rem);
-  letter-spacing: 0.06em;
-  color: var(--ink);
-}
-
-[data-beat='yom'] .aw-clock-value {
+  font-size: clamp(1.3rem, 2.4vw, 2.1rem);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: none;
   color: var(--ink);
 }
 
@@ -572,13 +1021,21 @@
  * The sequence is the motion, so with it off everything simply arrives — the
  * turn still happens on scroll, it just does not travel to get there.
  */
+/*
+ * The sequence still happens on scroll — it is the section — but nothing
+ * travels to get there, and the caret stops flashing.
+ */
 @media (prefers-reduced-motion: reduce) {
   .aw-strip,
+  .aw-page,
   .aw-yomtab,
-  .aw-knows,
+  .aw-thought,
+  .aw-doll,
+  .aw-cursor,
+  .aw-pause,
+  .aw-buy,
   .aw-item,
-  .aw-said,
-  .aw-turn {
+  .aw-line span {
     transition-duration: 1ms;
   }
 }

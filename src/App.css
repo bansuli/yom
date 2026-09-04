@@ -225,6 +225,73 @@ a {
   transition: opacity 160ms ease;
 }
 
+/*
+ * GET YOM, shaded rather than drawn.
+ *
+ * A ring around it made it a button someone had outlined, which is the loudest
+ * a hairline can be. A wash of colour instead: the same face, size and tracking
+ * as its neighbours, sat on a pill of pale blue thin enough to see the page
+ * through. It separates by temperature rather than by weight, so the row keeps
+ * its quiet and the words still read as part of the line.
+ *
+ * Pink because it is her colour — the same rose her hair is — so the one thing
+ * on this page asking to be pressed is the one thing wearing what she wears.
+ *
+ * The negative margin cancels the padding, so the pill grows around the words
+ * without pushing the line taller than the mono sitting next to it.
+ */
+.home-line-row .home-get {
+  padding: 0.55em 1.05em;
+  margin: -0.55em 0;
+  border-radius: 999px;
+  /*
+   * Four things make this glass rather than a pink pill, and it needs all four.
+   *
+   * A gradient, not a flat fill — light catches one side of a curved surface
+   * and not the other, and a single even tint is the one thing glass never
+   * looks like. A blur heavy enough to smear the token field drifting behind
+   * it, so you can see there is something back there without being able to
+   * read it. A white rim inside the edge, which is where the light would sit
+   * and is doing most of the work of giving it an inside and an outside. And a
+   * soft shadow underneath, so it is resting on the page rather than printed
+   * into it.
+   */
+  background: linear-gradient(
+    148deg,
+    rgba(255, 255, 255, 0.42),
+    rgba(236, 138, 168, 0.34) 48%,
+    rgba(236, 138, 168, 0.18)
+  );
+  -webkit-backdrop-filter: blur(16px) saturate(190%);
+  backdrop-filter: blur(16px) saturate(190%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.92),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.34),
+    0 5px 16px rgba(206, 116, 145, 0.18);
+  transition:
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+/* Deepens and lifts rather than dimming — the rest of the row fades on hover,
+   and the one you are meant to press should do the opposite of what the menu
+   does. */
+.home-line-row .home-get:hover {
+  opacity: 1;
+  background: linear-gradient(
+    148deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(236, 138, 168, 0.54) 48%,
+    rgba(236, 138, 168, 0.32)
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4),
+    0 7px 22px rgba(206, 116, 145, 0.26);
+}
+
 .home-line-row a:hover,
 .home-line-row button:hover {
   opacity: 0.55;
@@ -285,6 +352,7 @@ a {
  * top edge and sets the layout, the object is tagged rather than captioned, and
  * the prose is small and justified in a corner like a specimen note.
  */
+/* A whole screen, and the only one. */
 .home-stage {
   position: relative;
   z-index: 1;
@@ -292,163 +360,132 @@ a {
   min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto 1fr;
-  gap: clamp(1.5rem, 4vh, 3rem) clamp(1.5rem, 4vw, 3rem);
-  padding: clamp(5rem, 11vh, 7rem) clamp(1rem, 4vw, 3rem) clamp(2rem, 5vh, 3.5rem);
+  /*
+   * Held in the middle rather than pinned to the top edge.
+   *
+   * The type owned the top when there was a character parked in the space
+   * below it to balance against. She is inside the sentence now, so there is
+   * nothing under it — top-aligned, the screen was a headline and then half a
+   * page of nothing.
+   */
+  align-content: center;
+  padding: clamp(5rem, 11vh, 7rem) clamp(1rem, 4vw, 3rem) clamp(3rem, 8vh, 5rem);
 }
 
 /*
- * Set to the edges and as large as the measure allows. Heavy and pulled tight:
- * at this size a light weight and open tracking is what makes a headline read
- * as a template, and closing it up is most of what separates a poster from a
- * landing page.
+ * Three things in a two-by-two, and the space between them is the layout.
+ *
+ * Her name at the top left, her beside it, and what she is for dropped to the
+ * line below and pushed to the far right. Stacked in a single column they were
+ * a headline with a picture in it; set across the diagonal, the eye has to
+ * travel from the name to her to the job, which is the order the sentence is
+ * meant to be read in anyway.
+ *
+ * Heavy and pulled tight: at this size a light weight and open tracking is
+ * what makes a headline read as a template, and closing it up is most of what
+ * separates a poster from a landing page.
  */
 .home-head {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  align-self: start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: clamp(0.75rem, 3vw, 2.75rem);
+  row-gap: clamp(0.4rem, 2.5vh, 1.6rem);
+  align-items: center;
   margin: 0;
+  width: 100%;
   font-family: var(--font-display-alt);
   font-weight: 600;
-  font-size: clamp(2.35rem, 7.4vw, 6.1rem);
+  font-size: clamp(2.1rem, 6.6vw, 5.4rem);
   line-height: 0.94;
   letter-spacing: -0.045em;
-  color: var(--ink);
-  max-width: 18ch;
 }
 
-/* The turn, held back rather than pushed forward — it is the quiet half of
-   the sentence and the size is already doing the shouting. */
-.home-head-turn {
-  color: rgba(17, 17, 17, 0.34);
-}
-
-/* ── The object, tagged ── */
-.home-pet {
-  grid-column: 2;
-  grid-row: 1 / span 3;
-  position: relative;
-  width: min(30vw, 260px);
-  aspect-ratio: 1;
+/*
+ * Her name, one letter at a time. Top left, and held back in grey.
+ *
+ * Grey because it is the introduction and not the point — "meet" is a stage
+ * direction. What she actually is stays in full ink underneath, so the loudest
+ * thing on the screen is the claim rather than the greeting.
+ */
+.home-name {
+  grid-area: 1 / 1;
+  justify-self: start;
   align-self: center;
-}
-
-/* ── The way in ── */
-/* Centred under the headline — the piece is the whole lower half now. */
-.cy {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  align-self: start;
-  justify-self: center;
+  white-space: nowrap;
+  color: rgba(17, 17, 17, 0.36);
 }
 
 /*
- * ── The way in ──
+ * Each letter rises the smallest distance as it lands.
  *
- * A rule and an arrow, in the same letterspaced mono the labels use. Lost when
- * the hero was rebuilt around the type; without it the control fell back to
- * body text and read as a sentence someone had underlined.
+ * Pure opacity switched on flat and read as a fault — like text loading in.
+ * A sixth of an em of travel is barely visible per letter and is the whole
+ * difference between letters appearing and letters being typed.
  */
-.home-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7em;
-  padding-bottom: 0.55em;
-  border-bottom: 1px solid rgba(17, 17, 17, 0.28);
-  font-family: var(--font-mono);
-  font-weight: 400;
-  font-size: clamp(0.68rem, 0.82vw, 0.78rem);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-decoration: none;
-  transition: border-color 200ms ease;
-}
-
-.home-cta:hover {
-  border-bottom-color: var(--ink);
-}
-
-.home-cta-arrow {
+.home-name > span {
   display: inline-block;
-  transition: transform 260ms cubic-bezier(0.22, 1.16, 0.32, 1);
+  opacity: 0;
+  transform: translateY(0.16em);
+  transition:
+    opacity 240ms ease,
+    transform 340ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
 }
 
-.home-cta:hover .home-cta-arrow {
-  transform: translateX(0.35em);
-}
-
-.home-cta:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 4px;
+.home-name > span[data-on] {
+  opacity: 1;
+  transform: none;
 }
 
 /*
- * ── The cue ──
+ * Already there, in ink, before a letter of her name has landed.
  *
- * A label and a hairline, in the same letterspaced mono everything else on
- * this page labels things in — no chevron, no bouncing arrow. The line is the
- * page's own vocabulary, and a segment travelling down it says "there is more
- * this way" without borrowing an icon from somewhere else.
+ * It does not need an entrance — it is what the page is about rather than part
+ * of the greeting, and in full ink it holds the composition down while the
+ * name is still arriving above it.
+ *
+ * Ranged right, against its own ragged left edge. It is the only block on the
+ * screen set that way and it is what stops the layout being two things in the
+ * top left corner with a lot of nothing under them.
  */
-.home-cue {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  align-self: end;
-  justify-self: center;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-  font-family: var(--font-mono);
-  font-weight: 300;
-  font-size: clamp(0.56rem, 0.68vw, 0.66rem);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(17, 17, 17, 0.42);
-}
-
-.home-cue-rule {
-  position: relative;
-  display: block;
-  width: 1px;
-  height: 46px;
-  overflow: hidden;
-  background: rgba(17, 17, 17, 0.14);
+.home-role {
+  grid-area: 2 / 2;
+  justify-self: end;
+  max-width: 15ch;
+  text-align: right;
+  text-wrap: balance;
+  color: var(--ink);
 }
 
 /*
- * The travelling segment. Transform only, so it never costs a layout, and it
- * runs the length of the rule rather than fading in place — the movement is
- * the whole message.
+ * Her, standing at the end of her own name.
+ *
+ * In a cell of her own rather than set inside the line, which is what lets her
+ * be this size — inline she was capped by what the leading could absorb, and
+ * anything bigger than about twice the cap height dragged the line below her
+ * halfway down the screen.
+ *
+ * Sized in em so she scales with the headline and holds the same relationship
+ * to the word beside her at every width. In px or vw she drifted away from the
+ * type on one screen and swallowed it on another.
  */
-.home-cue-rule::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 40%;
-  background: rgba(17, 17, 17, 0.55);
-  animation: home-cue-fall 2.4s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+.home-face {
+  grid-area: 1 / 2;
+  justify-self: start;
+  align-self: center;
+  width: 3.6em;
+  aspect-ratio: 1;
+  opacity: 0;
+  /* Up from below and a little small — she comes into the room rather than
+     fading up on the spot. */
+  transform: translateY(14%) scale(0.82);
+  transition:
+    opacity 460ms ease,
+    transform 720ms cubic-bezier(0.2, 0.95, 0.3, 1.14);
 }
 
-@keyframes home-cue-fall {
-  0% {
-    transform: translateY(-100%);
-  }
-  60%,
-  100% {
-    transform: translateY(250%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .home-cue-rule::after {
-    animation: none;
-    transform: translateY(130%);
-  }
+.home-face[data-on] {
+  opacity: 1;
+  transform: none;
 }
 
 /*
@@ -471,26 +508,29 @@ a {
 }
 
 @media (max-width: 820px) {
-  .home-stage {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr;
-  }
 
+  /* One column, and she goes back to sitting between the two lines rather than
+     beside one of them — at this width there is no second column to range the
+     job text into. */
   .home-head {
-    grid-column: 1;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-name {
+    grid-area: 1 / 1;
+  }
+
+  .home-face {
+    grid-area: 2 / 1;
+    justify-self: center;
+    width: 3.2em;
+  }
+
+  .home-role {
+    grid-area: 3 / 1;
+    justify-self: start;
+    text-align: left;
     max-width: none;
-  }
-
-  .home-pet {
-    grid-column: 1;
-    grid-row: 3;
-    width: min(44vw, 190px);
-    justify-self: end;
-  }
-
-
-  .cy {
-    grid-row: 2;
   }
 }
 

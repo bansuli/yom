@@ -1,0 +1,337 @@
+/*
+ * The answer, built out of the same parts as the problem.
+ *
+ * Same rail-and-sticky-stage as the section above, same window proportions,
+ * same hairline vocabulary — because it is meant to be read as the same
+ * screen with something different happening on it. A new visual language here
+ * would say "and now, a different product".
+ */
+.hw {
+  position: relative;
+  /* Clears the fixed bar when the nav jumps here. */
+  scroll-margin-top: 4.5rem;
+}
+
+/* Length and nothing else. Everything visible sticks inside it. */
+.hw-rail {
+  height: 420vh;
+}
+
+.hw-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.2rem, 3.5vh, 2.6rem);
+  padding: clamp(4.5rem, 11vh, 7rem) var(--gut, clamp(1.25rem, 4vw, 3.25rem))
+    clamp(2rem, 5vh, 3.5rem);
+  overflow: hidden;
+}
+
+/* Two lines in one cell, as in the section above, so the window under them
+   never shifts when the sentence changes. */
+.hw-line {
+  display: grid;
+  margin: 0;
+  max-width: 18ch;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.8rem, 5vw, 3.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.hw-line span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 420ms ease;
+}
+
+.hw-line span[data-on] {
+  opacity: 1;
+}
+
+/*
+ * The window, at the same desktop proportion as the one above.
+ *
+ * The width carries the ratio, not the height. A box with a clamped width and a
+ * definite height ignores aspect-ratio outright — which is how this ended up
+ * square on a tall screen the first time it was built.
+ */
+.hw-win {
+  position: relative;
+  flex: 0 1 auto;
+  aspect-ratio: 16 / 10;
+  width: min(100%, 1180px, 96dvh);
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* One tab. After nineteen, one is the loudest thing this section can say, and
+   it says it before a word has been read. */
+.hw-tabs {
+  display: flex;
+  padding: 7px 7px 0;
+}
+
+.hw-tab {
+  max-width: min(46%, 320px);
+  padding: 0.62em 0.85em;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  background: #ffffff;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 500;
+  font-size: clamp(0.72rem, 1.05vw, 0.92rem);
+  color: rgba(17, 17, 17, 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hw-page {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* ── The listing, down to what is being decided ── */
+.hw-shop {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.6rem, 1.6vh, 1.1rem);
+  padding: clamp(0.9rem, 2.4vh, 1.8rem) clamp(1rem, 2.4vw, 2rem);
+}
+
+.hw-item {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  object-position: center;
+  /* The photograph's own white ground, knocked back into the page's. */
+  mix-blend-mode: multiply;
+}
+
+.hw-meta {
+  flex: 0 0 auto;
+  font-family: var(--font-body), sans-serif;
+  color: #111111;
+}
+
+/* Each sets its own margin rather than a blanket reset the three of them then
+   have to fight — `.hw-meta p` is a class and an element, and a bare class
+   loses to it, which is what the !important here was papering over. */
+.hw-name {
+  margin: 0;
+  font-size: clamp(0.78rem, 1.05vw, 0.95rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.hw-price {
+  margin: 0.2em 0 0;
+  font-size: clamp(0.78rem, 1.05vw, 0.95rem);
+}
+
+.hw-size {
+  margin: 0.35em 0 0;
+  font-size: clamp(0.68rem, 0.9vw, 0.8rem);
+  color: rgba(17, 17, 17, 0.5);
+}
+
+/*
+ * ── The panel ──
+ *
+ * Docked to the right edge and full height, which is where a browser extension
+ * actually opens. Floating it in the middle of the page would look better and
+ * be a lie about what the product is.
+ */
+.hw-panel {
+  flex: 0 0 auto;
+  width: min(46%, 400px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 1.3vh, 0.9rem);
+  padding: clamp(0.9rem, 2.2vh, 1.5rem) clamp(0.9rem, 1.8vw, 1.4rem);
+  border-left: 1px solid rgba(17, 17, 17, 0.12);
+  /* A hair off white, so the panel reads as sitting on the shop rather than
+     being part of it — the same separation a real one has. */
+  background: #fbfafc;
+  overflow: hidden;
+}
+
+.hw-brand {
+  margin: 0;
+  font-family: var(--font-brand), sans-serif;
+  font-size: clamp(1rem, 1.5vw, 1.35rem);
+  line-height: 1;
+  color: var(--ink);
+}
+
+.hw-cards {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.35rem, 1vh, 0.7rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * Each one arrives in place rather than travelling in from an edge, and the
+ * ones under it are pushed down by the layout rather than by a transform — the
+ * panel filling up is the thing being watched, so the movement has to be the
+ * list growing and not six cards flying.
+ */
+.hw-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22em;
+  padding: 0.7em 0.85em;
+  border: 1px solid rgba(17, 17, 17, 0.09);
+  border-radius: 10px;
+  background: #ffffff;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 340ms ease,
+    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.hw-card[data-on] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Mono, uppercase, small: this is the machine naming what it looked at, and
+   everything on this site that labels rather than speaks is set this way. */
+.hw-card-label {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: clamp(0.5rem, 0.66vw, 0.6rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.42);
+}
+
+/* And the grotesque underneath it, because this half is yom talking. */
+.hw-card-line {
+  font-family: var(--font-body), sans-serif;
+  font-size: clamp(0.74rem, 1vw, 0.9rem);
+  line-height: 1.35;
+  letter-spacing: -0.008em;
+  color: var(--ink);
+}
+
+/*
+ * ── The verdict ──
+ *
+ * Pinned to the foot of the panel and set apart by ink rather than by size. The
+ * six cards above it are what yom found; this is what yom thinks, and the two
+ * are different kinds of statement — filling one of them in is the shortest way
+ * to say so.
+ */
+.hw-verdict {
+  margin-top: auto;
+  padding: clamp(0.7rem, 1.6vh, 1rem) clamp(0.8rem, 1.4vw, 1.05rem);
+  border-radius: 10px;
+  background: var(--ink);
+  color: #ffffff;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 380ms ease 120ms,
+    transform 520ms cubic-bezier(0.2, 0.9, 0.3, 1.15) 120ms;
+}
+
+[data-verdict] .hw-verdict {
+  opacity: 1;
+  transform: none;
+}
+
+.hw-says {
+  margin: 0;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 500;
+  font-size: clamp(0.95rem, 1.5vw, 1.35rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* The word itself at full strength, and the rest of the sentence held back —
+   one syllable is the answer and the other four are the preamble to it. */
+.hw-says b {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.hw-why {
+  margin: 0.45em 0 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: clamp(0.7rem, 0.94vw, 0.84rem);
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hw-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * Under the window's desktop proportion the panel beside the photograph leaves
+ * neither of them enough room, so they stack: the jeans on top, the panel
+ * filling in underneath. The order is the same, which is the part that matters.
+ */
+@media (max-width: 760px) {
+  .hw-win {
+    aspect-ratio: 3 / 4;
+  }
+
+  .hw-page {
+    flex-direction: column;
+  }
+
+  .hw-shop {
+    flex: 0 1 auto;
+  }
+
+  .hw-panel {
+    width: auto;
+    flex: 1 1 auto;
+    border-left: none;
+    border-top: 1px solid rgba(17, 17, 17, 0.12);
+  }
+}
+
+/* The sequence still happens on scroll — it is the section — but nothing
+   travels to get there. */
+@media (prefers-reduced-motion: reduce) {
+  .hw-line span,
+  .hw-card,
+  .hw-verdict {
+    transition-duration: 1ms;
+  }
+}
