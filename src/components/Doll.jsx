@@ -235,19 +235,19 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
   );
   doll.add(decalMesh);
 
-  // ── Stars ──
+  // ── The things floating round her ──
   /*
-   * A rounded five-point star, rounded in the outline rather than by the bevel.
+   * Rounded in the outline rather than by the bevel.
    *
-   * The bevel only softens the edge where the front face meets the side — seen
-   * head on, the silhouette it leaves is still the sharp star it was given, and
-   * turned up far enough to round the points it eats them instead. The same
-   * thing caught out the old pet's triangle. So each corner is a quadratic with
-   * the point itself as the control, run between two places partway down the
-   * adjoining edges, and every corner gets it — the inner notches want
-   * softening as much as the tips do.
+   * A bevel only softens the edge where the front face meets the side — seen
+   * head on, the silhouette it leaves is still the sharp shape it was given,
+   * and turned up far enough to round a star's points it eats them instead.
+   * The same thing caught out the old pet's triangle. So every corner is a
+   * quadratic with the point itself as the control, run between two places
+   * partway down the adjoining edges, and the inner notches get it as much as
+   * the tips do.
    */
-  function starGeometry(outer, inner, k) {
+  function roundedStar(outer, inner, k) {
     const pts = [];
     for (let i = 0; i < 10; i++) {
       const a = -Math.PI / 2 + (i * Math.PI) / 5;
@@ -269,14 +269,85 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
       shape.quadraticCurveTo(next.x, next.y, go.x, go.y);
     }
     shape.closePath();
+    return shape;
+  }
 
+  /*
+   * The tee and the bag are drawn as curves from the start rather than run
+   * through that corner router. Their corners are already obtuse — a shoulder,
+   * a hem, the turn of a sleeve — so there is nothing to rescue, and writing
+   * them as curves is the only way to get a sleeve cap and a neckline, which
+   * are not corners at all.
+   */
+  function teeShape() {
+    const s = new THREE.Shape();
+    s.moveTo(-0.26, 0.8);
+    s.quadraticCurveTo(-0.56, 0.92, -0.74, 0.86);
+    s.quadraticCurveTo(-1.02, 0.72, -1, 0.44);
+    s.lineTo(-0.9, 0.16);
+    s.quadraticCurveTo(-0.86, 0.03, -0.73, 0.08);
+    s.lineTo(-0.58, 0.14);
+    s.quadraticCurveTo(-0.5, 0.18, -0.5, 0.05);
+    s.lineTo(-0.5, -0.8);
+    s.quadraticCurveTo(-0.5, -0.92, -0.38, -0.92);
+    s.lineTo(0.38, -0.92);
+    s.quadraticCurveTo(0.5, -0.92, 0.5, -0.8);
+    s.lineTo(0.5, 0.05);
+    s.quadraticCurveTo(0.5, 0.18, 0.58, 0.14);
+    s.lineTo(0.73, 0.08);
+    s.quadraticCurveTo(0.86, 0.03, 0.9, 0.16);
+    s.lineTo(1, 0.44);
+    s.quadraticCurveTo(1.02, 0.72, 0.74, 0.86);
+    s.quadraticCurveTo(0.56, 0.92, 0.26, 0.8);
+    /* The neckline, scooped rather than cut straight across — a flat one reads
+       as a shopping bag with sleeves. */
+    s.quadraticCurveTo(0, 0.6, -0.26, 0.8);
+    s.closePath();
+    return s;
+  }
+
+  function bagShape() {
+    const s = new THREE.Shape();
+    /* Wider at the lip than at the base, which is most of what makes a tote a
+       tote rather than a box. */
+    s.moveTo(-0.72, 0.12);
+    s.lineTo(-0.58, -0.72);
+    s.quadraticCurveTo(-0.55, -0.86, -0.42, -0.86);
+    s.lineTo(0.42, -0.86);
+    s.quadraticCurveTo(0.55, -0.86, 0.58, -0.72);
+    s.lineTo(0.72, 0.12);
+    s.quadraticCurveTo(0.74, 0.22, 0.62, 0.22);
+    s.lineTo(0.48, 0.22);
+    s.quadraticCurveTo(0.5, 0.94, 0, 0.98);
+    s.quadraticCurveTo(-0.5, 0.94, -0.48, 0.22);
+    s.lineTo(-0.62, 0.22);
+    s.quadraticCurveTo(-0.74, 0.22, -0.72, 0.12);
+    s.closePath();
+
+    /*
+       The gap under the handle, as a hole in the shape rather than a second
+       object. Its floor sits above the bag's lip so there is material between
+       the two — level with it, the handle would meet the body at nothing and
+       the bevel would eat straight through the join. */
+    const gap = new THREE.Path();
+    gap.moveTo(-0.29, 0.3);
+    gap.quadraticCurveTo(-0.31, 0.74, 0, 0.78);
+    gap.quadraticCurveTo(0.31, 0.74, 0.29, 0.3);
+    gap.lineTo(-0.29, 0.3);
+    gap.closePath();
+    s.holes.push(gap);
+
+    return s;
+  }
+
+  function decoGeometry(shape) {
     const geo = new THREE.ExtrudeGeometry(shape, {
       depth: 0.34,
       bevelEnabled: true,
-      bevelSize: 0.07,
-      bevelThickness: 0.07,
+      bevelSize: 0.055,
+      bevelThickness: 0.06,
       bevelSegments: 5,
-      curveSegments: 10,
+      curveSegments: 12,
       steps: 1,
     });
     geo.center();
@@ -284,22 +355,24 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
   }
 
   /*
-   * Placed rather than scattered: out past the hair, spread around the head so
-   * no two sit at the same height, and none of them in front of the face. Fixed
-   * pastels instead of the variant's colour — these are stickers on the picture
-   * rather than part of the character, and the references all use a handful of
-   * unrelated sweet colours together.
+   * Placed rather than scattered: spread round the head so no two sit at the
+   * same height, none of them in front of the face, and all out past the hair.
+   * Fixed pastels instead of the variant's colour — these are stickers on the
+   * picture rather than part of the character.
    */
-  const STARS = [
-    { at: [-1.5, 0.72, -0.15], size: 0.16, color: 0xffd166, spin: 0.22 },
-    { at: [1.46, 0.42, 0.2], size: 0.13, color: 0x9ccdf0, spin: -0.3 },
-    { at: [1.3, -0.78, -0.25], size: 0.1, color: 0xffb3c9, spin: 0.36 },
-    { at: [-1.28, -0.66, 0.18], size: 0.115, color: 0xb7e3c8, spin: -0.25 },
+  const DECO = [
+    { shape: roundedStar(1, 0.46, 0.34), at: [-1.5, 0.72, -0.15], size: 0.17, color: 0xffd166 },
+    { shape: teeShape(), at: [1.52, 0.34, 0.2], size: 0.17, color: 0x9ccdf0 },
+    /* Further out than the other two. The hair is at its widest down here, and
+       at 1.3 the bag was sitting half behind it. */
+    { shape: bagShape(), at: [-1.58, -0.6, 0.18], size: 0.19, color: 0xffb3c9 },
   ];
 
-  const starGeo = starGeometry(1, 0.46, 0.34);
-  const starMats = [];
-  const stars = STARS.map((spec, i) => {
+  const decoGeos = [];
+  const decoMats = [];
+  const deco = DECO.map((spec, i) => {
+    const geo = decoGeometry(spec.shape);
+    decoGeos.push(geo);
     const mat = new THREE.MeshPhysicalMaterial({
       color: spec.color,
       roughness: 0.55,
@@ -308,8 +381,8 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
       sheen: 0.6,
       sheenColor: new THREE.Color(0xffffff),
     });
-    starMats.push(mat);
-    const mesh = new THREE.Mesh(starGeo, mat);
+    decoMats.push(mat);
+    const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(...spec.at);
     mesh.scale.setScalar(spec.size);
     /* Tipped out of the picture plane so they catch the light on a face rather
@@ -319,7 +392,7 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
     return mesh;
   });
 
-  // ── The nose ──
+  // ── The nose ──  // ── The nose ──
   /*
    * The one feature that stays solid, and the reason the flat face reads as
    * painted onto a head rather than as a mask floating in front of one. Both
@@ -554,12 +627,18 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
     const target = EXPRESSIONS[wanted.current] || EXPRESSIONS.resting;
     easeFace(pose, target, Math.min(1, dt * 6));
 
-    /* Each turning at its own rate and drifting on its own phase, so they never
-       fall into step with one another or with the doll's own bob. */
+    /*
+     * Rocking rather than turning, and each on its own phase so they never fall
+     * into step with one another or with her own bob.
+     *
+     * The stars used to rotate continuously, which was fine while everything up
+     * there was a star. A t-shirt going round and round is laundry in a drum —
+     * anything with a right way up has to stay near it.
+     */
     if (!reduced) {
-      stars.forEach((star, i) => {
-        star.rotation.z = seed * STARS[i].spin;
-        star.position.y = STARS[i].at[1] + Math.sin(seed * 0.9 + i * 1.7) * 0.07;
+      deco.forEach((item, i) => {
+        item.rotation.z = Math.sin(seed * 0.55 + i * 2.1) * 0.16;
+        item.position.y = DECO[i].at[1] + Math.sin(seed * 0.9 + i * 1.7) * 0.07;
       });
     }
 
@@ -588,7 +667,7 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
   if (import.meta.env?.DEV) {
     // So the doll can be taken apart without a rebuild when it does not look
     // the way the arithmetic said it would.
-    window.__doll = { scene, doll, camera, key, rim, skin, hairMat, decal, nose, stars };
+    window.__doll = { scene, doll, camera, key, rim, skin, hairMat, decal, nose, deco };
   }
 
   raf = requestAnimationFrame(frame);
@@ -604,8 +683,8 @@ function run(mount, THREE, RoomEnvironment, wanted, look) {
     decalMesh.material.dispose();
     decal.tex.dispose();
     noseGeo.dispose();
-    starGeo.dispose();
-    for (const m of starMats) m.dispose();
+    for (const g of decoGeos) g.dispose();
+    for (const m of decoMats) m.dispose();
     if (hair) hairGeo.dispose();
     hairMat.dispose();
     dropBuns();
