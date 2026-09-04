@@ -8,7 +8,17 @@
  */
 .tf {
   position: absolute;
-  inset: 0;
+  /*
+   * The first screen only.
+   *
+   * It was inset: 0 on the page, which meant one screen while the page was one
+   * screen and the entire document the moment a section arrived under it — shop
+   * tokens drifting behind the next headline, at a weight chosen to sit under
+   * this one and nothing else. This is the hero's texture, and the hero is
+   * where it stops.
+   */
+  inset: 0 0 auto 0;
+  height: 100dvh;
   z-index: 0;
   margin: 0;
   overflow: hidden;

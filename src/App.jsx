@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import TokenField from './components/TokenField.jsx'
 import CreateYom from './components/CreateYom.jsx'
+import AboutSection from './components/AboutSection.jsx'
 import SignInDialog from './components/SignInDialog.jsx'
 import { captureAcquisitionFromUrl, track } from './lib/analytics.js'
 import './App.css'
@@ -65,7 +66,11 @@ function App() {
           <button type="button" onClick={() => setSignIn(true)}>
             Sign in
           </button>
-          <Link to="/about">About yom</Link>
+          {/* A fragment, not a route. About is a band further down this same
+              page now, and a plain anchor does the whole job natively — it
+              scrolls, it updates the address, and it still opens in a new tab
+              or gets copied like the link it is. */}
+          <a href="#about">About yom</a>
           <Link to="/how-it-works">How it works</Link>
         </nav>
       </header>
@@ -95,6 +100,8 @@ function App() {
         </p>
 
       </section>
+
+      <AboutSection />
     </main>
 
       <SignInDialog open={signIn} onClose={closeSignIn} />

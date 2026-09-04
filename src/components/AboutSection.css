@@ -1,0 +1,543 @@
+.aw {
+  position: relative;
+  /* Clears the fixed bar when the nav jumps here. */
+  scroll-margin-top: 4.5rem;
+}
+
+/* The distance the sequence is scrolled through. Everything visible is in the
+   sticky stage inside it; this is only length. */
+.aw-rail {
+  height: 460vh;
+}
+
+.aw-stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.2rem, 3.5vh, 2.6rem);
+  padding: clamp(4.5rem, 11vh, 7rem) var(--gut, clamp(1.25rem, 4vw, 3.25rem))
+    clamp(2rem, 5vh, 3.5rem);
+  overflow: hidden;
+}
+
+/*
+ * Both lines occupy the same place; only one is ever up. Stacked in a grid
+ * rather than swapped, so the headline does not change height at the turn and
+ * shove everything under it.
+ */
+.aw-line {
+  display: grid;
+  margin: 0;
+  max-width: 18ch;
+  font-family: var(--font-display-alt), sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.8rem, 5vw, 3.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.aw-said,
+.aw-turn {
+  grid-area: 1 / 1;
+  transition: opacity 420ms ease;
+}
+
+.aw-turn {
+  opacity: 0;
+}
+
+[data-beat='yom'] .aw-said {
+  opacity: 0;
+}
+
+[data-beat='yom'] .aw-turn {
+  opacity: 1;
+}
+
+/* ── The window ── */
+.aw-win {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * The tabs. flex: 1 1 0 with a floor of nothing is the whole mechanism — every
+ * tab asks for an equal share, so opening one takes width off all the others
+ * and the titles start to disappear on their own. Nothing measures anything.
+ */
+.aw-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  transform-origin: 8% bottom;
+  transition:
+    transform 420ms cubic-bezier(0.6, 0, 0.2, 1),
+    opacity 300ms ease;
+}
+
+.aw-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0.62em 0.85em;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  background: rgba(255, 255, 255, 0.72);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: clamp(0.54rem, 0.72vw, 0.66rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.6);
+}
+
+/* The first one is the thing you actually wanted, and it stays legible longest
+   so it is still there to be read at the peak. */
+.aw-tab:first-child {
+  flex: 1.6 1 0;
+  background: #ffffff;
+  color: rgba(17, 17, 17, 0.85);
+}
+
+.aw-tab-name {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Shut. Squeezed to nothing from the left, which is where a browser's tabs go
+   when you close them one after another. */
+[data-beat='shut'] .aw-strip,
+[data-beat='yom'] .aw-strip {
+  transform: scaleX(0.04);
+  opacity: 0;
+}
+
+.aw-yomtab {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(30%, 190px);
+  padding: 0.62em 0.85em;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-bottom: none;
+  border-radius: 9px 9px 0 0;
+  background: #ffffff;
+  font-family: var(--font-mono);
+  font-size: clamp(0.54rem, 0.72vw, 0.66rem);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 360ms ease 260ms,
+    transform 360ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 260ms;
+}
+
+[data-beat='yom'] .aw-yomtab {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── The page under the tabs ── */
+.aw-page {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: start;
+  column-gap: clamp(1rem, 3vw, 2.6rem);
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0 12px 12px 12px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* The shop's own bar, spanning both columns. */
+.pdp-top {
+  grid-column: 1 / -1;
+  transition: opacity 380ms ease;
+}
+
+.pdp-bar {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 2vw, 1.6rem);
+  padding: 0.7em clamp(0.7rem, 1.6vw, 1.3rem);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+/*
+ * Set in type, not traced. Heavy, tight and slightly wide is enough to read as
+ * the brand at this size without a copy of anyone's artwork in the repository.
+ */
+.pdp-logo {
+  font-family: var(--font-body), sans-serif;
+  font-weight: 800;
+  font-size: clamp(0.7rem, 1.1vw, 1rem);
+  letter-spacing: -0.02em;
+  font-style: italic;
+}
+
+.pdp-nav {
+  display: flex;
+  gap: clamp(0.5rem, 1.4vw, 1.1rem);
+  font-family: var(--font-body), sans-serif;
+  font-weight: 600;
+  font-size: clamp(0.42rem, 0.6vw, 0.58rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: #111111;
+}
+
+.pdp-nav .is-sale {
+  color: #c8102e;
+}
+
+.pdp-icons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.pdp-icons i {
+  width: 0.62em;
+  height: 0.62em;
+  border: 1.2px solid rgba(17, 17, 17, 0.5);
+  border-radius: 50%;
+  font-size: clamp(0.6rem, 0.9vw, 0.8rem);
+}
+
+/* ── The gallery ── */
+.aw-shot {
+  display: flex;
+  gap: 0.5rem;
+  min-height: 0;
+  height: 100%;
+  padding: clamp(0.6rem, 1.6vh, 1.2rem) 0 clamp(0.6rem, 1.6vh, 1.2rem)
+    clamp(0.7rem, 1.6vw, 1.3rem);
+}
+
+.aw-thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  transition: opacity 380ms ease;
+}
+
+.aw-thumbs span {
+  width: clamp(20px, 2.6vw, 32px);
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  background: rgba(17, 17, 17, 0.03);
+}
+
+.aw-thumbs .is-on {
+  border-color: rgba(17, 17, 17, 0.75);
+}
+
+.aw-hero {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+/* The one thing being bought, there the whole way through — still not bought at
+   the peak, which is the argument. */
+.aw-item {
+  min-height: 0;
+  max-height: 88%;
+  width: auto;
+  /* White multiplies to nothing, so the ground it was cut out on disappears
+     without the photograph needing to be cut out. */
+  mix-blend-mode: multiply;
+  transition: transform 500ms cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+[data-beat='yom'] .aw-item {
+  transform: scale(1.04);
+}
+
+.aw-count {
+  font-family: var(--font-body), sans-serif;
+  font-size: clamp(0.45rem, 0.62vw, 0.58rem);
+  color: rgba(17, 17, 17, 0.5);
+  transition: opacity 380ms ease;
+}
+
+/*
+ * The listing and yom's answer share one cell, so they cross over in place and
+ * the photograph beside them never moves — the same jeans, a different
+ * experience.
+ */
+.aw-side {
+  display: grid;
+  align-items: center;
+  min-height: 0;
+  height: 100%;
+  padding: clamp(0.6rem, 1.6vh, 1.2rem) clamp(0.7rem, 1.6vw, 1.3rem);
+}
+
+.pdp,
+.aw-knows {
+  grid-area: 1 / 1;
+  transition: opacity 380ms ease;
+}
+
+/*
+ * Deliberately not yom's voice — a shop's. The contrast at the turn only works
+ * if the two halves sound like different places.
+ */
+.pdp {
+  font-family: var(--font-body), sans-serif;
+  color: #111111;
+}
+
+.pdp-crumb {
+  margin: 0 0 0.7rem;
+  font-size: clamp(0.44rem, 0.6vw, 0.56rem);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: rgba(17, 17, 17, 0.66);
+}
+
+.pdp-crumb span {
+  text-decoration: underline;
+}
+
+/* The boxed panel the real listing puts everything in. */
+.pdp-panel {
+  padding: clamp(0.7rem, 1.8vw, 1.3rem);
+  border: 1.5px solid #111111;
+}
+
+.pdp-name {
+  margin: 0 0 0.4rem;
+  font-size: clamp(0.62rem, 0.95vw, 0.9rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pdp-price {
+  margin: 0 0 0.35rem;
+  font-size: clamp(0.6rem, 0.9vw, 0.85rem);
+  font-weight: 700;
+}
+
+.pdp-pay {
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+  font-size: clamp(0.42rem, 0.6vw, 0.58rem);
+  color: rgba(17, 17, 17, 0.72);
+}
+
+.pdp-pay b {
+  color: #5a31f4;
+}
+
+.pdp-label {
+  margin: 0 0 0.4rem;
+  font-size: clamp(0.46rem, 0.65vw, 0.62rem);
+}
+
+.pdp-sizerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+
+.pdp-guide {
+  font-size: clamp(0.42rem, 0.58vw, 0.55rem);
+  text-decoration: underline;
+  color: rgba(17, 17, 17, 0.7);
+}
+
+.pdp-swatch {
+  display: block;
+  width: clamp(16px, 2vw, 24px);
+  aspect-ratio: 1;
+  background: #161a4a;
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 2.5px rgba(17, 17, 17, 0.55);
+}
+
+.pdp-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.pdp-sizes li {
+  min-width: 2.1em;
+  margin: -0.5px 0 0 -0.5px;
+  padding: 0.45em 0.15em;
+  border: 1px solid rgba(17, 17, 17, 0.35);
+  font-size: clamp(0.42rem, 0.6vw, 0.58rem);
+  text-align: center;
+}
+
+.pdp-sizes .is-on {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+
+.pdp-model {
+  margin: 0 0 0.9rem;
+  font-size: clamp(0.42rem, 0.58vw, 0.55rem);
+  color: rgba(17, 17, 17, 0.7);
+}
+
+/* Outlined rather than filled — which is how the real one is, and why the page
+   reads as expensive rather than as a checkout. */
+.pdp-cart {
+  margin: 0 0 0.8rem;
+  padding: 0.85em 1em;
+  border: 1.5px solid #111111;
+  font-size: clamp(0.55rem, 0.82vw, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.pdp-style {
+  margin: 0 0 0.35rem;
+  font-size: clamp(0.4rem, 0.56vw, 0.53rem);
+  letter-spacing: 0.02em;
+}
+
+.pdp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: clamp(0.4rem, 0.56vw, 0.53rem);
+  text-transform: uppercase;
+  color: #c8102e;
+}
+
+.pdp-tags span {
+  text-decoration: underline;
+}
+
+/* What yom has instead of all of that. Nothing until the turn. */
+.aw-knows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-body), sans-serif;
+  font-size: clamp(0.95rem, 1.4vw, 1.3rem);
+  line-height: 1.3;
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 420ms ease 380ms,
+    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1) 380ms;
+}
+
+/* At the turn the shop goes and only the jeans are left. */
+[data-beat='yom'] .pdp,
+[data-beat='yom'] .pdp-top,
+[data-beat='yom'] .aw-thumbs,
+[data-beat='yom'] .aw-count {
+  opacity: 0;
+}
+
+[data-beat='yom'] .aw-knows {
+  opacity: 1;
+  transform: none;
+}
+
+.aw-knows li::before {
+  content: '— ';
+  color: rgba(17, 17, 17, 0.32);
+}
+
+@media (max-width: 700px) {
+  .aw-thumbs,
+  .pdp-nav {
+    display: none;
+  }
+}
+
+/* ── The cost ── */
+.aw-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-weight: 300;
+  font-size: clamp(0.56rem, 0.68vw, 0.66rem);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(17, 17, 17, 0.42);
+}
+
+.aw-clock-value {
+  /* Digits that do not shuffle the line about as they change. */
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(0.8rem, 1.1vw, 1rem);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+
+[data-beat='yom'] .aw-clock-value {
+  color: var(--ink);
+}
+
+.aw-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * The sequence is the motion, so with it off everything simply arrives — the
+ * turn still happens on scroll, it just does not travel to get there.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .aw-strip,
+  .aw-yomtab,
+  .aw-knows,
+  .aw-item,
+  .aw-said,
+  .aw-turn {
+    transition-duration: 1ms;
+  }
+}

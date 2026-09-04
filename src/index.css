@@ -10,6 +10,23 @@
  * Beta and Legal still paint blush themselves; their bounce is white now
  * rather than matching, which is a much smaller mismatch than the homepage had.
  */
+/*
+ * One page now, so a nav link is a jump within it rather than a page load.
+ * Glided rather than teleported: arriving somewhere new with no sense of having
+ * travelled is disorienting when the place you left is still on the same page.
+ */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Except for anyone who has asked for less of it, for whom a long smooth scroll
+   is the exact thing they turned off. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 html,
 body,
 #root {

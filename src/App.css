@@ -132,12 +132,10 @@ a {
 .home {
   position: relative;
   /*
-   * Room held for the sections that are coming, rather than a prop for the
-   * background — it was originally here so the gradient had somewhere to be
-   * seen, and that gradient is gone. Real content replaces it; until then the
-   * scroll cue at the foot of the first screen has somewhere to point.
+   * No held height any more. It was standing in for the sections that were
+   * coming, and About is the first of them actually here — the page is as tall
+   * as what is on it, which is what the scroll cue has been pointing at.
    */
-  min-height: 240vh;
 
   /* Plain white. The ramp into blush and the three blooms low down are gone;
      the grain is the only thing on it now. */
