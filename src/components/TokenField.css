@@ -7,18 +7,22 @@
  * tokens read as sentences; opened up, they read as a texture with words in it.
  */
 .tf {
-  position: absolute;
   /*
-   * The first screen only.
+   * Fixed to the window, not to the page.
    *
-   * It was inset: 0 on the page, which meant one screen while the page was one
-   * screen and the entire document the moment a section arrived under it — shop
-   * tokens drifting behind the next headline, at a weight chosen to sit under
-   * this one and nothing else. This is the hero's texture, and the hero is
-   * where it stops.
+   * It was one screen tall and pinned to the top of the document, so it was the
+   * hero's texture and stopped there — scroll into the section below and the
+   * ground went flat white. Absolute and full height instead would make it the
+   * length of the document, which is worse: eight screens of a grid that is
+   * rebuilt five times a second, and the tokens sliding past at scroll speed
+   * rather than drifting.
+   *
+   * Fixed, it is exactly one screen of work at any scroll position and it
+   * behaves like the grain of the screen rather than a texture printed on the
+   * page — which is what .home::after already does, a few layers up.
    */
-  inset: 0 0 auto 0;
-  height: 100dvh;
+  position: fixed;
+  inset: 0;
   z-index: 0;
   margin: 0;
   overflow: hidden;

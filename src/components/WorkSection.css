@@ -1,30 +1,37 @@
 /*
- * One continuous shot, scrubbed by the wheel.
+ * The shop, and then the tabs on top of it.
  *
  * Everything visible lives in a sticky stage; the tall rail around it is only
- * distance, and it is very tall on purpose — a section whose argument is that
- * this takes far too long cannot be got through in a flick.
- *
- * Almost every position in here is a pixel value written from the scroll by the
- * component. The two exceptions are the click and the throw, which are events
- * rather than positions: a throw does not happen at whatever speed you happen
- * to be scrolling, so those are transitions.
+ * distance, and it is tall on purpose — a section whose argument is that this
+ * takes far too long cannot be got through in a flick of the wheel.
  */
+/*
+ * How much of the front card is left, as a fraction of what it started as.
+ *
+ * Registered, because it has to be interpolated. A plain custom property flips
+ * from one value to the next between frames — so the zoom box's width and
+ * height, which are computed from it, snapped instantly while the scale
+ * transform eased across 560ms, and for those 560ms the page was drawn at the
+ * wrong size for the box holding it. That is the flicker every time a tab
+ * landed. Animated as a number, everything derived from it moves together.
+ */
+@property --k {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
 .wk {
   position: relative;
+  /* Above the token field, which is fixed at z-index 0 and would otherwise
+     paint over a section that never claimed a layer. */
+  z-index: 1;
   /* Clears the fixed bar when the nav jumps here. */
   scroll-margin-top: 4.5rem;
 }
 
-/*
- * Eleven screens of scroll for six beats.
- *
- * At seven the whole shot was over in a couple of turns of the wheel and the
- * aisle — the part that is supposed to feel like it is dragging — went by
- * faster than anything else in it.
- */
 .wk-rail {
-  height: 1100vh;
+  height: 900vh;
 }
 
 .wk-stage {
@@ -34,84 +41,123 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: clamp(1.5rem, 5vh, 3.5rem);
-  /* The top only has to clear the bar, which is 72px. Everything above that was
-     air between the line in the hero and the cart arriving under it. */
+  gap: clamp(1.2rem, 3.5vh, 2.6rem);
+  /* The top only has to clear the bar, which is 72px. */
   padding: 4.5rem var(--gut, clamp(1.25rem, 4vw, 3.25rem)) clamp(2rem, 6vh, 4rem);
   overflow: hidden;
 }
 
-/* ── The line ── */
 /*
- * The only words in the section, and they arrive two thirds of the way through
- * it. Everything before them is the picture making the same point without help.
+ * ── The sentence, in two halves ──
  *
- * Above the shot, and out of the flow.
- *
- * Out of the flow because in it, an invisible two-line headline was still
- * reserving its height at the top of every frame — for the first two thirds of
- * the section, before it had said a word, it was pushing the cart a hundred and
- * thirty pixels down the screen.
- *
- * Smaller than it was, and that is what buys it the top. The signs stand above
- * the lane, so a headline up here sets a floor under how far the whole shot can
- * rise; at four and a bit rem it took two deep lines and shoved the aisle to
- * the middle of the screen. At three it clears the first sign and still reads
- * as the loudest thing in the frame, because nothing else here is type.
+ * Both are in the flow and both hold their seat from the first frame, the
+ * second one long before it has anything to say. Taken out of the flow the
+ * window would take the whole stage and the halves would land on top of it —
+ * and there is no way to set type over a pile of white cards that does not read
+ * as a third layer nobody asked for.
  */
-.wk-line {
-  position: absolute;
-  left: var(--gut, clamp(1.25rem, 4vw, 3.25rem));
-  top: clamp(4.5rem, 9vh, 5.5rem);
-  z-index: 2;
+.wk-lede,
+.wk-turn {
+  flex: 0 0 auto;
+  min-height: 1lh;
   margin: 0;
-  max-width: 24ch;
   font-family: var(--font-display-alt), sans-serif;
   font-weight: 600;
-  font-size: clamp(1.5rem, 3.2vw, 2.7rem);
-  line-height: 0.96;
+  font-size: clamp(1.5rem, 3.9vw, 3.3rem);
+  line-height: 1;
   letter-spacing: -0.045em;
   color: var(--ink);
-  text-wrap: balance;
-  opacity: 0;
-  transition: opacity 460ms ease;
+  white-space: nowrap;
 }
 
-[data-phase='research'] .wk-line,
-[data-phase='checkout'] .wk-line {
+/*
+ * Each letter switches on as the section climbs. No travel and no easing: this
+ * is the page being drawn by the scroll, and a letter that eases in lags behind
+ * the wheel that asked for it.
+ */
+.wk-lede span span {
+  opacity: 0;
+}
+
+.wk-lede span span[data-on] {
   opacity: 1;
 }
 
-/* ── The floor ── */
 /*
- * The band everything happens in, and the one positioning context they all
- * share — so every element in the shot is placed in the same coordinate space
- * and nothing has to be kept in step with anything else by hand.
+ * The second half, under the pile.
+ *
+ * Ranged right, against the first half's left. It is the other end of the same
+ * sentence and the tabs are stacked between them, so the two halves bracket the
+ * thing they are describing rather than sitting on top of it.
  */
-.wk-floor {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  /* The height everything stands on, named once so the cart, the jeans, the
-     button and the signs share one line rather than four numbers that drift. */
-  /*
-   * Higher than it was. At 62% the cart and the jeans came in near the foot of
-   * the screen, a long way under the line they are supposed to be answering —
-   * so the section read as starting somewhere else rather than as continuing.
-   */
-  /*
-   * Low enough to clear the headline that is now above it.
-   *
-   * The signs stand a fixed distance above the lane, so this number is not
-   * really where the cart goes — it is where the topmost sign ends up, and that
-   * has to land under the last line of type.
-   */
-  --lane: 36%;
-  --cart-w: clamp(8rem, 17vw, 15rem);
+.wk-turn {
+  align-self: flex-end;
+  text-align: right;
+  opacity: 0;
+  transform: translateY(10px);
+  transition:
+    opacity 460ms ease,
+    transform 560ms cubic-bezier(0.2, 0.9, 0.3, 1.08);
 }
 
-/* ── The signs ── */
-.wk-stops {
+.wk-turn[data-on] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ── The window ── */
+/*
+ * A desktop proportion, and the width carries the ratio rather than the height.
+ * A box with a clamped width and a definite height ignores aspect-ratio
+ * outright, which is how this came out square on a tall screen the first time.
+ */
+.wk-win {
+  position: relative;
+  flex: 0 1 auto;
+  aspect-ratio: 16 / 10;
+  /*
+   * The third term caps the box by the room above and below it rather than by
+   * the viewport's height directly: at 16:10 the width is 1.6 times the height,
+   * so this is "as wide as it can be and still fit". At 88dvh it was solving for
+   * the wrong number and came out a third smaller than the space it had.
+   */
+  width: min(100%, 1180px, 105dvh);
+  margin: auto;
+  min-height: 0;
+  /* Rises into place as the section climbs the window — scrubbed from --rise
+     rather than transitioned, so it moves exactly as fast as the wheel. */
+  transform: translateY(calc((1 - var(--rise, 0)) * 9vh));
+}
+
+
+/* ── The pile ── */
+.wk-pile {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+/*
+ * ── The deck ──
+ *
+ * Flat. The tabs simply appear behind the shop and stack upward.
+ *
+ * It carried a perspective tilt for a while — the whole pile hinged and
+ * receding, cards tapering with distance. It went because the taper is a
+ * complication the picture does not need: every card being the same size and
+ * squarely stacked says "another one, and another one" without asking anyone to
+ * read depth, and it keeps the shop in front of them dead straight and legible.
+ */
+.wk-deck {
+  position: absolute;
+  inset: 0;
+}
+
+.wk-pile {
   position: absolute;
   inset: 0;
   margin: 0;
@@ -121,236 +167,166 @@
 }
 
 /*
- * Spread along the aisle from the index, so a sixth one means a sixth string
- * and nothing else. Staggered in height as well as across: five labels on one
- * line is a legend, five at different heights is a place.
+ * ── A card ──
+ *
+ * One make, used by the shop and by everything arriving behind it. A title bar
+ * with the close cross at one end and the name centred, a rule under it, and a
+ * page below. The shop's page happens to have a shop on it; the rest are blank,
+ * which is exactly what a tab you have not looked at yet is.
+ *
+ * Every one of them takes the same left and right, so they are the same width
+ * and the stack has one silhouette.
  */
-.wk-stop {
+.wk-card {
   position: absolute;
-  left: calc(17% + var(--i) * 12%);
-  top: calc(var(--lane) - 5.5rem + (var(--i) - 2) * 1.4rem);
-  font-family: var(--font-mono);
-  font-weight: 300;
-  font-size: clamp(0.62rem, 0.95vw, 0.86rem);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: rgba(17, 17, 17, 0.24);
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 320ms ease,
-    transform 420ms cubic-bezier(0.2, 0.9, 0.3, 1.1),
-    color 320ms ease;
+  left: 2%;
+  right: 2%;
+  border: 1px solid rgba(17, 17, 17, 0.72);
+  border-radius: 18px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
-/*
- * They light as the cart reaches them and they stay lit. You do not stop having
- * read the reviews because you have moved on to the size chart — that is the
- * whole complaint, and having them fade out behind the cart would quietly say
- * the opposite.
- */
-.wk-stop[data-on] {
+/* The ones behind: a fixed step apart, tall enough that the next one buries
+   most of each. Only the bar is ever read. */
+.wk-back {
+  top: calc(var(--i) * 8%);
+  height: 26%;
+  opacity: 0;
+  /* In from above, which is where a tab comes from. */
+  transform: translateY(-40%);
+  transition:
+    opacity 220ms ease,
+    transform 520ms cubic-bezier(0.24, 0.9, 0.3, 1.04);
+}
+
+.wk-back[data-on] {
   opacity: 1;
   transform: none;
-  color: rgba(17, 17, 17, 0.62);
 }
 
-/* A hairline dropping to the aisle, so a sign is over a place rather than
-   floating in the middle of the screen. */
-.wk-stop::after {
+/*
+ * The shop, in front of all of them and standing on the floor of the frame.
+ *
+ * Its top steps down by one card's worth for every tab that opens, so the pile
+ * has room to build above it and the listing loses that much of itself each
+ * time. By the last one it is a strip at the bottom of a screen full of tabs,
+ * which is the whole argument and takes no words to make.
+ */
+.wk-front {
+  z-index: 2;
+  top: calc(var(--open, 0) * 8%);
+  bottom: 2%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 -10px 26px rgba(17, 17, 17, 0.06);
+
+  /*
+   * What is left of the card, as a fraction of what it started as: it runs from
+   * 98% of the frame down to 58% as the five tabs land. The page inside is
+   * scaled by exactly this, so the shop shrinks with the card holding it rather
+   * than being cropped by it.
+   */
+  --k: calc((98 - var(--open, 0) * 8) / 98);
+
+  /* The card's position and its contents' scale are one movement, so they run
+     on one clock with one curve. */
+  transition:
+    top 560ms cubic-bezier(0.3, 0.9, 0.3, 1),
+    --k 560ms cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.wk-front-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/*
+ * A zoom, not a crop.
+ *
+ * The shop is laid out in rem, so it took no notice of the card getting shorter
+ * and simply spilled out of it — the listing panel ran off the edge and the
+ * page underneath was cut in half rather than being buried.
+ *
+ * Scaled instead, and laid out at 1/k of the box it is shown in, so the page
+ * has proportionally *more* room in its own units the smaller it is drawn. That
+ * is what a browser does when you zoom out — the type gets smaller and more of
+ * the page fits — rather than the page staying put and the window closing on
+ * it.
+ */
+.wk-zoom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(100% / var(--k, 1));
+  height: calc(100% / var(--k, 1));
+  transform: scale(var(--k, 1));
+  transform-origin: 0 0;
+  /* No transition of its own: --k is already animating on the card above, and a
+     second transition on top of it would lag behind the width and height that
+     are read from the same number. */
+}
+
+/* ── The bar ── */
+.wk-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.9em;
+  padding: 0.95em 1.15em;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.28);
+  background: #ffffff;
+}
+
+/* Drawn rather than set — a glyph would be one more typeface in a section that
+   already has three. */
+.wk-x {
+  position: relative;
+  flex: 0 0 auto;
+  width: 0.95em;
+  height: 0.95em;
+  font-size: clamp(0.85rem, 1.3vw, 1.15rem);
+}
+
+.wk-x::before,
+.wk-x::after {
   content: '';
   position: absolute;
+  top: 50%;
   left: 0;
-  top: calc(100% + 0.5rem);
-  width: 1px;
-  height: 2.4rem;
-  background: linear-gradient(rgba(17, 17, 17, 0.22), rgba(17, 17, 17, 0));
+  width: 100%;
+  height: 1.4px;
+  background: rgba(17, 17, 17, 0.5);
 }
 
-/* ── The two controls ── */
+.wk-x::before {
+  transform: rotate(45deg);
+}
+
+.wk-x::after {
+  transform: rotate(-45deg);
+}
+
 /*
- * Both set in the bar's voice: mono, uppercase, letterspaced, and drawn with a
- * rule rather than filled. They are the same kind of object as GET YOM at the
- * top of the page and there is no reason for the site to have a second button
- * language three sections down.
- *
- * They were set in the display face at headline weight, which made them the
- * loudest thing in a shot whose whole subject is a cart moving past them.
+ * Centred in the bar with the cross parked at the edge, which is how a browser
+ * draws a tab. The right margin balances the cross on the left so the name sits
+ * in the middle of the card rather than the middle of what is left of it.
  */
-.wk-buy,
-.wk-till {
-  position: absolute;
-  top: var(--lane);
-  padding: 0.85em 1.5em;
-  border: 1px solid rgba(17, 17, 17, 0.34);
-  border-radius: 999px;
-  background: transparent;
+.wk-name {
+  flex: 1 1 auto;
+  margin-right: 1.95em;
+  text-align: center;
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(0.66rem, 0.98vw, 0.84rem);
+  font-size: clamp(0.6rem, 0.95vw, 0.82rem);
   letter-spacing: 0.16em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--ink);
-}
-
-.wk-buy {
-  /* Measured in the component: midway between the cart's right edge and the
-     jeans' left one, at whatever width the cart's clamp has settled on. */
-  left: var(--buy-x, 40%);
-  transform: translate(-50%, -50%);
-  opacity: 0;
-  transition:
-    opacity 380ms ease,
-    background 160ms ease,
-    border-color 160ms ease,
-    transform 160ms ease;
-}
-
-[data-phase='enter'] .wk-buy,
-[data-phase='reach'] .wk-buy {
-  opacity: 1;
-}
-
-/* Pressed. A hair smaller and filled — the whole of a click, and no more. */
-[data-phase='reach'] .wk-buy {
-  background: rgba(17, 17, 17, 0.06);
-  border-color: rgba(17, 17, 17, 0.6);
-  transform: translate(-50%, -50%) scale(0.97);
-}
-
-.wk-till {
-  left: var(--till-at, 88%);
-  transform: translateY(-50%);
-  opacity: 0;
-  transition:
-    opacity 420ms ease,
-    border-color 300ms ease;
-}
-
-[data-phase='research'] .wk-till,
-[data-phase='checkout'] .wk-till {
-  opacity: 1;
-}
-
-/* And at the very end it is finally being aimed at. */
-[data-phase='checkout'] .wk-till {
-  border-color: var(--ink);
-}
-
-/* ── The cart, and what is in it ── */
-/*
- * The rig is what travels. The cart and the jeans each carry a transform of
- * their own inside it, so "rolling in", "being thrown in" and "going down the
- * aisle" are three movements that never have to be reconciled.
- */
-.wk-rig {
-  position: absolute;
-  left: var(--cart-at, 6%);
-  top: var(--lane);
-  width: var(--cart-w);
-  /* Written from the scroll, in pixels, measured off the real distance between
-     the cart and the till. */
-  transform: translate(var(--travel, 0px), -50%);
-}
-
-/*
- * And then it sees the till.
- *
- * A short push after the aisle has run out, on a transition rather than off the
- * scroll, so it reads as the cart setting off again of its own accord rather
- * than as more of the same dragging.
- */
-.wk-stage[data-phase='checkout'] .wk-rig {
-  transform: translate(var(--travel-on, 0px), -50%);
-  transition: transform 900ms cubic-bezier(0.3, 0.9, 0.3, 1);
-}
-
-.wk-cart {
-  display: block;
-  width: 100%;
-  /* In from off the left edge, scrubbed. */
-  transform: translateX(var(--cart-x, 0px));
-}
-
-.wk-cart svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-/*
- * Off to the right and turned right over to start with, then upright and still,
- * then in the basket. One element and one transform the whole way through.
- */
-.wk-jeans {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: clamp(5.5rem, 12vw, 10.5rem);
-  transform: translate(var(--jeans-x, 0px), -50%) rotate(var(--jeans-turn, 0deg));
-  /* The photograph's own white ground, knocked back into the page's. */
-  mix-blend-mode: multiply;
-}
-
-/*
- * And thrown — the one movement here that is not scrubbed. It has a speed of
- * its own and a tighter curve than anything that arrived, which is most of what
- * separates a thing being thrown from a thing being placed.
- *
- * Written against .wk-stage rather than the bare attribute: the resting rule is
- * three class-level selectors and a bare [data-phase] is two, so the throw
- * silently lost and the jeans stood still while the cursor clicked at them.
- *
- * The landing spot is measured off the cart's own width, so they go into the
- * basket at every size rather than at the one this was eyeballed on.
- */
-.wk-stage[data-phase='thrown'] .wk-jeans,
-.wk-stage[data-phase='research'] .wk-jeans,
-.wk-stage[data-phase='checkout'] .wk-jeans {
-  transform: translate(
-      calc(var(--cart-w) * 0.3),
-      calc(-50% - var(--cart-w) * 0.22)
-    )
-    rotate(-14deg) scale(0.3);
-  transition: transform 620ms cubic-bezier(0.4, -0.28, 0.3, 1);
-}
-
-/* ── The hand ── */
-/*
- * Four or five times life size. Small, it was a detail nobody would find on a
- * screen this wide; this big it is a second character in the shot and what it
- * is doing is legible from across a room.
- *
- * Filled in ink with a white keyline, so it holds against the page and against
- * the jeans without needing a shadow to separate it from either.
- */
-.wk-cursor {
-  position: absolute;
-  left: var(--buy-x, 40%);
-  top: var(--lane);
-  width: clamp(3.4rem, 6.6vw, 5.8rem);
-  /*
-   * The offsets are percentages of the cursor's own size, so the tip lands in
-   * the middle of the button rather than on its bottom edge at every size. The
-   * arrow's own top-left corner is its tip, which is why it needs pulling back
-   * up and left rather than centring.
-   */
-  transform: translate(calc(var(--cur-x, 0px) - 9%), calc(var(--cur-y, 0px) - 24%));
-  opacity: 0;
-  transition: opacity 320ms ease;
-}
-
-.wk-cursor svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-[data-phase='enter'] .wk-cursor,
-[data-phase='reach'] .wk-cursor {
-  opacity: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(17, 17, 17, 0.82);
 }
 
 .wk-sr {
@@ -364,34 +340,24 @@
   white-space: nowrap;
 }
 
-/*
- * Narrower, the aisle has less room to run down and the signs need to sit
- * closer together, or the last two are off the edge before the cart gets to
- * them.
- */
-@media (max-width: 860px) {
-  .wk-floor {
-    --lane: 42%;
+/* Under the window's desktop proportion the cards need the height back, so the
+   frame goes upright and the step between them opens up. */
+@media (max-width: 760px) {
+  .wk-win {
+    aspect-ratio: 3 / 4;
   }
 
-  .wk-stop {
-    left: calc(13% + var(--i) * 13%);
-    top: calc(var(--lane) - 4.75rem + (var(--i) - 2) * 1.15rem);
+  .wk-back {
+    height: 30%;
   }
 }
 
-/*
- * The shot still happens on scroll — it is the section — but nothing eases to
- * get there, so none of it is in motion of its own accord.
- */
+/* The pile still happens on scroll — it is the section — but nothing travels to
+   get there. */
 @media (prefers-reduced-motion: reduce) {
-  .wk-jeans,
-  .wk-buy,
-  .wk-till,
-  .wk-cursor,
-  .wk-stop,
-  .wk-line,
-  .wk-rig {
+  .wk-back,
+  .wk-front,
+  .wk-turn {
     transition-duration: 1ms;
   }
 }

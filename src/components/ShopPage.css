@@ -1,0 +1,313 @@
+/*
+ * The shop, drawn at the size of the window it sits in.
+ *
+ * Everything here is in rem rather than vw. The window that holds it has a
+ * ceiling, so type scaled to the viewport kept growing after its container had
+ * stopped — on a wide screen the whole listing was set for a box half again as
+ * big as the one it was in.
+ */
+.sp {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  font-family: var(--font-body), sans-serif;
+  color: #111111;
+  overflow: hidden;
+}
+
+/* ── The shop's own bar ── */
+.sp-top {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: clamp(0.6rem, 2vw, 1.6rem);
+  padding: 0.7em clamp(0.7rem, 1.6vw, 1.3rem);
+  border-bottom: 1px solid rgba(17, 17, 17, 0.1);
+}
+
+/*
+ * Set in type, not traced. Heavy, tight and italic is enough to read as the
+ * brand at this size without a copy of anyone's artwork in the repository.
+ */
+.sp-logo {
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  font-style: italic;
+}
+
+.sp-nav {
+  display: flex;
+  gap: clamp(0.5rem, 1.4vw, 1.1rem);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.sp-nav .is-sale {
+  color: #c8102e;
+}
+
+.sp-icons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.sp-icons i {
+  width: 0.62em;
+  height: 0.62em;
+  border: 1.2px solid rgba(17, 17, 17, 0.5);
+  border-radius: 50%;
+  font-size: clamp(0.6rem, 0.9vw, 0.8rem);
+}
+
+/* ── Gallery on the left, listing on the right ── */
+.sp-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.sp-shot {
+  display: flex;
+  gap: 0.5rem;
+  min-height: 0;
+  padding: clamp(0.6rem, 1.6vh, 1.2rem) 0 clamp(0.6rem, 1.6vh, 1.2rem)
+    clamp(0.7rem, 1.6vw, 1.3rem);
+}
+
+.sp-thumbs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+/*
+ * The other shots in the gallery, and they are the same photograph.
+ *
+ * They were empty grey boxes, which on a page whose whole job is to look like a
+ * real listing read as images that had failed to load. There is one photograph
+ * in the repository, so each thumbnail shows a different crop of it — framed
+ * differently enough to pass as four pictures at 42px without pretending to be
+ * four garments.
+ */
+.sp-thumbs span {
+  width: 42px;
+  aspect-ratio: 3 / 4;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  background-color: #ffffff;
+  background-image: url('/pinkjeans.jpg');
+  background-repeat: no-repeat;
+  background-size: 145% auto;
+  background-position: 50% 18%;
+}
+
+.sp-thumbs span:nth-child(2) {
+  background-size: 100% auto;
+  background-position: 50% 50%;
+}
+
+.sp-thumbs span:nth-child(3) {
+  background-size: 210% auto;
+  background-position: 38% 78%;
+}
+
+.sp-thumbs span:nth-child(4) {
+  background-size: 175% auto;
+  background-position: 62% 8%;
+}
+
+.sp-thumbs .is-on {
+  border-color: rgba(17, 17, 17, 0.75);
+}
+
+.sp-hero {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.sp-item {
+  min-height: 0;
+  max-height: 88%;
+  width: auto;
+  /* White multiplies to nothing, so the ground the photograph was shot on
+     disappears without the photograph needing to be cut out. */
+  mix-blend-mode: multiply;
+}
+
+.sp-count {
+  font-size: 0.72rem;
+  color: rgba(17, 17, 17, 0.5);
+}
+
+.sp-side {
+  min-height: 0;
+  align-self: center;
+  padding: clamp(0.6rem, 1.6vh, 1.2rem) clamp(0.7rem, 1.6vw, 1.3rem);
+}
+
+.sp-crumb {
+  margin: 0 0 0.7rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: rgba(17, 17, 17, 0.66);
+}
+
+.sp-crumb span {
+  text-decoration: underline;
+}
+
+/* The boxed panel the real listing puts everything in. */
+.sp-panel {
+  padding: clamp(0.7rem, 1.8vw, 1.3rem);
+  border: 1.5px solid #111111;
+}
+
+.sp-name {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.sp-price {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sp-pay {
+  margin: 0 0 0.8rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid rgba(17, 17, 17, 0.16);
+  font-size: 0.72rem;
+  color: rgba(17, 17, 17, 0.72);
+}
+
+.sp-pay b {
+  color: #5a31f4;
+}
+
+.sp-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+}
+
+.sp-sizerow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+
+.sp-guide {
+  font-size: 0.7rem;
+  text-decoration: underline;
+  color: rgba(17, 17, 17, 0.7);
+}
+
+.sp-swatch {
+  display: block;
+  width: 26px;
+  aspect-ratio: 1;
+  background: #161a4a;
+  box-shadow:
+    0 0 0 1px #ffffff,
+    0 0 0 2.5px rgba(17, 17, 17, 0.55);
+}
+
+.sp-sizes {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 0 0.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.sp-sizes li {
+  min-width: 2.1em;
+  margin: -0.5px 0 0 -0.5px;
+  padding: 0.45em 0.15em;
+  border: 1px solid rgba(17, 17, 17, 0.35);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.sp-sizes .is-on {
+  background: #111111;
+  border-color: #111111;
+  color: #ffffff;
+}
+
+.sp-model {
+  margin: 0 0 0.9rem;
+  font-size: 0.7rem;
+  color: rgba(17, 17, 17, 0.7);
+}
+
+/* Outlined rather than filled — which is how the real one is, and most of why
+   the page reads as expensive rather than as a checkout. */
+.sp-cart {
+  margin: 0 0 0.8rem;
+  padding: 0.85em 1em;
+  border: 1.5px solid #111111;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.sp-style {
+  margin: 0 0 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+}
+
+.sp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: #c8102e;
+}
+
+.sp-tags span {
+  text-decoration: underline;
+}
+
+/* One step down where the window is narrow enough that the desktop sizes stop
+   fitting, rather than a size that slides the whole way. */
+@media (max-width: 860px) {
+  .sp-name,
+  .sp-price {
+    font-size: 0.85rem;
+  }
+
+  .sp-panel {
+    padding: 0.6rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .sp-thumbs,
+  .sp-nav {
+    display: none;
+  }
+}
