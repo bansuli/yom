@@ -353,18 +353,17 @@ a {
  * the prose is small and justified in a corner like a specimen note.
  */
 /*
- * Just short of a whole screen.
+ * A whole screen, and not a pixel less.
  *
- * The line at the foot is ranged to the top of its row, so every spare pixel of
- * the first screen piles up underneath it — at a full hundred that was three
- * hundred of them between the line and the cart arriving in the section below.
- * Taking the screen down opens the join instead of padding it.
+ * It was 82, which on a tall window left the first screen shorter than the
+ * window itself — so the section below showed through at the foot and the word
+ * "buying" sat under the hero on load. A first screen has to be the screen.
  */
 .home-stage {
   position: relative;
   z-index: 1;
-  min-height: 82vh;
-  min-height: 82dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   /*
@@ -487,15 +486,14 @@ a {
   grid-area: 2 / 2;
   justify-self: end;
   /*
-   * Ranged to the top of its row, not the foot of the screen.
+   * Centred in its row rather than ranged to the top of it.
    *
-   * Pinned to the bottom, moving it up meant growing the page's bottom padding
-   * and the two blocks drifted apart as the window got taller. Hung off the
-   * row above it, it sits a fixed distance under her at every height and all
-   * the spare room falls below it, which is where empty space is supposed to
-   * go on a page that ends here.
+   * The row below the name is the one that stretches, so ranged to the top
+   * every spare pixel of a full screen piled up underneath this line. Centred,
+   * the slack splits above and below and the line holds the lower third at any
+   * height rather than drifting up as the window grows.
    */
-  align-self: start;
+  align-self: center;
   /* Wide enough to hold "your online shopping" on one line — at 15ch, which
      was measured for the old wording, it broke into three. */
   max-width: 21ch;

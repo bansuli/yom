@@ -42,67 +42,50 @@
   display: flex;
   flex-direction: column;
   gap: clamp(1.2rem, 3.5vh, 2.6rem);
-  /* The top only has to clear the bar, which is 72px. */
-  padding: 4.5rem var(--gut, clamp(1.25rem, 4vw, 3.25rem)) clamp(2rem, 6vh, 4rem);
+  /*
+   * The bar is 72px, and clearing it is not the same as being placed under it.
+   * At exactly 4.5rem the line sat on the rule; this leaves it room to have
+   * been put there.
+   */
+  padding: clamp(7rem, 13vh, 9.5rem) var(--gut, clamp(1.25rem, 4vw, 3.25rem))
+    clamp(2rem, 6vh, 4rem);
   overflow: hidden;
 }
 
 /*
- * ── The sentence, in two halves ──
+ * ── The sentence ──
  *
- * Both are in the flow and both hold their seat from the first frame, the
- * second one long before it has anything to say. Taken out of the flow the
- * window would take the whole stage and the halves would land on top of it —
- * and there is no way to set type over a pile of white cards that does not read
- * as a third layer nobody asked for.
+ * One line in one place, written in two goes — the halves used to sit above and
+ * below the pile, which made them two captions rather than a sentence.
+ *
+ * It holds two lines of seat from the first frame even though the second one is
+ * blank for most of the section. Given only what it is using, the window would
+ * jump taller the moment the second half arrived.
  */
-.wk-lede,
-.wk-turn {
+.wk-head {
   flex: 0 0 auto;
-  min-height: 1lh;
+  min-height: 2lh;
   margin: 0;
+  max-width: 21ch;
   font-family: var(--font-display-alt), sans-serif;
   font-weight: 600;
   font-size: clamp(1.5rem, 3.9vw, 3.3rem);
-  line-height: 1;
+  line-height: 1.02;
   letter-spacing: -0.045em;
   color: var(--ink);
-  white-space: nowrap;
 }
 
 /*
- * Each letter switches on as the section climbs. No travel and no easing: this
- * is the page being drawn by the scroll, and a letter that eases in lags behind
- * the wheel that asked for it.
+ * Each letter switches on where the scroll reaches it. No travel and no easing:
+ * this is the line being drawn by the wheel, and a letter that eases in lags
+ * behind the turn of it that asked for the letter.
  */
-.wk-lede span span {
+.wk-head span span {
   opacity: 0;
 }
 
-.wk-lede span span[data-on] {
+.wk-head span span[data-on] {
   opacity: 1;
-}
-
-/*
- * The second half, under the pile.
- *
- * Ranged right, against the first half's left. It is the other end of the same
- * sentence and the tabs are stacked between them, so the two halves bracket the
- * thing they are describing rather than sitting on top of it.
- */
-.wk-turn {
-  align-self: flex-end;
-  text-align: right;
-  opacity: 0;
-  transform: translateY(10px);
-  transition:
-    opacity 460ms ease,
-    transform 560ms cubic-bezier(0.2, 0.9, 0.3, 1.08);
-}
-
-.wk-turn[data-on] {
-  opacity: 1;
-  transform: none;
 }
 
 /* ── The window ── */
@@ -187,15 +170,36 @@
   overflow: hidden;
 }
 
-/* The ones behind: a fixed step apart, tall enough that the next one buries
-   most of each. Only the bar is ever read. */
+/*
+ * The ones behind.
+ *
+ * Measured back from the shop rather than down from the top of the frame: the
+ * newest card sits directly behind it and every one before it is pushed a step
+ * further away. Laid out from the top instead, the first tab to open appeared
+ * furthest from the shop and the pile filled *toward* it, which is the stack
+ * built back to front.
+ *
+ * Because the offset is counted off --open, the whole pile slides back a step
+ * every time another one lands, which is the movement that reads as depth.
+ */
 .wk-back {
-  top: calc(var(--i) * 8%);
+  /*
+   * Painted in reverse, because the pile is laid out in reverse.
+   *
+   * Document order puts the newest card on top, but the newest card is the one
+   * furthest back — so it was drawn over the three in front of it and wiped out
+   * their bars. Four open tabs showed as one. The nearest card has to be the
+   * one on top, which means the z-index has to count down as the index counts
+   * up.
+   */
+  z-index: calc(10 - var(--i));
+  top: calc((var(--open, 0) - 1 - var(--i)) * 8%);
   height: 26%;
   opacity: 0;
   /* In from above, which is where a tab comes from. */
   transform: translateY(-40%);
   transition:
+    top 560ms cubic-bezier(0.3, 0.9, 0.3, 1),
     opacity 220ms ease,
     transform 520ms cubic-bezier(0.24, 0.9, 0.3, 1.04);
 }
@@ -214,7 +218,7 @@
  * which is the whole argument and takes no words to make.
  */
 .wk-front {
-  z-index: 2;
+  z-index: 20;
   top: calc(var(--open, 0) * 8%);
   bottom: 2%;
   display: flex;
@@ -231,9 +235,20 @@
 
   /* The card's position and its contents' scale are one movement, so they run
      on one clock with one curve. */
+  /* Up from below, two letters into the line. */
+  opacity: 0;
+  transform: translateY(14%);
+
   transition:
     top 560ms cubic-bezier(0.3, 0.9, 0.3, 1),
+    opacity 380ms ease,
+    transform 640ms cubic-bezier(0.24, 0.9, 0.3, 1.05),
     --k 560ms cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+.wk-front[data-on] {
+  opacity: 1;
+  transform: none;
 }
 
 .wk-front-body {
@@ -356,8 +371,7 @@
    get there. */
 @media (prefers-reduced-motion: reduce) {
   .wk-back,
-  .wk-front,
-  .wk-turn {
+  .wk-front {
     transition-duration: 1ms;
   }
 }

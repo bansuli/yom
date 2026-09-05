@@ -32,20 +32,31 @@ import './WorkSection.css'
 const TABS = ['reviews', 'size charts', 'tiktok videos', 'reddit threads', 'the groupchat']
 
 /*
- * The sentence, in two halves, in two places.
+ * One sentence, in one place, written in two goes.
  *
- * The first is above the shop and drawn a letter at a time as the section
- * climbs into view — so it is being written while there is still only one tab
- * and nothing has gone wrong yet. The second waits until the third tab is on
- * screen and lands *under* the pile, which is the only place it can go: by then
- * the tabs are what it is about, and it has to read as what they added up to
- * rather than as a title sitting over them.
+ * The first half is drawn a letter at a time as the section climbs into view —
+ * so it is being written while there is still nothing on screen and nothing has
+ * gone wrong yet. The second half waits for the pile to be three deep and then
+ * writes itself the same way, straight on from the first, so the sentence
+ * finishes at the same moment the screen does.
  */
-const LEDE = 'buying one thing'
+const LEDE = 'buying one thing '
 const TURN = 'became researching everything.'
 
-/* The Evisu tab counts, so the third tab on screen is the second one to open. */
-const TURN_AT = 2
+/*
+ * Where the second half starts and finishes writing, as fractions of the pile
+ * filling. The first opens with the third card on screen — the shop counts, so
+ * that is the second tab to arrive.
+ */
+const TURN_FROM = 0.4
+const TURN_TO = 0.72
+
+/*
+ * How far into the first half the shop turns up. Two letters in: long enough
+ * that the line has started and short enough that it does not feel like waiting
+ * for it.
+ */
+const SHOP_AT = 2
 
 /*
  * Where each beat sits, and there are two clocks rather than one.
@@ -59,8 +70,16 @@ const TURN_AT = 2
  * Everything after is a fraction of the sticky run. The pile takes nearly all
  * of it, because the accumulation is the argument and it has to feel long.
  */
-const PILE_START = 0.06
-const PILE_END = 0.82
+/*
+ * The first half writes itself across the top of the sticky run, not on the way
+ * in. Written on the climb it was finished before the section had the screen —
+ * and worse, it was being drawn at the very bottom of the window while the hero
+ * still filled the rest of it, so the word "buying" appeared under the first
+ * screen every time anyone scrolled.
+ */
+const LEDE_TO = 0.12
+const PILE_START = 0.16
+const PILE_END = 0.86
 
 function span(p, a, b) {
   return Math.min(1, Math.max(0, (p - a) / (b - a)))
@@ -74,6 +93,7 @@ export default function WorkSection() {
      handful of times across the whole scroll rather than every frame. */
   const [open, setOpen] = useState(0)
   const [typed, setTyped] = useState(0)
+  const [typedTurn, setTypedTurn] = useState(0)
 
   useEffect(() => {
     const rail = railRef.current
@@ -83,6 +103,7 @@ export default function WorkSection() {
     let queued = false
     let lastOpen = -1
     let lastTyped = -1
+    let lastTurn = -1
 
     const measure = () => {
       queued = false
@@ -101,12 +122,8 @@ export default function WorkSection() {
       const ea = 1 - Math.pow(1 - (arriving ? rise : 1), 3)
       stage.style.setProperty('--rise', ea.toFixed(4))
 
-      /*
-       * The first half, drawn by the climb rather than on a timer. It finishes
-       * exactly as the stage locks, so the line is complete the moment the shop
-       * has settled and before anything has happened to it.
-       */
-      const t = Math.min(LEDE.length, Math.round(ea * LEDE.length))
+      /* The first half, once the section has the screen to itself. */
+      const t = arriving ? 0 : Math.round(span(p, 0, LEDE_TO) * LEDE.length)
       if (t !== lastTyped) {
         lastTyped = t
         setTyped(t)
@@ -122,6 +139,13 @@ export default function WorkSection() {
       if (n !== lastOpen) {
         lastOpen = n
         setOpen(n)
+      }
+
+      /* And the second half, written across the middle of the pile. */
+      const tt = Math.round(span(filling, TURN_FROM, TURN_TO) * TURN.length)
+      if (tt !== lastTurn) {
+        lastTurn = tt
+        setTypedTurn(tt)
       }
 
     }
@@ -153,14 +177,20 @@ export default function WorkSection() {
             * scenery. Read one span at a time it is not a line of type, it is
             * sixteen of them.
             */}
-          <h2 className="wk-lede" id="wk-title" aria-label={`${LEDE} ${TURN}`}>
+          <h2 className="wk-head" id="wk-title" aria-label={`${LEDE}${TURN}`}>
             <span aria-hidden="true">
               {LEDE.split('').map((ch, i) => (
                 // Positional by nature: the same letter appears more than once
                 // and it is the place in the line being revealed, not the
                 // character.
                 // eslint-disable-next-line react/no-array-index-key
-                <span key={i} data-on={i < typed || undefined}>
+                <span key={`a${i}`} data-on={i < typed || undefined}>
+                  {ch === ' ' ? '\u00a0' : ch}
+                </span>
+              ))}
+              {TURN.split('').map((ch, i) => (
+                // eslint-disable-next-line react/no-array-index-key
+                <span key={`b${i}`} data-on={i < typedTurn || undefined}>
                   {ch === ' ' ? '\u00a0' : ch}
                 </span>
               ))}
@@ -174,9 +204,11 @@ export default function WorkSection() {
               */}
             <div className="wk-deck" style={{ '--open': open }}>
               {/*
-                * The ones arriving behind. Each sits a fixed step higher than
-                * the next, so they build upward out of the back of the shop and
-                * only their bars ever show.
+                * The ones arriving behind. The newest sits directly behind the
+                * shop and pushes the rest further back, so the pile grows away
+                * from you rather than filling in from the top of the frame
+                * downward — which is what "behind" has to mean if the shop is
+                * the card in front.
                 */}
               <ul className="wk-pile">
                 {TABS.map((t, i) => (
@@ -196,10 +228,14 @@ export default function WorkSection() {
 
               {/*
                 * And the shop, in front, in a card of exactly the same make.
+                * It is not there to begin with: it comes up two letters into
+                * the line, so the sentence starts on an empty screen and the
+                * tab is the first thing that happens on it.
+                *
                 * It steps down as the pile grows — which is what gives the ones
                 * behind somewhere to appear, and what buries the listing.
                 */}
-              <div className="wk-card wk-front">
+              <div className="wk-card wk-front" data-on={typed >= SHOP_AT || undefined}>
                 <span className="wk-bar">
                   <span className="wk-x" />
                   <span className="wk-name">daicock print baggy-fit jeans #2000</span>
@@ -213,11 +249,6 @@ export default function WorkSection() {
               </div>
             </div>
           </div>
-
-          {/* And the other half, under the pile, once the third tab is up. */}
-          <p className="wk-turn" data-on={open >= TURN_AT || undefined} aria-hidden="true">
-            {TURN}
-          </p>
 
           {/* The whole thing in words, for anything that cannot watch it. */}
           <p className="wk-sr">
